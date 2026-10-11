@@ -14,7 +14,11 @@ import {
   ExternalLink,
   Loader2,
   AlertCircle,
+  Copy,
+  Check,
+  Printer,
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useStore } from '@/context/StoreContext';
 import { posService } from '@/services';
 import { DiningTable, QrCode } from '@/types';
@@ -48,6 +52,8 @@ export default function TablesManagementPage() {
   const [qrList, setQrList] = useState<QrCode[]>([]);
   const [loadingQr, setLoadingQr] = useState(false);
   const [generatingQr, setGeneratingQr] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
 
   const fetchTables = useCallback(async () => {
     if (!activeStore) return;
@@ -135,11 +141,27 @@ export default function TablesManagementPage() {
     setSelectedTableForQr(t);
     setQrModalOpen(true);
     setLoadingQr(true);
+    setQrError(null);
+    setCopied(false);
     try {
       const res = await posService.getTableQrs(t.id);
-      setQrList(res.data || []);
-    } catch (err) {
+      let list = res.data || [];
+      // Auto-generate if table has no active QR yet
+      if (list.length === 0 || !list.some((q) => q.is_active || q.status === 'ACTIVE')) {
+        const genRes = await posService.rotateTableQr(t.id);
+        if (genRes.data) {
+          list = [genRes.data, ...list];
+          fetchTables();
+        }
+      }
+      setQrList(list);
+    } catch (err: unknown) {
       console.error('Failed to load QR tokens:', err);
+      if (err instanceof ApiError) {
+        setQrError(err.message);
+      } else {
+        setQrError((err as Error).message);
+      }
     } finally {
       setLoadingQr(false);
     }
@@ -148,19 +170,83 @@ export default function TablesManagementPage() {
   const handleRotateQr = async () => {
     if (!selectedTableForQr) return;
     setGeneratingQr(true);
+    setQrError(null);
     try {
-      await posService.rotateTableQr(selectedTableForQr.id);
+      const rotateRes = await posService.rotateTableQr(selectedTableForQr.id);
       const res = await posService.getTableQrs(selectedTableForQr.id);
-      setQrList(res.data || []);
+      const updatedList = res.data && res.data.length > 0 ? res.data : (rotateRes.data ? [rotateRes.data] : []);
+      setQrList(updatedList);
       fetchTables();
     } catch (err: unknown) {
-      alert((err as Error).message || 'Gagal rotasi QR');
+      if (err instanceof ApiError) {
+        setQrError(err.message || 'Gagal rotasi QR.');
+      } else {
+        setQrError((err as Error).message || 'Gagal rotasi QR.');
+      }
     } finally {
       setGeneratingQr(false);
     }
   };
 
-  const activeQr = qrList.find((q) => q.is_active);
+  const activeQr = qrList.find((q) => q.is_active || q.status === 'ACTIVE');
+
+  const qrOrderUrl = typeof window !== 'undefined' && activeQr
+    ? `${window.location.origin}/q/${activeQr.token}`
+    : activeQr ? `/q/${activeQr.token}` : '';
+
+  const handleCopyUrl = async () => {
+    if (!qrOrderUrl) return;
+    try {
+      await navigator.clipboard.writeText(qrOrderUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback
+    }
+  };
+
+  const handlePrintQr = () => {
+    if (!activeQr || !selectedTableForQr) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>QR Code - ${selectedTableForQr.name}</title>
+          <style>
+            @media print {
+              body { margin: 0; }
+            }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #fafafa; }
+            .card { border: 2px solid #27272a; padding: 36px 28px; border-radius: 20px; text-align: center; max-width: 300px; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+            h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; color: #18181b; }
+            .code { font-size: 13px; font-weight: 700; color: #d97706; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+            .qr-wrapper { display: inline-block; padding: 12px; background: white; border-radius: 12px; }
+            p { font-size: 13px; font-weight: 500; color: #52525b; margin: 16px 0 4px; }
+            .hint { font-size: 11px; color: #a1a1aa; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h1>${selectedTableForQr.name}</h1>
+            <div class="code">Meja: ${selectedTableForQr.code}</div>
+            <div class="qr-wrapper">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrOrderUrl)}" width="200" height="200" alt="QR Code" />
+            </div>
+            <p>Pindai untuk Pesan & Bayar</p>
+            <div class="hint">Self-Order Langsung dari Meja</div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   return (
     <div className="space-y-6">
@@ -339,56 +425,108 @@ export default function TablesManagementPage() {
             </DialogDescription>
           </DialogHeader>
 
+          {qrError && (
+            <div className="mb-4 flex items-center gap-2 p-3 text-xs rounded-lg bg-destructive/10 text-destructive border border-destructive/20">
+              <AlertCircle className="size-4 shrink-0" />
+              <span>{qrError}</span>
+            </div>
+          )}
+
           {loadingQr ? (
-            <div className="py-12 flex justify-center text-muted-foreground">
-              <Loader2 className="size-6 animate-spin text-amber-600" />
+            <div className="py-12 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+              <Loader2 className="size-7 animate-spin text-amber-600" />
+              <span className="text-xs">Menyiapkan token QR meja...</span>
             </div>
           ) : activeQr ? (
             <div className="space-y-4">
-              <div className="p-6 rounded-2xl bg-muted/40 border border-border flex flex-col items-center justify-center text-center">
-                <div className="p-4 bg-white rounded-xl shadow-md border border-stone-200">
-                  <div className="size-48 bg-stone-900 rounded-lg flex flex-col items-center justify-center text-white p-3">
-                    <QrIcon className="size-20 text-amber-400 mb-2" />
-                    <span className="font-mono text-[10px] text-zinc-300 break-all px-2">
-                      {activeQr.token.slice(0, 16)}...
-                    </span>
-                  </div>
+              <div className="p-6 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-border flex flex-col items-center justify-center text-center">
+                {/* Real Scannable QR Code */}
+                <div className="p-3.5 bg-white rounded-2xl shadow-lg border border-zinc-200 dark:border-zinc-700">
+                  <QRCodeSVG
+                    value={qrOrderUrl}
+                    size={192}
+                    level="H"
+                    includeMargin={false}
+                    className="rounded-lg"
+                  />
                 </div>
 
-                <p className="mt-3 text-xs font-semibold text-foreground">
-                  Scan untuk memesan di {selectedTableForQr?.name}
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  Token: <code className="font-mono bg-muted px-1 rounded">{activeQr.token}</code>
-                </p>
+                <div className="mt-3 text-center">
+                  <span className="text-xs font-bold text-foreground">
+                    {selectedTableForQr?.name} ({selectedTableForQr?.code})
+                  </span>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Arahkan kamera smartphone ke kode di atas untuk memesan
+                  </p>
+                </div>
+
+                {/* Copy URL bar */}
+                <div className="flex items-center gap-2 w-full max-w-sm mt-3 bg-background p-1.5 rounded-xl border border-border">
+                  <input
+                    readOnly
+                    value={qrOrderUrl}
+                    className="bg-transparent text-[11px] font-mono flex-1 px-2 outline-hidden select-all text-muted-foreground truncate"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2.5 text-xs text-amber-600 hover:text-amber-700"
+                    onClick={handleCopyUrl}
+                  >
+                    {copied ? <Check className="size-3.5 text-emerald-600 mr-1" /> : <Copy className="size-3.5 mr-1" />}
+                    {copied ? 'Tersalin' : 'Salin'}
+                  </Button>
+                </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-2">
+              {/* Action Buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrintQr}
+                  className="text-xs"
+                >
+                  <Printer className="size-3.5 mr-1.5" /> Cetak QR
+                </Button>
+
                 <Link
                   href={ROUTES.PUBLIC.QR_ORDER(activeQr.token)}
                   target="_blank"
-                  className="flex-1"
+                  className="w-full"
                 >
-                  <Button variant="outline" className="w-full text-xs">
-                    <ExternalLink className="size-3.5 mr-1.5" /> Uji Tampilan Self-Order
+                  <Button variant="outline" size="sm" className="w-full text-xs">
+                    <ExternalLink className="size-3.5 mr-1.5" /> Buka Menu
                   </Button>
                 </Link>
 
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={handleRotateQr}
                   disabled={generatingQr}
                   className="text-xs text-amber-700 dark:text-amber-300"
                 >
-                  <RefreshCw className={`size-3.5 mr-1.5 ${generatingQr ? 'animate-spin' : ''}`} /> Rotasi Token QR
+                  <RefreshCw className={`size-3.5 mr-1.5 ${generatingQr ? 'animate-spin' : ''}`} /> Rotasi QR
                 </Button>
               </div>
             </div>
           ) : (
-            <div className="py-8 text-center text-muted-foreground text-xs">
-              Belum ada token QR aktif untuk meja ini.
-              <Button onClick={handleRotateQr} className="mt-3 bg-amber-600 text-white" size="sm">
-                Generate QR Sekarang
+            <div className="py-8 text-center text-muted-foreground text-xs space-y-3">
+              <p>Belum ada token QR aktif untuk meja ini.</p>
+              <Button
+                onClick={handleRotateQr}
+                disabled={generatingQr}
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+                size="sm"
+              >
+                {generatingQr ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" /> Menghasilkan QR...
+                  </>
+                ) : (
+                  'Generate QR Sekarang'
+                )}
               </Button>
             </div>
           )}

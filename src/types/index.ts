@@ -287,7 +287,8 @@ export interface QrCode {
   id: ULID;
   table_id: ULID;
   token: string;
-  is_active: boolean;
+  status?: 'ACTIVE' | 'INACTIVE' | 'EXPIRED';
+  is_active?: boolean;
   expires_at?: string | null;
   created_at?: string;
 }
