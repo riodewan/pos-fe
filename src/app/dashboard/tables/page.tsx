@@ -10,17 +10,18 @@ import {
   Trash2,
   Edit2,
   Users,
-  CheckCircle,
   Clock,
   ExternalLink,
-  Printer,
   Loader2,
   AlertCircle,
 } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
-import api, { ApiError } from '@/lib/api';
-import { DiningTable, QrCode, ApiResponse } from '@/types';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { posService } from '@/services';
+import { DiningTable, QrCode } from '@/types';
+import { ApiError } from '@/lib/api';
+import { ROUTES } from '@/constants';
+import { PageHeader, EmptyState, LoadingScreen } from '@/components/common';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -52,7 +53,7 @@ export default function TablesManagementPage() {
     if (!activeStore) return;
     setLoading(true);
     try {
-      const res = await api.get<ApiResponse<DiningTable[]>>('/pos/tables');
+      const res = await posService.getTables();
       setTables(res.data || []);
     } catch (err) {
       console.error('Failed to load tables:', err);
@@ -90,14 +91,14 @@ export default function TablesManagementPage() {
 
     try {
       if (editingTable) {
-        await api.put(`/pos/tables/${editingTable.id}`, {
+        await posService.updateTable(editingTable.id, {
           name,
           code,
           capacity: Number(capacity) || 4,
           status: 'ACTIVE',
         });
       } else {
-        await api.post('/pos/tables', {
+        await posService.createTable({
           name,
           code,
           capacity: Number(capacity) || 4,
@@ -120,7 +121,7 @@ export default function TablesManagementPage() {
   const handleDeleteTable = async (id: string) => {
     if (!confirm('Apakah Anda yakin ingin menghapus meja ini?')) return;
     try {
-      await api.delete(`/pos/tables/${id}`);
+      await posService.deleteTable(id);
       fetchTables();
     } catch (err: unknown) {
       if (err instanceof ApiError) {
@@ -135,7 +136,7 @@ export default function TablesManagementPage() {
     setQrModalOpen(true);
     setLoadingQr(true);
     try {
-      const res = await api.get<ApiResponse<QrCode[]>>(`/pos/tables/${t.id}/qr`);
+      const res = await posService.getTableQrs(t.id);
       setQrList(res.data || []);
     } catch (err) {
       console.error('Failed to load QR tokens:', err);
@@ -148,8 +149,8 @@ export default function TablesManagementPage() {
     if (!selectedTableForQr) return;
     setGeneratingQr(true);
     try {
-      await api.post(`/pos/tables/${selectedTableForQr.id}/qr`);
-      const res = await api.get<ApiResponse<QrCode[]>>(`/pos/tables/${selectedTableForQr.id}/qr`);
+      await posService.rotateTableQr(selectedTableForQr.id);
+      const res = await posService.getTableQrs(selectedTableForQr.id);
       setQrList(res.data || []);
       fetchTables();
     } catch (err: unknown) {
@@ -163,42 +164,30 @@ export default function TablesManagementPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Manajemen Meja & QR Self-Order
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Kelola tata letak meja dine-in, status okupansi, dan token scan QR pelanggan
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={fetchTables} disabled={loading}>
-            <RefreshCw className={`size-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
-          </Button>
-          <Button onClick={openAddModal} className="bg-amber-600 hover:bg-amber-700 text-white" size="sm">
-            <Plus className="size-4 mr-1.5" /> Tambah Meja
-          </Button>
-        </div>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        title="Manajemen Meja & QR Self-Order"
+        description="Kelola tata letak meja dine-in, status okupansi, dan token scan QR pelanggan"
+      >
+        <Button variant="outline" size="sm" onClick={fetchTables} disabled={loading}>
+          <RefreshCw className={`size-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
+        </Button>
+        <Button onClick={openAddModal} className="bg-amber-600 hover:bg-amber-700 text-white" size="sm">
+          <Plus className="size-4 mr-1.5" /> Tambah Meja
+        </Button>
+      </PageHeader>
 
       {/* Tables Grid */}
       {loading ? (
-        <div className="py-20 flex flex-col items-center justify-center text-muted-foreground gap-2">
-          <Loader2 className="size-6 animate-spin text-amber-600" />
-          <span className="text-xs">Memuat data meja...</span>
-        </div>
+        <LoadingScreen message="Memuat data meja outlet..." />
       ) : tables.length === 0 ? (
-        <Card className="p-12 text-center text-muted-foreground">
-          <Grid className="size-12 mx-auto mb-3 opacity-30" />
-          <h3 className="text-base font-semibold text-foreground">Belum ada meja</h3>
-          <p className="text-xs mt-1">Tambahkan meja pertama Anda untuk mengaktifkan fitur dine-in dan QR self-order.</p>
-          <Button onClick={openAddModal} className="mt-4 bg-amber-600 text-white" size="sm">
-            Tambah Meja Baru
-          </Button>
-        </Card>
+        <EmptyState
+          icon={Grid}
+          title="Belum ada meja"
+          description="Tambahkan meja pertama Anda untuk mengaktifkan fitur dine-in dan QR self-order."
+          actionLabel="Tambah Meja Baru"
+          onAction={openAddModal}
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {tables.map((table) => (
@@ -358,7 +347,6 @@ export default function TablesManagementPage() {
             <div className="space-y-4">
               <div className="p-6 rounded-2xl bg-muted/40 border border-border flex flex-col items-center justify-center text-center">
                 <div className="p-4 bg-white rounded-xl shadow-md border border-stone-200">
-                  {/* Visual QR representation placeholder */}
                   <div className="size-48 bg-stone-900 rounded-lg flex flex-col items-center justify-center text-white p-3">
                     <QrIcon className="size-20 text-amber-400 mb-2" />
                     <span className="font-mono text-[10px] text-zinc-300 break-all px-2">
@@ -377,7 +365,7 @@ export default function TablesManagementPage() {
 
               <div className="flex flex-col sm:flex-row gap-2">
                 <Link
-                  href={`/q/${activeQr.token}`}
+                  href={ROUTES.PUBLIC.QR_ORDER(activeQr.token)}
                   target="_blank"
                   className="flex-1"
                 >

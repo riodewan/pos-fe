@@ -13,16 +13,15 @@ import {
   CheckCircle2,
   AlertCircle,
   Receipt,
-  User,
   Coffee,
-  X,
   Loader2,
-  Printer,
 } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
-import api, { ApiError } from '@/lib/api';
-import { Product, DiningTable, Order, PaymentMethod, ApiResponse } from '@/types';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { catalogService, posService } from '@/services';
+import { Product, DiningTable, Order, PaymentMethod } from '@/types';
+import { ApiError } from '@/lib/api';
+import { formatRupiah } from '@/utils';
+import { TAX_PERCENTAGE, QUICK_CASH_DENOMINATIONS } from '@/constants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -61,14 +60,14 @@ export default function PosCashierPage() {
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
 
-  // Fetch Products & Tables
+  // Fetch Products & Tables using dedicated services
   const loadData = useCallback(async () => {
     if (!activeStore) return;
     setLoading(true);
     try {
       const [prodRes, tableRes] = await Promise.all([
-        api.get<ApiResponse<Product[]>>('/catalog/products'),
-        api.get<ApiResponse<DiningTable[]>>('/pos/tables'),
+        catalogService.getProducts(),
+        posService.getTables(),
       ]);
       setProducts(prodRes.data || []);
       setTables(tableRes.data || []);
@@ -131,16 +130,11 @@ export default function PosCashierPage() {
 
   // Calculations
   const subtotal = cart.reduce((acc, item) => acc + Number(item.product.selling_price) * item.quantity, 0);
-  const tax = Math.round(Math.max(0, subtotal - discountAmount) * 0.11);
+  const tax = Math.round(Math.max(0, subtotal - discountAmount) * TAX_PERCENTAGE);
   const total = Math.max(0, subtotal - discountAmount + tax);
 
-  const formatCurrency = (val: number | string) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      maximumFractionDigits: 0,
-    }).format(Number(val || 0));
-  };
+  const formatCurrency = formatRupiah;
+
 
   // Filtered products
   const filteredProducts = products.filter((p) =>
@@ -178,7 +172,7 @@ export default function PosCashierPage() {
         })),
       };
 
-      const orderRes = await api.post<ApiResponse<Order>>('/pos/orders', orderPayload);
+      const orderRes = await posService.createOrder(orderPayload);
       const createdOrder = orderRes.data;
 
       // 2. Process Payment
@@ -187,7 +181,7 @@ export default function PosCashierPage() {
         throw new Error('Nominal uang tunai kurang dari total tagihan.');
       }
 
-      const paymentPayload = {
+      await posService.processPayment(createdOrder.id, {
         method: paymentMethod,
         amount: total,
         provider: null,
@@ -196,9 +190,8 @@ export default function PosCashierPage() {
           received_amount: paymentMethod === 'CASH' ? tenderedNumber : total,
           change_amount: paymentMethod === 'CASH' ? Math.max(0, tenderedNumber - total) : 0,
         },
-      };
+      });
 
-      await api.post(`/pos/orders/${createdOrder.id}/payments`, paymentPayload);
 
       // 3. Success
       setCompletedOrder({
@@ -495,8 +488,9 @@ export default function PosCashierPage() {
 
                 {/* Quick Bills Buttons */}
                 <div className="flex flex-wrap gap-1.5">
-                  {[total, 50000, 100000, 200000].map((amt) => (
+                  {[total, ...QUICK_CASH_DENOMINATIONS].map((amt) => (
                     <button
+
                       key={amt}
                       type="button"
                       onClick={() => setCashTendered(String(amt))}

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { User, TenantMembership, ApiResponse } from '@/types';
-import api, { storage, ApiError } from '@/lib/api';
+import { User, TenantMembership } from '@/types';
+import { storage } from '@/lib/api';
+import { authService } from '@/services';
 
 interface AuthContextType {
   user: User | null;
@@ -54,11 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const response = await api.get<ApiResponse<User>>('/auth/me', {
-        skipTenant: true,
-        skipStore: true,
-      });
-
+      const response = await authService.getMe();
       const userData = response.data;
       setUser(userData);
       setToken(currentToken);
@@ -83,12 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string, deviceName: string = 'web-app'): Promise<User> => {
     setIsLoading(true);
     try {
-      const response = await api.post<ApiResponse<{ user: User; token: string }>>(
-        '/auth/login',
-        { email, password, device_name: deviceName },
-        { skipAuth: true, skipTenant: true, skipStore: true }
-      );
-
+      const response = await authService.login({ email, password, device_name: deviceName });
       const { user: loggedInUser, token: authToken } = response.data;
       storage.setToken(authToken);
       setToken(authToken);
@@ -112,12 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   ): Promise<User> => {
     setIsLoading(true);
     try {
-      const response = await api.post<ApiResponse<{ user: User; token: string }>>(
-        '/auth/register',
-        { name, email, password, password_confirmation },
-        { skipAuth: true, skipTenant: true, skipStore: true }
-      );
-
+      const response = await authService.register({ name, email, password, password_confirmation });
       const { user: registeredUser, token: authToken } = response.data;
       storage.setToken(authToken);
       setToken(authToken);
@@ -135,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async (): Promise<void> => {
     try {
-      await api.post('/auth/logout', {}, { skipTenant: true, skipStore: true });
+      await authService.logout();
     } catch {
       // Ignore network errors on logout
     } finally {
@@ -145,6 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setActiveTenant(null);
     }
   };
+
 
   const selectTenant = (tenantId: string) => {
     if (!user || !user.tenants) return;

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, use, Suspense } from 'react';
+
 import {
   Coffee,
   Plus,
@@ -10,8 +11,10 @@ import {
   ArrowRight,
   Loader2,
 } from 'lucide-react';
-import api, { ApiError } from '@/lib/api';
-import { PublicQrResolved, ApiResponse } from '@/types';
+import { publicService } from '@/services';
+import { PublicQrResolved } from '@/types';
+import { ApiError } from '@/lib/api';
+import { formatRupiah } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -51,13 +54,10 @@ function CustomerQrContent({ token }: { token: string }) {
       setLoading(true);
       setErrorMsg(null);
       try {
-        const res = await api.get<ApiResponse<PublicQrResolved>>(`/public/qr/${token}`, {
-          skipAuth: true,
-          skipTenant: true,
-          skipStore: true,
-        });
+        const res = await publicService.resolveQrToken(token);
         setSession(res.data);
       } catch (err: unknown) {
+
         if (err instanceof ApiError) {
           setErrorMsg(err.message || 'QR code tidak valid atau telah kedaluwarsa.');
         } else {
@@ -111,13 +111,7 @@ function CustomerQrContent({ token }: { token: string }) {
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      maximumFractionDigits: 0,
-    }).format(val);
-  };
+  const formatCurrency = formatRupiah;
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,11 +134,8 @@ function CustomerQrContent({ token }: { token: string }) {
         })),
       };
 
-      const res = await api.post<ApiResponse<any>>(`/public/qr/${token}/order`, payload, {
-        skipAuth: true,
-        skipTenant: true,
-        skipStore: true,
-      });
+      const res = await publicService.submitCustomerOrder(token, payload);
+
 
       setSubmittedOrderInfo({
         orderNumber: res.data?.order_number || 'ORD-NEW',

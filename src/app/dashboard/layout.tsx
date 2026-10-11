@@ -5,38 +5,24 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Coffee,
-  LayoutDashboard,
   ShoppingCart,
-  Grid,
-  BookOpen,
-  Package,
-  BarChart3,
-  Settings,
   LogOut,
   ChevronDown,
   Store as StoreIcon,
   Menu as MenuIcon,
   X,
-  User as UserIcon,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-
-const navItems = [
-  { href: '/dashboard', label: 'Ringkasan', icon: LayoutDashboard },
-  { href: '/dashboard/pos', label: 'Kasir POS', icon: ShoppingCart },
-  { href: '/dashboard/tables', label: 'Meja & QR', icon: Grid },
-  { href: '/dashboard/catalog', label: 'Katalog Produk', icon: Coffee },
-  { href: '/dashboard/recipes', label: 'Resep & HPP', icon: BookOpen },
-  { href: '/dashboard/inventory', label: 'Inventaris Stok', icon: Package },
-  { href: '/dashboard/reports', label: 'Laporan Penjualan', icon: BarChart3 },
-  { href: '/dashboard/settings', label: 'Pengaturan', icon: Settings },
-];
+import { SIDEBAR_NAV_ITEMS, ROUTES } from '@/constants';
+import { getInitials } from '@/utils';
+import { LoadingScreen } from '@/components/common';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+
   const pathname = usePathname();
   const { user, activeTenant, logout } = useAuth();
   const { stores, activeStore, selectStore } = useStore();
@@ -100,7 +86,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Navigation Links */}
           <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-            {navItems.map((item) => {
+            {SIDEBAR_NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
               return (
@@ -126,7 +112,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-card border border-border/40">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="size-8 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 flex items-center justify-center text-xs font-bold shrink-0">
-                  {user?.name?.slice(0, 2).toUpperCase() || 'US'}
+                  {getInitials(user?.name)}
                 </div>
                 <div className="min-w-0 flex flex-col">
                   <span className="text-xs font-semibold text-foreground truncate">{user?.name}</span>
@@ -142,6 +128,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </button>
             </div>
           </div>
+
         </div>
       </aside>
 

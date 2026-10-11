@@ -14,16 +14,17 @@ import {
   PackagePlus,
   UtensilsCrossed,
 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
-import api, { ApiError } from '@/lib/api';
-import { DashboardReport, ApiResponse } from '@/types';
+import { reportsService } from '@/services';
+import { DashboardReport } from '@/types';
+import { formatRupiah, getISODateOnly, getPastDateISO } from '@/utils';
+import { ROUTES } from '@/constants';
+import { PageHeader, StatCard } from '@/components/common';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 export default function DashboardOverviewPage() {
-  const { activeTenant } = useAuth();
   const { activeStore } = useStore();
 
   const [report, setReport] = useState<DashboardReport | null>(null);
@@ -34,24 +35,16 @@ export default function DashboardOverviewPage() {
     if (!activeStore) return;
     setLoading(true);
 
-    const now = new Date();
-    const end_date = now.toISOString().split('T')[0];
-
+    const end_date = getISODateOnly();
     let start_date = end_date;
     if (daysFilter === '7days') {
-      const past = new Date();
-      past.setDate(past.getDate() - 7);
-      start_date = past.toISOString().split('T')[0];
+      start_date = getPastDateISO(7);
     } else if (daysFilter === '30days') {
-      const past = new Date();
-      past.setDate(past.getDate() - 30);
-      start_date = past.toISOString().split('T')[0];
+      start_date = getPastDateISO(30);
     }
 
     try {
-      const res = await api.get<ApiResponse<DashboardReport>>('/reports/dashboard', {
-        params: { start_date, end_date },
-      });
+      const res = await reportsService.getDashboardOverview(start_date, end_date);
       setReport(res.data);
     } catch (err) {
       console.error('Failed to load dashboard report:', err);
@@ -63,16 +56,6 @@ export default function DashboardOverviewPage() {
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
-
-  // Format IDR Currency
-  const formatCurrency = (val: number | string | undefined | null) => {
-    const num = Number(val || 0);
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      maximumFractionDigits: 0,
-    }).format(num);
-  };
 
   const kpis = report?.kpis || {
     gross_sales: 0,
@@ -87,152 +70,93 @@ export default function DashboardOverviewPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Title & Filter Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Ringkasan Outlet
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Laporan operasional dan kinerja penjualan {activeStore ? activeStore.name : 'Outlet'}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Quick Date Filters */}
-          <div className="flex items-center rounded-lg border border-border bg-card p-1 text-xs">
-            <button
-              onClick={() => setDaysFilter('today')}
-              className={`px-3 py-1 rounded-md font-medium transition-colors ${
-                daysFilter === 'today'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Hari Ini
-            </button>
-            <button
-              onClick={() => setDaysFilter('7days')}
-              className={`px-3 py-1 rounded-md font-medium transition-colors ${
-                daysFilter === '7days'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              7 Hari
-            </button>
-            <button
-              onClick={() => setDaysFilter('30days')}
-              className={`px-3 py-1 rounded-md font-medium transition-colors ${
-                daysFilter === '30days'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              30 Hari
-            </button>
-          </div>
-
-          <Button
-            variant="outline"
-            size="icon-sm"
-            onClick={fetchDashboardData}
-            title="Refresh Data"
-            disabled={loading}
+      {/* Page Header with Filter Bar */}
+      <PageHeader
+        title="Ringkasan Outlet"
+        description={`Laporan operasional dan kinerja penjualan ${activeStore ? activeStore.name : 'Outlet'}`}
+      >
+        <div className="flex items-center rounded-lg border border-border bg-card p-1 text-xs">
+          <button
+            onClick={() => setDaysFilter('today')}
+            className={`px-3 py-1 rounded-md font-medium transition-colors ${
+              daysFilter === 'today'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
           >
-            <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
+            Hari Ini
+          </button>
+          <button
+            onClick={() => setDaysFilter('7days')}
+            className={`px-3 py-1 rounded-md font-medium transition-colors ${
+              daysFilter === '7days'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            7 Hari
+          </button>
+          <button
+            onClick={() => setDaysFilter('30days')}
+            className={`px-3 py-1 rounded-md font-medium transition-colors ${
+              daysFilter === '30days'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            30 Hari
+          </button>
         </div>
-      </div>
 
-      {/* KPI Cards Grid */}
+        <Button
+          variant="outline"
+          size="icon-sm"
+          onClick={fetchDashboardData}
+          title="Refresh Data"
+          disabled={loading}
+        >
+          <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
+        </Button>
+      </PageHeader>
+
+      {/* KPI Cards Grid using StatCard common component */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Gross Sales */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Pendapatan Kotor
-            </CardTitle>
-            <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-              <DollarSign className="size-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold tracking-tight text-foreground">
-              {formatCurrency(kpis.gross_sales)}
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
-              <span className="text-emerald-600 font-medium flex items-center">
-                <TrendingUp className="size-3 mr-0.5" /> Total Penjualan
-              </span>
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Pendapatan Kotor"
+          value={formatRupiah(kpis.gross_sales)}
+          subtitle="Total Penjualan Kotor"
+          icon={DollarSign}
+          iconClassName="bg-emerald-500/10 text-emerald-600"
+        />
 
-        {/* Net Sales */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Pendapatan Bersih
-            </CardTitle>
-            <div className="size-8 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center">
-              <TrendingUp className="size-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold tracking-tight text-foreground">
-              {formatCurrency(kpis.net_sales)}
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Diskon: {formatCurrency(kpis.total_discounts)}
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Pendapatan Bersih"
+          value={formatRupiah(kpis.net_sales)}
+          subtitle={`Diskon: ${formatRupiah(kpis.total_discounts)}`}
+          icon={TrendingUp}
+          iconClassName="bg-blue-500/10 text-blue-600"
+        />
 
-        {/* Total Orders */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Total Pesanan
-            </CardTitle>
-            <div className="size-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
-              <ShoppingBag className="size-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold tracking-tight text-foreground">
-              {kpis.total_orders.toLocaleString('id-ID')}
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Pesanan selesai terverifikasi
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Total Pesanan"
+          value={kpis.total_orders.toLocaleString('id-ID')}
+          subtitle="Pesanan selesai terverifikasi"
+          icon={ShoppingBag}
+          iconClassName="bg-amber-500/10 text-amber-600"
+        />
 
-        {/* Average Order Value (AOV) */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Rata-rata Order (AOV)
-            </CardTitle>
-            <div className="size-8 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center">
-              <CreditCard className="size-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold tracking-tight text-foreground">
-              {formatCurrency(kpis.average_order_value)}
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Rata-rata nominal per struk
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Rata-rata Order (AOV)"
+          value={formatRupiah(kpis.average_order_value)}
+          subtitle="Rata-rata per struk"
+          icon={CreditCard}
+          iconClassName="bg-purple-500/10 text-purple-600"
+        />
       </div>
 
       {/* Quick Access Action Shortcuts */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Link href="/dashboard/pos">
+        <Link href={ROUTES.DASHBOARD.POS}>
           <Card className="hover:border-amber-500/40 hover:bg-muted/30 transition-all cursor-pointer p-4 flex items-center gap-3">
             <div className="size-10 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0">
               <Coffee className="size-5" />
@@ -244,7 +168,7 @@ export default function DashboardOverviewPage() {
           </Card>
         </Link>
 
-        <Link href="/dashboard/tables">
+        <Link href={ROUTES.DASHBOARD.TABLES}>
           <Card className="hover:border-amber-500/40 hover:bg-muted/30 transition-all cursor-pointer p-4 flex items-center gap-3">
             <div className="size-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
               <QrCode className="size-5" />
@@ -256,7 +180,7 @@ export default function DashboardOverviewPage() {
           </Card>
         </Link>
 
-        <Link href="/dashboard/inventory">
+        <Link href={ROUTES.DASHBOARD.INVENTORY}>
           <Card className="hover:border-amber-500/40 hover:bg-muted/30 transition-all cursor-pointer p-4 flex items-center gap-3">
             <div className="size-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
               <PackagePlus className="size-5" />
@@ -268,7 +192,7 @@ export default function DashboardOverviewPage() {
           </Card>
         </Link>
 
-        <Link href="/dashboard/recipes">
+        <Link href={ROUTES.DASHBOARD.RECIPES}>
           <Card className="hover:border-amber-500/40 hover:bg-muted/30 transition-all cursor-pointer p-4 flex items-center gap-3">
             <div className="size-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0">
               <UtensilsCrossed className="size-5" />
@@ -290,7 +214,10 @@ export default function DashboardOverviewPage() {
               <CardTitle>Top Produk Terlaris</CardTitle>
               <CardDescription>Produk dengan penjualan terbanyak</CardDescription>
             </div>
-            <Link href="/dashboard/catalog" className="text-xs text-amber-600 font-semibold hover:underline flex items-center gap-1">
+            <Link
+              href={ROUTES.DASHBOARD.CATALOG}
+              className="text-xs text-amber-600 font-semibold hover:underline flex items-center gap-1"
+            >
               Lihat Semua <ArrowUpRight className="size-3" />
             </Link>
           </CardHeader>
@@ -312,7 +239,7 @@ export default function DashboardOverviewPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold text-foreground">{formatCurrency(item.total_sales)}</p>
+                      <p className="text-sm font-bold text-foreground">{formatRupiah(item.total_sales)}</p>
                     </div>
                   </div>
                 ))}
@@ -332,7 +259,10 @@ export default function DashboardOverviewPage() {
               <CardTitle>Distribusi Metode Pembayaran</CardTitle>
               <CardDescription>Penerimaan kas berdasarkan kanal bayar</CardDescription>
             </div>
-            <Link href="/dashboard/reports" className="text-xs text-amber-600 font-semibold hover:underline flex items-center gap-1">
+            <Link
+              href={ROUTES.DASHBOARD.REPORTS}
+              className="text-xs text-amber-600 font-semibold hover:underline flex items-center gap-1"
+            >
               Detail Laporan <ArrowUpRight className="size-3" />
             </Link>
           </CardHeader>
@@ -365,7 +295,7 @@ export default function DashboardOverviewPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-bold text-foreground">
-                        {formatCurrency(method.total_amount)}
+                        {formatRupiah(method.total_amount)}
                       </p>
                     </div>
                   </div>

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Store, ApiResponse } from '@/types';
-import api, { storage } from '@/lib/api';
+import { Store } from '@/types';
+import { storage } from '@/lib/api';
+import { tenantService } from '@/services';
 import { useAuth } from './AuthContext';
 
 interface StoreContextType {
@@ -31,11 +32,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
     setIsLoadingStores(true);
     try {
-      const response = await api.get<ApiResponse<Store[]>>('/tenant/stores', {
-        skipStore: true,
-      });
-
+      const response = await tenantService.getStores();
       const storeList = response.data || [];
+
       setStores(storeList);
 
       const savedStoreId = storage.getStoreId();
