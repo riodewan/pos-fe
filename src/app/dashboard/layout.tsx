@@ -17,9 +17,8 @@ import { useStore } from '@/context/StoreContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { SIDEBAR_NAV_ITEMS, ROUTES } from '@/constants';
+import { SIDEBAR_NAV_ITEMS } from '@/constants';
 import { getInitials } from '@/utils';
-import { LoadingScreen } from '@/components/common';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
 

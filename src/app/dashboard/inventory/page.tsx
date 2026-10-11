@@ -1,22 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Package,
   Plus,
-  Search,
   RefreshCw,
   ShoppingCart,
   AlertTriangle,
   FileText,
-  CheckCircle2,
-  XCircle,
   Truck,
-  Layers,
   DollarSign,
-  ArrowDownRight,
-  ArrowUpRight,
-  Loader2,
   AlertCircle,
 } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
@@ -32,7 +25,6 @@ import {
 } from '@/types';
 import { ApiError } from '@/lib/api';
 import { formatRupiah, formatDate, formatDateTime } from '@/utils';
-import { useDebounce } from '@/hooks';
 import { PageHeader, EmptyState, LoadingScreen, StatCard } from '@/components/common';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,8 +54,6 @@ export default function InventoryPage() {
 
   const [activeTab, setActiveTab] = useState<InventoryTab>('stocks');
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const debouncedSearch = useDebounce(search, 300);
 
   // Datasets
   const [stocks, setStocks] = useState<StockBalance[]>([]);
@@ -317,7 +307,6 @@ export default function InventoryPage() {
                 key={tab.id}
                 onClick={() => {
                   setActiveTab(tab.id as InventoryTab);
-                  setSearch('');
                 }}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
                   isCurrent

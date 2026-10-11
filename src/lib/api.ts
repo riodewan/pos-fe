@@ -134,7 +134,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     const contentType = response.headers.get('content-type');
     const isJson = contentType && contentType.includes('application/json');
 
-    let responseData: any = null;
+    let responseData: unknown = null;
     if (isJson) {
       responseData = await response.json();
     } else {
@@ -146,19 +146,24 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
         // Token expired or invalid
         if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
           storage.clearAll();
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
           window.location.href = '/login?expired=1';
         }
       }
 
       const errorMessage =
-        (typeof responseData === 'object' && responseData !== null && responseData.message) ||
-        `Request failed with status ${response.status}`;
+        (typeof responseData === 'object' && responseData !== null && 'message' in responseData
+          ? String((responseData as { message: unknown }).message)
+          : undefined) || `Request failed with status ${response.status}`;
 
       const errors =
-        typeof responseData === 'object' && responseData !== null ? (responseData as ApiErrorResponse).errors : undefined;
+        typeof responseData === 'object' && responseData !== null
+          ? (responseData as ApiErrorResponse).errors
+          : undefined;
 
       throw new ApiError(response.status, errorMessage, errors, responseData);
     }
+
 
     return responseData as T;
   } catch (error) {

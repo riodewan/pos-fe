@@ -2,11 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Settings,
   Store as StoreIcon,
   Users,
-  Shield,
-  Receipt,
   Plus,
   Edit2,
   Trash2,
@@ -16,12 +13,11 @@ import {
   AlertCircle,
   Building,
 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
 import { tenantService } from '@/services';
-import { Tenant, Store, User, Role } from '@/types';
+import { Store, User } from '@/types';
 import { ApiError } from '@/lib/api';
-import { PageHeader, EmptyState, LoadingScreen } from '@/components/common';
+import { PageHeader, LoadingScreen } from '@/components/common';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,7 +42,6 @@ import {
 type SettingsTab = 'tenant' | 'stores' | 'team';
 
 export default function SettingsPage() {
-  const { user, activeTenant } = useAuth();
   const { stores, refreshStores } = useStore();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('tenant');
@@ -72,15 +67,13 @@ export default function SettingsPage() {
 
   // Team Members State
   const [teamUsers, setTeamUsers] = useState<User[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
 
   const loadSettingsData = useCallback(async () => {
     setLoading(true);
     try {
-      const [profRes, usersRes, rolesRes] = await Promise.all([
+      const [profRes, usersRes] = await Promise.all([
         tenantService.getProfile(),
         tenantService.getTeamUsers(),
-        tenantService.getRoles(),
       ]);
 
       const prof = profRes.data;
@@ -91,7 +84,6 @@ export default function SettingsPage() {
       }
 
       setTeamUsers(usersRes.data || []);
-      setRoles(rolesRes.data || []);
     } catch (err) {
       console.error('Failed to load settings:', err);
     } finally {

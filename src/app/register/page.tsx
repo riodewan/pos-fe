@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Coffee, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import { Coffee, AlertCircle, Loader2 } from 'lucide-react';
+
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

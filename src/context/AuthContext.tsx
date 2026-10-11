@@ -77,50 +77,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshUser();
   }, [refreshUser]);
 
-  const login = async (email: string, password: string, deviceName: string = 'web-app'): Promise<User> => {
-    setIsLoading(true);
-    try {
-      const response = await authService.login({ email, password, device_name: deviceName });
-      const { user: loggedInUser, token: authToken } = response.data;
-      storage.setToken(authToken);
-      setToken(authToken);
-      setUser(loggedInUser);
-      syncTenant(loggedInUser);
+  const login = useCallback(
+    async (email: string, password: string, deviceName: string = 'web-app'): Promise<User> => {
+      setIsLoading(true);
+      try {
+        const response = await authService.login({ email, password, device_name: deviceName });
+        const { user: loggedInUser, token: authToken } = response.data;
+        storage.setToken(authToken);
+        setToken(authToken);
+        setUser(loggedInUser);
+        syncTenant(loggedInUser);
 
-      return loggedInUser;
-    } catch (err) {
-      setIsLoading(false);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        return loggedInUser;
+      } catch (err) {
+        setIsLoading(false);
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [syncTenant]
+  );
 
-  const register = async (
-    name: string,
-    email: string,
-    password: string,
-    password_confirmation: string
-  ): Promise<User> => {
-    setIsLoading(true);
-    try {
-      const response = await authService.register({ name, email, password, password_confirmation });
-      const { user: registeredUser, token: authToken } = response.data;
-      storage.setToken(authToken);
-      setToken(authToken);
-      setUser(registeredUser);
-      syncTenant(registeredUser);
+  const register = useCallback(
+    async (
+      name: string,
+      email: string,
+      password: string,
+      password_confirmation: string
+    ): Promise<User> => {
+      setIsLoading(true);
+      try {
+        const response = await authService.register({ name, email, password, password_confirmation });
+        const { user: registeredUser, token: authToken } = response.data;
+        storage.setToken(authToken);
+        setToken(authToken);
+        setUser(registeredUser);
+        syncTenant(registeredUser);
 
-      return registeredUser;
-    } catch (err) {
-      setIsLoading(false);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        return registeredUser;
+      } catch (err) {
+        setIsLoading(false);
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [syncTenant]
+  );
 
-  const logout = async (): Promise<void> => {
+  const logout = useCallback(async (): Promise<void> => {
     try {
       await authService.logout();
     } catch {
@@ -131,26 +137,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(null);
       setActiveTenant(null);
     }
-  };
+  }, []);
 
+  const selectTenant = useCallback(
+    (tenantId: string) => {
+      if (!user || !user.tenants) return;
+      const found = user.tenants.find((t) => t.id === tenantId);
+      if (found) {
+        setActiveTenant(found);
+        storage.setTenantId(found.id);
+        // Reset active store so user reselects or defaults
+        storage.setStoreId(null);
+      }
+    },
+    [user]
+  );
 
-  const selectTenant = (tenantId: string) => {
-    if (!user || !user.tenants) return;
-    const found = user.tenants.find((t) => t.id === tenantId);
-    if (found) {
-      setActiveTenant(found);
-      storage.setTenantId(found.id);
-      // Reset active store so user reselects or defaults
-      storage.setStoreId(null);
-    }
-  };
-
-  const hasRole = (roleName: string): boolean => {
-    if (!user) return false;
-    if (user.is_internal) return true;
-    if (!activeTenant) return false;
-    return activeTenant.role?.toUpperCase() === roleName.toUpperCase();
-  };
+  const hasRole = useCallback(
+    (roleName: string): boolean => {
+      if (!user) return false;
+      if (user.is_internal) return true;
+      if (!activeTenant) return false;
+      return activeTenant.role?.toUpperCase() === roleName.toUpperCase();
+    },
+    [user, activeTenant]
+  );
 
   const value = useMemo(
     () => ({
@@ -167,8 +178,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       refreshUser,
       hasRole,
     }),
-    [user, token, activeTenant, isLoading, refreshUser]
+    [user, token, activeTenant, isLoading, refreshUser, hasRole, login, register, logout, selectTenant]
   );
+
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

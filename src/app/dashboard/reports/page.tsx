@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  BarChart3,
   DollarSign,
   TrendingUp,
   Percent,
@@ -12,7 +11,6 @@ import {
   Package,
   RefreshCw,
   Wallet,
-  CheckCircle,
 } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 import { reportsService } from '@/services';

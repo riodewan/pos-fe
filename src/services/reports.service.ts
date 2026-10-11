@@ -8,19 +8,20 @@ export const reportsService = {
     }),
 
   getSalesSummary: (start_date: string, end_date: string) =>
-    api.get<ApiResponse<any>>('/reports/sales', {
+    api.get<ApiResponse<DashboardReport['kpis']>>('/reports/sales', {
       params: { start_date, end_date },
     }),
 
   getTopProducts: (start_date: string, end_date: string, limit = 10) =>
-    api.get<ApiResponse<any>>('/reports/products', {
+    api.get<ApiResponse<DashboardReport['top_products']>>('/reports/products', {
       params: { start_date, end_date, limit },
     }),
 
   getPaymentMethods: (start_date: string, end_date: string) =>
-    api.get<ApiResponse<any>>('/reports/payments', {
+    api.get<ApiResponse<DashboardReport['payment_methods']>>('/reports/payments', {
       params: { start_date, end_date },
     }),
+
 
   getInventoryUsage: (start_date: string, end_date: string) =>
     api.get<ApiResponse<InventoryUsageReport>>('/reports/inventory-usage', {

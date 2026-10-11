@@ -11,13 +11,12 @@ import {
   Scale,
   Truck,
   Layers,
-  Loader2,
   AlertCircle,
-  Tag,
 } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 import { catalogService } from '@/services';
-import { Product, Ingredient, Unit, Supplier } from '@/types';
+import { Product, Ingredient, Unit, Supplier, UnitType } from '@/types';
+
 import { ApiError } from '@/lib/api';
 import { formatRupiah } from '@/utils';
 import { useDebounce } from '@/hooks';
@@ -790,7 +789,8 @@ export default function CatalogPage() {
                   <label className="text-xs font-semibold text-muted-foreground uppercase">Tipe Dimensi</label>
                   <select
                     value={unitType}
-                    onChange={(e) => setUnitType(e.target.value as any)}
+                    onChange={(e) => setUnitType(e.target.value as UnitType)}
+
                     className="w-full h-9 rounded-lg border border-input bg-background px-3 text-xs"
                   >
                     <option value="WEIGHT">WEIGHT (Berat)</option>

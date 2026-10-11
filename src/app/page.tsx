@@ -2,7 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Coffee, ArrowRight, ShieldCheck, QrCode, Utensils, BarChart3, Layers, Store } from 'lucide-react';
+import { Coffee, ArrowRight, ShieldCheck, QrCode, BarChart3, Layers, Store } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';

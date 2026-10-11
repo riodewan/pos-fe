@@ -1,5 +1,5 @@
 import api from '@/lib/api';
-import { PublicQrResolved, ApiResponse } from '@/types';
+import { PublicQrResolved, Order, ApiResponse } from '@/types';
 
 export const publicService = {
   resolveQrToken: (token: string) =>
@@ -22,9 +22,10 @@ export const publicService = {
       }>;
     }
   ) =>
-    api.post<ApiResponse<any>>(`/public/qr/${token}/order`, data, {
+    api.post<ApiResponse<Order>>(`/public/qr/${token}/order`, data, {
       skipAuth: true,
       skipTenant: true,
       skipStore: true,
     }),
 };
+

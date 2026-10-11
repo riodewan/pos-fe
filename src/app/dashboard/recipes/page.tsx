@@ -8,15 +8,13 @@ import {
   Edit2,
   RefreshCw,
   Coffee,
-  Layers,
-  Scale,
   Loader2,
   AlertCircle,
   HelpCircle,
 } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 import { catalogService } from '@/services';
-import { Recipe, RecipeItem, Product, Ingredient, Unit } from '@/types';
+import { Recipe, Product, Ingredient, Unit } from '@/types';
 import { ApiError } from '@/lib/api';
 import { PageHeader, EmptyState, LoadingScreen } from '@/components/common';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
