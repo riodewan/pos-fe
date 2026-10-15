@@ -17,6 +17,7 @@ import {
   Copy,
   Check,
   Printer,
+  ClipboardList,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useRouter } from 'next/navigation';
@@ -325,14 +326,27 @@ export default function TablesManagementPage() {
 
               {/* Card Footer Actions */}
               <div className="p-3 border-t border-border/50 bg-muted/20 flex items-center justify-between gap-1">
-                <Button
-                  variant="outline"
-                  size="xs"
-                  onClick={() => openQrModal(table)}
-                  className="text-xs gap-1 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-                >
-                  <QrIcon className="size-3.5" /> QR Code
-                </Button>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => openQrModal(table)}
+                    className="text-xs gap-1 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                  >
+                    <QrIcon className="size-3.5" /> QR Code
+                  </Button>
+
+                  {(table.is_occupied || Number(table.active_orders_count || 0) > 0) && (
+                    <Link href={`/dashboard/pos?tab=orders`}>
+                      <Button
+                        size="xs"
+                        className="text-xs gap-1 bg-amber-600 hover:bg-amber-700 text-white font-medium"
+                      >
+                        <ClipboardList className="size-3.5" /> Pesanan
+                      </Button>
+                    </Link>
+                  )}
+                </div>
 
                 <div className="flex items-center gap-1">
                   <button

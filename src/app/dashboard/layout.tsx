@@ -11,6 +11,7 @@ import {
   Store as StoreIcon,
   Menu as MenuIcon,
   X,
+  Icon,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
@@ -101,7 +102,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
               return accessibleItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href;
+                const isOrdersLink = item.href.includes('?tab=orders');
+                const isPosLink = item.href === '/dashboard/pos';
+                let isActive = false;
+                if (typeof window !== 'undefined') {
+                  const currentTab = new URLSearchParams(window.location.search).get('tab');
+                  if (isOrdersLink) {
+                    isActive = pathname === '/dashboard/pos' && currentTab === 'orders';
+                  } else if (isPosLink) {
+                    isActive = pathname === '/dashboard/pos' && currentTab !== 'orders';
+                  } else {
+                    isActive = pathname === item.href;
+                  }
+                } else {
+                  isActive = isOrdersLink ? false : pathname === item.href;
+                }
                 return (
                   <Link
                     key={item.href}

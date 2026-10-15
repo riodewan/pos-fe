@@ -327,6 +327,7 @@ export interface Order {
   notes?: string | null;
   table?: DiningTable | null;
   items?: OrderItem[];
+  order_items?: OrderItem[];
   payments?: Payment[];
   created_at: string;
   updated_at?: string;

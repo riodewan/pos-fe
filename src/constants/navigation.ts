@@ -7,6 +7,7 @@ import {
   Package,
   BarChart3,
   Settings,
+  ClipboardList,
   LucideIcon,
 } from 'lucide-react';
 import { ROUTES } from './routes';
@@ -30,6 +31,12 @@ export const SIDEBAR_NAV_ITEMS: NavItem[] = [
     href: ROUTES.DASHBOARD.POS,
     label: 'Kasir POS',
     icon: ShoppingCart,
+    roles: ['OWNER', 'MANAGER', 'CASHIER', 'SUPER_ADMIN'],
+  },
+  {
+    href: '/dashboard/pos?tab=orders',
+    label: 'Pesanan Masuk (QR)',
+    icon: ClipboardList,
     roles: ['OWNER', 'MANAGER', 'CASHIER', 'SUPER_ADMIN'],
   },
   {
