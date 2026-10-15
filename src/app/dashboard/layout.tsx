@@ -85,25 +85,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Navigation Links */}
           <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-            {SIDEBAR_NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-amber-600 text-white shadow-xs'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                  }`}
-                >
-                  <Icon className="size-4 shrink-0" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+            {(() => {
+              const userRole = (user?.is_internal ? 'SUPER_ADMIN' : activeTenant?.role || 'OWNER').toUpperCase();
+              const accessibleItems = SIDEBAR_NAV_ITEMS.filter((item) => {
+                if (!item.roles || item.roles.length === 0) return true;
+                return item.roles.includes(userRole);
+              });
+
+              return accessibleItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-amber-600 text-white shadow-xs'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    <Icon className="size-4 shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              });
+            })()}
           </div>
 
           {/* User & Sign Out Footer */}

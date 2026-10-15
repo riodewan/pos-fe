@@ -16,15 +16,56 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   badge?: string;
+  roles?: string[];
 }
 
 export const SIDEBAR_NAV_ITEMS: NavItem[] = [
-  { href: ROUTES.DASHBOARD.OVERVIEW, label: 'Ringkasan', icon: LayoutDashboard },
-  { href: ROUTES.DASHBOARD.POS, label: 'Kasir POS', icon: ShoppingCart },
-  { href: ROUTES.DASHBOARD.TABLES, label: 'Meja & QR', icon: Grid },
-  { href: ROUTES.DASHBOARD.CATALOG, label: 'Katalog Produk', icon: Coffee },
-  { href: ROUTES.DASHBOARD.RECIPES, label: 'Resep & HPP', icon: BookOpen },
-  { href: ROUTES.DASHBOARD.INVENTORY, label: 'Inventaris Stok', icon: Package },
-  { href: ROUTES.DASHBOARD.REPORTS, label: 'Laporan Penjualan', icon: BarChart3 },
-  { href: ROUTES.DASHBOARD.SETTINGS, label: 'Pengaturan', icon: Settings },
+  {
+    href: ROUTES.DASHBOARD.OVERVIEW,
+    label: 'Ringkasan',
+    icon: LayoutDashboard,
+    roles: ['OWNER', 'MANAGER', 'SUPER_ADMIN'],
+  },
+  {
+    href: ROUTES.DASHBOARD.POS,
+    label: 'Kasir POS',
+    icon: ShoppingCart,
+    roles: ['OWNER', 'MANAGER', 'CASHIER', 'SUPER_ADMIN'],
+  },
+  {
+    href: ROUTES.DASHBOARD.TABLES,
+    label: 'Meja & QR',
+    icon: Grid,
+    roles: ['OWNER', 'MANAGER', 'CASHIER', 'SUPER_ADMIN'],
+  },
+  {
+    href: ROUTES.DASHBOARD.CATALOG,
+    label: 'Katalog Produk',
+    icon: Coffee,
+    roles: ['OWNER', 'MANAGER', 'CASHIER', 'INVENTORY', 'SUPER_ADMIN'],
+  },
+  {
+    href: ROUTES.DASHBOARD.RECIPES,
+    label: 'Resep & HPP',
+    icon: BookOpen,
+    roles: ['OWNER', 'MANAGER', 'INVENTORY', 'SUPER_ADMIN'],
+  },
+  {
+    href: ROUTES.DASHBOARD.INVENTORY,
+    label: 'Inventaris Stok',
+    icon: Package,
+    roles: ['OWNER', 'MANAGER', 'INVENTORY', 'SUPER_ADMIN'],
+  },
+  {
+    href: ROUTES.DASHBOARD.REPORTS,
+    label: 'Laporan Penjualan',
+    icon: BarChart3,
+    roles: ['OWNER', 'MANAGER', 'SUPER_ADMIN'],
+  },
+  {
+    href: ROUTES.DASHBOARD.SETTINGS,
+    label: 'Pengaturan',
+    icon: Settings,
+    roles: ['OWNER', 'SUPER_ADMIN'],
+  },
 ];

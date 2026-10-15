@@ -14,6 +14,8 @@ import {
   PackagePlus,
   UtensilsCrossed,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
 import { reportsService } from '@/services';
 import { DashboardReport } from '@/types';
@@ -25,14 +27,32 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 export default function DashboardOverviewPage() {
+  const router = useRouter();
+  const { user, activeTenant } = useAuth();
   const { activeStore } = useStore();
 
   const [report, setReport] = useState<DashboardReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [daysFilter, setDaysFilter] = useState<'today' | '7days' | '30days'>('30days');
 
+  const userRole = (user?.is_internal ? 'SUPER_ADMIN' : activeTenant?.role || 'OWNER').toUpperCase();
+
+  // Role-based redirect from overview: Cashier goes to POS, Inventory goes to Stock
+  useEffect(() => {
+    if (userRole === 'CASHIER') {
+      router.replace(ROUTES.DASHBOARD.POS);
+    } else if (userRole === 'INVENTORY') {
+      router.replace(ROUTES.DASHBOARD.INVENTORY);
+    }
+  }, [userRole, router]);
+
   const fetchDashboardData = useCallback(async () => {
     if (!activeStore) return;
+    if (userRole === 'CASHIER' || userRole === 'INVENTORY') {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
 
     const end_date = getISODateOnly();
@@ -51,7 +71,7 @@ export default function DashboardOverviewPage() {
     } finally {
       setLoading(false);
     }
-  }, [activeStore, daysFilter]);
+  }, [activeStore, daysFilter, userRole]);
 
   useEffect(() => {
     fetchDashboardData();

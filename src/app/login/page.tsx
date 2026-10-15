@@ -34,8 +34,12 @@ function LoginForm() {
 
     try {
       const user = await login(email, password, 'web-pos');
-      if (user.is_internal) {
-        router.push('/dashboard');
+      const userRole = (user.is_internal ? 'SUPER_ADMIN' : user.tenants?.[0]?.role || 'OWNER').toUpperCase();
+
+      if (userRole === 'CASHIER') {
+        router.push('/dashboard/pos');
+      } else if (userRole === 'INVENTORY') {
+        router.push('/dashboard/inventory');
       } else {
         router.push('/dashboard');
       }
