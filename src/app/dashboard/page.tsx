@@ -21,7 +21,7 @@ import { reportsService } from '@/services';
 import { DashboardReport } from '@/types';
 import { formatRupiah, getISODateOnly, getPastDateISO } from '@/utils';
 import { ROUTES } from '@/constants';
-import { PageHeader, StatCard } from '@/components/common';
+import { PageHeader, StatCard, LoadingScreen } from '@/components/common';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -80,26 +80,12 @@ export default function DashboardOverviewPage() {
     }
   }, [fetchDashboardData, isLoading, isOwnerOrManager, activeStore]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3">
-        <div className="size-8 rounded-xl bg-amber-600 animate-pulse flex items-center justify-center text-white">
-          <Coffee className="size-4" />
-        </div>
-        <span className="text-xs font-medium text-muted-foreground">Memuat sesi dashboard...</span>
-      </div>
-    );
+  if (isLoading || loading) {
+    return <LoadingScreen message="Memuat ringkasan performa outlet..." />;
   }
 
   if (!isOwnerOrManager) {
-    return (
-      <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3">
-        <div className="size-8 rounded-xl bg-amber-600 animate-pulse flex items-center justify-center text-white">
-          <Coffee className="size-4" />
-        </div>
-        <span className="text-xs font-medium text-muted-foreground">Mengarahkan ke ruang kerja operasional Anda...</span>
-      </div>
-    );
+    return <LoadingScreen message="Mengarahkan ke ruang kerja operasional Anda..." />;
   }
 
   const kpis = report?.kpis || {

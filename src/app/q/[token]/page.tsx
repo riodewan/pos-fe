@@ -27,6 +27,7 @@ import { formatRupiah } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface CustomerCartItem {
   productId: string;
@@ -38,6 +39,59 @@ interface CustomerCartItem {
 }
 
 type PaymentOption = 'QRIS' | 'EWALLET' | 'VA';
+
+function CustomerMenuSkeleton() {
+  return (
+    <div className="min-h-screen flex flex-col bg-zinc-50/60 dark:bg-zinc-950 pb-20">
+      {/* Header Skeleton */}
+      <header className="sticky top-0 z-30 bg-card/90 backdrop-blur-md border-b border-border/60 p-4 shadow-xs">
+        <div className="max-w-md mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Skeleton className="size-9 rounded-xl" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-4 w-28 rounded" />
+              <Skeleton className="h-3 w-20 rounded" />
+            </div>
+          </div>
+          <Skeleton className="h-6 w-16 rounded-full" />
+        </div>
+      </header>
+
+      <main className="max-w-md mx-auto w-full p-4 space-y-4">
+        {/* Search bar skeleton */}
+        <Skeleton className="h-10 w-full rounded-xl" />
+
+        {/* Categories pills skeleton */}
+        <div className="flex gap-2 overflow-hidden py-1">
+          <Skeleton className="h-7 w-20 rounded-full shrink-0" />
+          <Skeleton className="h-7 w-24 rounded-full shrink-0" />
+          <Skeleton className="h-7 w-20 rounded-full shrink-0" />
+          <Skeleton className="h-7 w-28 rounded-full shrink-0" />
+        </div>
+
+        {/* Product Items skeleton */}
+        <div className="space-y-3 pt-1">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between p-3 rounded-2xl bg-card border border-border/60 shadow-xs gap-3"
+            >
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <Skeleton className="size-16 rounded-xl shrink-0" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-3/4 rounded" />
+                  <Skeleton className="h-3 w-1/2 rounded" />
+                  <Skeleton className="h-4 w-20 rounded" />
+                </div>
+              </div>
+              <Skeleton className="size-8 rounded-xl shrink-0" />
+            </div>
+          ))}
+        </div>
+      </main>
+    </div>
+  );
+}
 
 function CustomerQrContent({ token }: { token: string }) {
   const [session, setSession] = useState<PublicQrResolved | null>(null);
@@ -205,14 +259,7 @@ function CustomerQrContent({ token }: { token: string }) {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
-        <div className="size-12 rounded-2xl bg-amber-600 flex items-center justify-center text-white animate-bounce shadow-lg shadow-amber-600/30">
-          <Coffee className="size-6" />
-        </div>
-        <p className="mt-4 text-sm font-medium text-muted-foreground">Membuka menu meja...</p>
-      </div>
-    );
+    return <CustomerMenuSkeleton />;
   }
 
   if (errorMsg || !session) {
@@ -304,7 +351,7 @@ function CustomerQrContent({ token }: { token: string }) {
               <div
                 className={`size-6 rounded-full flex items-center justify-center text-xs shrink-0 mt-0.5 ${
                   isReady
-                    ? 'bg-emerald-600 text-white animate-bounce'
+                    ? 'bg-emerald-600 text-white'
                     : isCompleted
                     ? 'bg-emerald-500 text-white'
                     : 'bg-muted text-muted-foreground'
@@ -786,14 +833,7 @@ export default function CustomerQrSelfOrderPage({
   params: Promise<{ token: string }>;
 }) {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
-          <Loader2 className="size-8 animate-spin text-amber-600" />
-          <p className="mt-2 text-xs text-muted-foreground">Memuat sesi meja...</p>
-        </div>
-      }
-    >
+    <Suspense fallback={<CustomerMenuSkeleton />}>
       <QrOrderInner params={params} />
     </Suspense>
   );

@@ -36,6 +36,7 @@ import { TAX_PERCENTAGE, QUICK_CASH_DENOMINATIONS } from '@/constants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 interface CartItem {
@@ -479,8 +480,22 @@ function PosCashierContent() {
             {/* Product Cards Grid */}
             <div className="flex-1 overflow-y-auto pt-3 pr-1">
               {loading ? (
-                <div className="h-full flex items-center justify-center text-muted-foreground text-xs gap-2">
-                  <Loader2 className="size-4 animate-spin text-amber-600" /> Memuat katalog...
+                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                    <div
+                      key={i}
+                      className="p-2.5 rounded-xl border border-border/60 bg-background space-y-2.5"
+                    >
+                      <Skeleton className="w-full aspect-[4/3] rounded-lg" />
+                      <div className="space-y-1.5">
+                        <Skeleton className="h-3 w-16 rounded" />
+                        <Skeleton className="h-3.5 w-full rounded" />
+                      </div>
+                      <div className="pt-2 border-t border-border/40 flex justify-between items-center">
+                        <Skeleton className="h-4 w-20 rounded" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : filteredProducts.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center p-6 text-muted-foreground">
@@ -786,9 +801,29 @@ function PosCashierContent() {
 
           {/* Orders Grid Display */}
           {loadingOrders ? (
-            <div className="py-20 flex flex-col items-center justify-center text-muted-foreground text-xs gap-3">
-              <Loader2 className="size-6 animate-spin text-amber-600" />
-              <span>Memuat antrean pesanan...</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div
+                  key={i}
+                  className="flex flex-col justify-between bg-card rounded-2xl border border-border/60 shadow-xs p-4 space-y-4"
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-border/40">
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-4 w-24 rounded" />
+                      <Skeleton className="h-3 w-32 rounded" />
+                    </div>
+                    <Skeleton className="h-6 w-20 rounded-full" />
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-3 w-full rounded" />
+                    <Skeleton className="h-3 w-4/5 rounded" />
+                  </div>
+                  <div className="pt-3 border-t border-border/40 flex justify-between items-center">
+                    <Skeleton className="h-4 w-20 rounded" />
+                    <Skeleton className="h-8 w-24 rounded-lg" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filteredOrders.length === 0 ? (
             <div className="py-20 flex flex-col items-center justify-center text-center bg-card rounded-2xl border border-dashed border-border/80 p-8">
@@ -1319,18 +1354,62 @@ function PosCashierContent() {
   );
 }
 
+function PosTerminalSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between pb-3 border-b border-border/60">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-8 w-28 rounded-lg" />
+          <Skeleton className="h-8 w-32 rounded-lg" />
+        </div>
+        <Skeleton className="h-8 w-36 rounded-lg" />
+      </div>
+
+      <div className="h-[calc(100vh-10.5rem)] flex flex-col lg:flex-row gap-4">
+        <div className="flex-1 flex flex-col bg-card rounded-2xl border border-border/60 p-4 space-y-4">
+          <Skeleton className="h-9 w-full rounded-xl" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 flex-1 overflow-hidden">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div key={i} className="p-2.5 rounded-xl border border-border/50 bg-background space-y-2">
+                <Skeleton className="w-full aspect-[4/3] rounded-lg" />
+                <Skeleton className="h-3 w-16 rounded" />
+                <Skeleton className="h-3.5 w-3/4 rounded" />
+                <Skeleton className="h-4 w-20 rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="w-full lg:w-96 flex flex-col bg-card rounded-2xl border border-border/60 p-4 space-y-4 shrink-0">
+          <div className="flex justify-between items-center pb-3 border-b border-border/50">
+            <Skeleton className="h-4 w-28 rounded" />
+            <Skeleton className="h-3 w-14 rounded" />
+          </div>
+          <div className="space-y-2 pb-3 border-b border-border/50">
+            <Skeleton className="h-8 w-full rounded-lg" />
+            <Skeleton className="h-8 w-full rounded-lg" />
+          </div>
+          <div className="space-y-3 flex-1">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center justify-between py-2 border-b border-border/30">
+                <div className="space-y-1">
+                  <Skeleton className="h-3 w-28 rounded" />
+                  <Skeleton className="h-3 w-16 rounded" />
+                </div>
+                <Skeleton className="h-6 w-16 rounded-lg" />
+              </div>
+            ))}
+          </div>
+          <Skeleton className="h-10 w-full rounded-xl" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PosCashierPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
-          <div className="size-10 rounded-xl bg-amber-600 animate-pulse flex items-center justify-center text-white">
-            <Coffee className="size-5" />
-          </div>
-          <span className="text-xs font-medium text-muted-foreground">Memuat terminal POS & antrean pesanan...</span>
-        </div>
-      }
-    >
+    <Suspense fallback={<PosTerminalSkeleton />}>
       <PosCashierContent />
     </Suspense>
   );

@@ -32,6 +32,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 export default function TablesManagementPage() {
@@ -279,7 +280,30 @@ export default function TablesManagementPage() {
 
       {/* Tables Grid */}
       {loading ? (
-        <LoadingScreen message="Memuat data meja outlet..." />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div
+              key={i}
+              className="p-4 rounded-xl border border-border/60 bg-card space-y-3"
+            >
+              <div className="flex justify-between items-center pb-2 border-b border-border/40">
+                <Skeleton className="h-5 w-20 rounded" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+              <div className="space-y-1.5 py-1">
+                <Skeleton className="h-4 w-28 rounded" />
+                <Skeleton className="h-3 w-20 rounded" />
+              </div>
+              <div className="pt-2 border-t border-border/40 flex justify-between items-center">
+                <Skeleton className="h-7 w-20 rounded-lg" />
+                <div className="flex gap-1.5">
+                  <Skeleton className="size-7 rounded-lg" />
+                  <Skeleton className="size-7 rounded-lg" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : tables.length === 0 ? (
         <EmptyState
           icon={Grid}

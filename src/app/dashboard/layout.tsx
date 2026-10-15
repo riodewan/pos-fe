@@ -18,6 +18,8 @@ import { useStore } from '@/context/StoreContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { SIDEBAR_NAV_ITEMS } from '@/constants';
 import { getInitials } from '@/utils';
 
@@ -33,12 +35,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="size-10 rounded-xl bg-amber-600 animate-pulse flex items-center justify-center text-white">
-            <Coffee className="size-5" />
+      <div className="min-h-screen flex bg-zinc-50/50 dark:bg-zinc-950">
+        {/* Sidebar Skeleton */}
+        <div className="hidden lg:flex w-64 flex-col border-r border-border/60 bg-card p-4 space-y-4">
+          <div className="flex items-center gap-3 pb-3 border-b border-border/40">
+            <Skeleton className="size-9 rounded-xl" />
+            <div className="space-y-1.5 flex-1">
+              <Skeleton className="h-4 w-24 rounded" />
+              <Skeleton className="h-3 w-16 rounded" />
+            </div>
           </div>
-          <span className="text-sm font-medium text-muted-foreground">Memuat sesi operasional...</span>
+          <div className="space-y-2 flex-1 pt-2">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Skeleton key={i} className="h-9 w-full rounded-xl" />
+            ))}
+          </div>
+          <Skeleton className="h-10 w-full rounded-xl" />
+        </div>
+
+        {/* Content Skeleton */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <header className="h-16 border-b border-border/60 bg-card/60 px-6 flex items-center justify-between">
+            <Skeleton className="h-5 w-32 rounded" />
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-8 w-28 rounded-lg" />
+              <Skeleton className="size-8 rounded-full" />
+            </div>
+          </header>
+          <main className="p-6">
+            <LoadingScreen message="Memuat sesi kerja..." />
+          </main>
         </div>
       </div>
     );
