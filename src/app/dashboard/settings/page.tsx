@@ -211,7 +211,7 @@ export default function SettingsPage() {
           <RefreshCw className={`size-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
         </Button>
         {activeTab === 'stores' && (
-          <Button onClick={openAddStoreModal} className="bg-indigo-600 hover:bg-indigo-700 text-white" size="sm">
+          <Button onClick={openAddStoreModal} className="bg-primary hover:bg-primary/90 text-primary-foreground" size="sm">
             <Plus className="size-4 mr-1.5" /> Tambah Outlet Toko
           </Button>
         )}
@@ -232,7 +232,7 @@ export default function SettingsPage() {
               onClick={() => setActiveTab(tab.id as SettingsTab)}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
                 isCurrent
-                  ? 'bg-indigo-600 text-white shadow-xs'
+                  ? 'bg-primary text-primary-foreground shadow-xs'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
@@ -302,7 +302,7 @@ export default function SettingsPage() {
                 </CardContent>
 
                 <CardFooter className="border-t border-border/50 pt-4 flex justify-end">
-                  <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={savingTenant}>
+                  <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={savingTenant}>
                     <Save className="size-3.5 mr-1.5" />
                     {savingTenant ? 'Menyimpan...' : 'Simpan Perubahan'}
                   </Button>
@@ -464,7 +464,7 @@ export default function SettingsPage() {
               <Button type="button" variant="outline" onClick={() => setStoreModalOpen(false)}>
                 Batal
               </Button>
-              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={savingStore}>
+              <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={savingStore}>
                 {savingStore ? 'Menyimpan...' : 'Simpan Toko'}
               </Button>
             </DialogFooter>

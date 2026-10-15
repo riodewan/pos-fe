@@ -274,7 +274,7 @@ export default function InventoryPage() {
         <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
           <RefreshCw className={`size-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
         </Button>
-        <Button onClick={openPurchaseModal} className="bg-indigo-600 hover:bg-indigo-700 text-white" size="sm">
+        <Button onClick={openPurchaseModal} className="bg-primary hover:bg-primary/90 text-primary-foreground" size="sm">
           <Plus className="size-4 mr-1.5" /> Pembelian (PO Baru)
         </Button>
       </PageHeader>
@@ -286,7 +286,7 @@ export default function InventoryPage() {
           value={totalStockItems}
           subtitle="Item bahan dalam gudang toko"
           icon={Package}
-          iconClassName="bg-indigo-500/10 text-indigo-600"
+          iconClassName="bg-accent text-foreground"
         />
         <StatCard
           title="Estimasi Nilai Aset Stok"
@@ -323,7 +323,7 @@ export default function InventoryPage() {
                 }}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
                   isCurrent
-                    ? 'bg-indigo-600 text-white shadow-xs'
+                    ? 'bg-primary text-primary-foreground shadow-xs'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
@@ -402,7 +402,7 @@ export default function InventoryPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <span className="font-mono font-bold text-indigo-700 dark:text-indigo-400 text-sm">
+                            <span className="font-mono font-bold text-foreground text-sm">
                               {Number(s.quantity).toLocaleString('id-ID')}
                             </span>{' '}
                             <span className="text-[10px] uppercase font-semibold text-muted-foreground">
@@ -754,7 +754,7 @@ export default function InventoryPage() {
               <Button type="button" variant="outline" onClick={() => setModalType(null)}>
                 Batal
               </Button>
-              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={saving}>
+              <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={saving}>
                 {saving ? 'Menyimpan...' : 'Simpan PO'}
               </Button>
             </DialogFooter>
@@ -822,7 +822,7 @@ export default function InventoryPage() {
               <Button type="button" variant="outline" onClick={() => setModalType(null)}>
                 Batal
               </Button>
-              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={saving}>
+              <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={saving}>
                 {saving ? 'Menyimpan...' : 'Simpan Penyesuaian'}
               </Button>
             </DialogFooter>
@@ -912,7 +912,7 @@ export default function InventoryPage() {
               <Button type="button" variant="outline" onClick={() => setModalType(null)}>
                 Batal
               </Button>
-              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={saving}>
+              <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={saving}>
                 {saving ? 'Menyimpan...' : 'Simpan Wastage'}
               </Button>
             </DialogFooter>

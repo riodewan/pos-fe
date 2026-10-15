@@ -106,12 +106,12 @@ export default function DashboardOverviewPage() {
         title="Ringkasan Outlet"
         description={`Laporan operasional dan kinerja penjualan ${activeStore ? activeStore.name : 'Outlet'}`}
       >
-        <div className="flex items-center rounded-lg border border-border bg-card p-1 text-xs">
+        <div className="flex items-center rounded-md border border-border bg-surface p-0.5 text-xs">
           <button
             onClick={() => setDaysFilter('today')}
-            className={`px-3 py-1 rounded-md font-medium transition-colors ${
+            className={`px-2.5 py-1 rounded-sm text-xs transition-colors ${
               daysFilter === 'today'
-                ? 'bg-indigo-600 text-white shadow-xs'
+                ? 'bg-card text-foreground shadow-xs font-medium'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -119,9 +119,9 @@ export default function DashboardOverviewPage() {
           </button>
           <button
             onClick={() => setDaysFilter('7days')}
-            className={`px-3 py-1 rounded-md font-medium transition-colors ${
+            className={`px-2.5 py-1 rounded-sm text-xs transition-colors ${
               daysFilter === '7days'
-                ? 'bg-indigo-600 text-white shadow-xs'
+                ? 'bg-card text-foreground shadow-xs font-medium'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -129,9 +129,9 @@ export default function DashboardOverviewPage() {
           </button>
           <button
             onClick={() => setDaysFilter('30days')}
-            className={`px-3 py-1 rounded-md font-medium transition-colors ${
+            className={`px-2.5 py-1 rounded-sm text-xs transition-colors ${
               daysFilter === '30days'
-                ? 'bg-indigo-600 text-white shadow-xs'
+                ? 'bg-card text-foreground shadow-xs font-medium'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -157,7 +157,6 @@ export default function DashboardOverviewPage() {
           value={formatRupiah(kpis.gross_sales)}
           subtitle="Total Penjualan Kotor"
           icon={DollarSign}
-          iconClassName="bg-emerald-500/10 text-emerald-600"
         />
 
         <StatCard
@@ -165,7 +164,6 @@ export default function DashboardOverviewPage() {
           value={formatRupiah(kpis.net_sales)}
           subtitle={`Diskon: ${formatRupiah(kpis.total_discounts)}`}
           icon={TrendingUp}
-          iconClassName="bg-blue-500/10 text-blue-600"
         />
 
         <StatCard
@@ -173,7 +171,6 @@ export default function DashboardOverviewPage() {
           value={kpis.total_orders.toLocaleString('id-ID')}
           subtitle="Pesanan selesai terverifikasi"
           icon={ShoppingBag}
-          iconClassName="bg-indigo-500/10 text-indigo-600"
         />
 
         <StatCard
@@ -181,56 +178,55 @@ export default function DashboardOverviewPage() {
           value={formatRupiah(kpis.average_order_value)}
           subtitle="Rata-rata per struk"
           icon={CreditCard}
-          iconClassName="bg-purple-500/10 text-purple-600"
         />
       </div>
 
       {/* Quick Access Action Shortcuts */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Link href={ROUTES.DASHBOARD.POS}>
-          <Card className="hover:border-indigo-500/40 hover:bg-muted/30 transition-all cursor-pointer p-4 flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs shadow-indigo-600/30">
-              <Coffee className="size-5" />
+          <Card className="hover:border-foreground/30 transition-all cursor-pointer p-3.5 flex items-center gap-3">
+            <div className="size-8 rounded-md border border-border bg-surface text-foreground flex items-center justify-center shrink-0">
+              <Coffee className="size-4" strokeWidth={1.75} />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-foreground">Buka Kasir POS</p>
-              <p className="text-[10px] text-muted-foreground">Input pesanan baru</p>
+              <p className="text-xs font-medium text-foreground truncate">Buka Kasir POS</p>
+              <p className="text-[11px] text-muted-foreground truncate">Input pesanan baru</p>
             </div>
           </Card>
         </Link>
 
         <Link href={ROUTES.DASHBOARD.TABLES}>
-          <Card className="hover:border-indigo-500/40 hover:bg-muted/30 transition-all cursor-pointer p-4 flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
-              <QrCode className="size-5" />
+          <Card className="hover:border-foreground/30 transition-all cursor-pointer p-3.5 flex items-center gap-3">
+            <div className="size-8 rounded-md border border-border bg-surface text-foreground flex items-center justify-center shrink-0">
+              <QrCode className="size-4" strokeWidth={1.75} />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-foreground">Meja & QR Code</p>
-              <p className="text-[10px] text-muted-foreground">Status meja & QR self-order</p>
+              <p className="text-xs font-medium text-foreground truncate">Meja & QR Code</p>
+              <p className="text-[11px] text-muted-foreground truncate">Status meja & QR</p>
             </div>
           </Card>
         </Link>
 
         <Link href={ROUTES.DASHBOARD.INVENTORY}>
-          <Card className="hover:border-indigo-500/40 hover:bg-muted/30 transition-all cursor-pointer p-4 flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
-              <PackagePlus className="size-5" />
+          <Card className="hover:border-foreground/30 transition-all cursor-pointer p-3.5 flex items-center gap-3">
+            <div className="size-8 rounded-md border border-border bg-surface text-foreground flex items-center justify-center shrink-0">
+              <PackagePlus className="size-4" strokeWidth={1.75} />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-foreground">Stok Bahan Baku</p>
-              <p className="text-[10px] text-muted-foreground">Pembelian & Opname</p>
+              <p className="text-xs font-medium text-foreground truncate">Stok Bahan Baku</p>
+              <p className="text-[11px] text-muted-foreground truncate">Pembelian & Opname</p>
             </div>
           </Card>
         </Link>
 
         <Link href={ROUTES.DASHBOARD.RECIPES}>
-          <Card className="hover:border-indigo-500/40 hover:bg-muted/30 transition-all cursor-pointer p-4 flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0">
-              <UtensilsCrossed className="size-5" />
+          <Card className="hover:border-foreground/30 transition-all cursor-pointer p-3.5 flex items-center gap-3">
+            <div className="size-8 rounded-md border border-border bg-surface text-foreground flex items-center justify-center shrink-0">
+              <UtensilsCrossed className="size-4" strokeWidth={1.75} />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-foreground">Resep & HPP</p>
-              <p className="text-[10px] text-muted-foreground">Deduksi stok otomatis</p>
+              <p className="text-xs font-medium text-foreground truncate">Resep & HPP</p>
+              <p className="text-[11px] text-muted-foreground truncate">Deduksi otomatis</p>
             </div>
           </Card>
         </Link>
@@ -247,7 +243,7 @@ export default function DashboardOverviewPage() {
             </div>
             <Link
               href={ROUTES.DASHBOARD.CATALOG}
-              className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1"
+              className="text-xs text-foreground font-semibold hover:underline flex items-center gap-1"
             >
               Lihat Semua <ArrowUpRight className="size-3" />
             </Link>
@@ -292,7 +288,7 @@ export default function DashboardOverviewPage() {
             </div>
             <Link
               href={ROUTES.DASHBOARD.REPORTS}
-              className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1"
+              className="text-xs text-foreground font-semibold hover:underline flex items-center gap-1"
             >
               Detail Laporan <ArrowUpRight className="size-3" />
             </Link>

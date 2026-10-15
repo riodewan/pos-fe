@@ -1,6 +1,6 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 interface StatCardProps {
@@ -8,41 +8,22 @@ interface StatCardProps {
   value: string | number;
   subtitle?: string;
   icon?: LucideIcon;
+  /** Kept for backwards compatibility; the monochrome design ignores per-card tints. */
   iconClassName?: string;
   className?: string;
 }
 
-export function StatCard({
-  title,
-  value,
-  subtitle,
-  icon: Icon,
-  iconClassName,
-  className,
-}: StatCardProps) {
+export function StatCard({ title, value, subtitle, icon: Icon, className }: StatCardProps) {
   return (
-    <Card className={cn('overflow-hidden transition-all hover:shadow-xs', className)}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          {title}
-        </CardTitle>
-        {Icon && (
-          <div
-            className={cn(
-              'size-8 rounded-lg flex items-center justify-center shrink-0',
-              iconClassName || 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
-            )}
-          >
-            <Icon className="size-4" />
-          </div>
-        )}
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold tracking-tight text-foreground">{value}</div>
-        {subtitle && (
-          <p className="text-[11px] text-muted-foreground mt-1">{subtitle}</p>
-        )}
-      </CardContent>
+    <Card className={cn('p-5 flex flex-col gap-3', className)}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[13px] font-medium text-muted-foreground">{title}</span>
+        {Icon && <Icon className="size-4 text-muted-foreground/70 shrink-0" strokeWidth={1.75} />}
+      </div>
+      <div className="text-[26px] leading-none font-semibold tracking-tight text-foreground tnum">
+        {value}
+      </div>
+      {subtitle && <p className="text-xs text-muted-foreground truncate">{subtitle}</p>}
     </Card>
   );
 }

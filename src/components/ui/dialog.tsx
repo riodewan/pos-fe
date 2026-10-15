@@ -35,11 +35,11 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-[2px] animate-in fade-in duration-150"
         onClick={() => onOpenChange(false)}
       />
       {/* Modal Dialog Content */}
-      <div className="relative z-50 w-full max-w-lg animate-in zoom-in-95 duration-200">
+      <div className="relative z-50 w-full max-w-lg max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl animate-in fade-in zoom-in-[0.98] duration-150">
         {children}
       </div>
     </div>
@@ -58,7 +58,7 @@ export function DialogContent({
   return (
     <div
       className={cn(
-        'relative w-full rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-2xl',
+        'relative w-full rounded-xl bg-popover p-6 text-popover-foreground shadow-elevated',
         className
       )}
     >
@@ -66,7 +66,7 @@ export function DialogContent({
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="absolute right-3.5 top-3.5 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
           <X className="size-4" />
           <span className="sr-only">Tutup</span>
@@ -84,7 +84,7 @@ export function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLD
 export function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn('flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-6', className)}
+      className={cn('flex flex-col-reverse gap-2 sm:flex-row sm:justify-end mt-6 pt-4 border-t border-border', className)}
       {...props}
     />
   );
@@ -93,7 +93,7 @@ export function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLD
 export function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h2
-      className={cn('text-lg font-semibold leading-none tracking-tight text-foreground', className)}
+      className={cn('text-base font-semibold leading-tight tracking-tight text-foreground pr-8', className)}
       {...props}
     />
   );
@@ -103,5 +103,5 @@ export function DialogDescription({
   className,
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn('text-sm text-muted-foreground mt-1', className)} {...props} />;
+  return <p className={cn('text-[13px] text-muted-foreground mt-1', className)} {...props} />;
 }

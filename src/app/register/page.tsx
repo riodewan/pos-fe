@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { ApiError } from '@/lib/api';
 
 export default function RegisterPage() {
@@ -47,46 +48,50 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-indigo-50/50 via-background to-slate-100/50 dark:from-zinc-950 dark:to-zinc-900">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-background bg-grid relative">
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+        <ThemeToggle />
+      </div>
+
+      <div className="w-full max-w-[420px] space-y-6">
         {/* Branding Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center size-14 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/25">
-            <Coffee className="size-7" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Daftar Akun Baru
+          <Link href="/" className="inline-flex items-center justify-center size-10 rounded-md bg-primary text-primary-foreground mb-1 shadow-xs">
+            <Coffee className="size-5" strokeWidth={2.2} />
+          </Link>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            Daftar Tenant Baru
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Mulai kelola outlet coffee shop Anda dengan sistem POS terintegrasi
+          <p className="text-[13px] text-muted-foreground">
+            Mulai kelola outlet dan inventaris bisnis F&B Anda
           </p>
         </div>
 
         {/* Register Card */}
-        <Card className="border-border/60 shadow-xl shadow-black/5 backdrop-blur-sm">
+        <Card className="shadow-elevated border-border bg-card">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-xl">Informasi Pengguna</CardTitle>
-            <CardDescription>
-              Isi data di bawah ini untuk membuat akun baru Anda
+            <CardTitle className="text-base font-semibold">Informasi Akun</CardTitle>
+            <CardDescription className="text-xs">
+              Buat akun administrator untuk bisnis Anda
             </CardDescription>
           </CardHeader>
 
           <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3.5">
               {errorMsg && (
-                <div className="flex items-center gap-2 p-3 text-sm rounded-lg bg-destructive/10 text-destructive border border-destructive/20 animate-in fade-in">
+                <div className="flex items-center gap-2 p-2.5 text-xs rounded-md bg-destructive/10 text-destructive border border-destructive/20 animate-in fade-in">
                   <AlertCircle className="size-4 shrink-0" />
                   <span>{errorMsg}</span>
                 </div>
               )}
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-muted-foreground">
                   Nama Lengkap
                 </label>
                 <Input
                   type="text"
-                  placeholder="Mis: Ahmad Santoso"
+                  placeholder="Ahmad Santoso"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   disabled={loading}
@@ -94,13 +99,13 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-muted-foreground">
                   Alamat Email
                 </label>
                 <Input
                   type="email"
-                  placeholder="nama@bisnisanda.com"
+                  placeholder="ahmad@kopinusantara.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
@@ -108,8 +113,8 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-muted-foreground">
                   Kata Sandi
                 </label>
                 <Input
@@ -122,8 +127,8 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-muted-foreground">
                   Konfirmasi Kata Sandi
                 </label>
                 <Input
@@ -138,24 +143,24 @@ export default function RegisterPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-md shadow-indigo-600/20 mt-2"
+                className="w-full mt-2"
                 disabled={loading}
               >
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 size-4 animate-spin" />
-                    Mendaftarkan Akun...
+                    Membuat Akun...
                   </>
                 ) : (
-                  'Daftar Sekarang'
+                  'Daftarkan Outlet'
                 )}
               </Button>
             </CardContent>
           </form>
 
-          <CardFooter className="justify-center border-t border-border/40 py-3 text-xs text-muted-foreground">
+          <CardFooter className="justify-center border-t border-border py-3 text-xs text-muted-foreground">
             Sudah memiliki akun?{' '}
-            <Link href="/login" className="ml-1 font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+            <Link href="/login" className="ml-1 text-foreground font-medium hover:underline">
               Masuk di sini
             </Link>
           </CardFooter>

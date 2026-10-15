@@ -202,7 +202,7 @@ export default function ReportsPage() {
               onClick={() => setActiveTab(tab.id as ReportTab)}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
                 isCurrent
-                  ? 'bg-indigo-600 text-white shadow-xs'
+                  ? 'bg-primary text-primary-foreground shadow-xs'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
@@ -241,7 +241,7 @@ export default function ReportsPage() {
                   value={kpis.total_orders.toLocaleString('id-ID')}
                   subtitle="Struk pesanan selesai"
                   icon={Receipt}
-                  iconClassName="bg-indigo-500/10 text-indigo-600"
+                  iconClassName="bg-accent text-foreground"
                 />
                 <StatCard
                   title="Average Order Value (AOV)"
@@ -280,7 +280,7 @@ export default function ReportsPage() {
                       <span className="text-muted-foreground">Service Charge:</span>
                       <span className="font-bold text-foreground">{formatRupiah(kpis.service_charge)}</span>
                     </div>
-                    <div className="flex justify-between py-2 text-sm font-bold text-indigo-700 dark:text-indigo-400">
+                    <div className="flex justify-between py-2 text-sm font-bold text-foreground">
                       <span>Total Penerimaan (Revenue):</span>
                       <span>{formatRupiah(kpis.total_revenue)}</span>
                     </div>
@@ -350,7 +350,7 @@ export default function ReportsPage() {
                         <TableCell className="font-bold">
                           {item.total_quantity} porsi
                         </TableCell>
-                        <TableCell className="font-mono font-bold text-right text-indigo-700 dark:text-indigo-400">
+                        <TableCell className="font-mono font-bold text-right text-foreground">
                           {formatRupiah(item.total_sales)}
                         </TableCell>
                       </TableRow>
@@ -383,7 +383,7 @@ export default function ReportsPage() {
                   value={formatRupiah(cogsData?.total_cogs || 0)}
                   subtitle="Biaya bahan baku riil terpakai"
                   icon={Package}
-                  iconClassName="bg-indigo-500/10 text-indigo-600"
+                  iconClassName="bg-accent text-foreground"
                 />
                 <StatCard
                   title="Laba Kotor (Gross Profit)"
@@ -461,7 +461,7 @@ export default function ReportsPage() {
                     value={cashierData.summary.total_transactions}
                     subtitle="Jumlah transaksi terlayani"
                     icon={Users}
-                    iconClassName="bg-indigo-500/10 text-indigo-600"
+                    iconClassName="bg-accent text-foreground"
                   />
                 </div>
               )}
@@ -496,7 +496,7 @@ export default function ReportsPage() {
                               {t.source}
                             </Badge>
                           </TableCell>
-                          <TableCell className="font-bold text-indigo-700 dark:text-indigo-400">
+                          <TableCell className="font-bold text-foreground">
                             {formatRupiah(t.total_amount)}
                           </TableCell>
                           <TableCell>

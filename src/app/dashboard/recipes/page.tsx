@@ -209,14 +209,14 @@ export default function RecipesPage() {
         <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
           <RefreshCw className={`size-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
         </Button>
-        <Button onClick={openAddModal} className="bg-indigo-600 hover:bg-indigo-700 text-white" size="sm">
+        <Button onClick={openAddModal} className="bg-primary hover:bg-primary/90 text-primary-foreground" size="sm">
           <Plus className="size-4 mr-1.5" /> Buat Resep Baru
         </Button>
       </PageHeader>
 
       {/* Info Card Banner */}
-      <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-start gap-3 text-xs text-indigo-950 dark:text-indigo-200">
-        <HelpCircle className="size-5 shrink-0 text-indigo-600 dark:text-indigo-400 mt-0.5" />
+      <div className="p-4 rounded-xl bg-accent border border-foreground/20 flex items-start gap-3 text-xs text-foreground">
+        <HelpCircle className="size-5 shrink-0 text-foreground mt-0.5" />
         <div className="space-y-1">
           <p className="font-semibold text-foreground">Otomasi Pemotongan Stok Atomik (Recipe Depletion)</p>
           <p className="text-muted-foreground">
@@ -252,7 +252,7 @@ export default function RecipesPage() {
                     </span>
                   </div>
                   <CardTitle className="text-base mt-2 flex items-center gap-2">
-                    <Coffee className="size-4 text-indigo-600 dark:text-indigo-400" />
+                    <Coffee className="size-4 text-foreground" />
                     <span>{product ? product.name : rec.name}</span>
                   </CardTitle>
                   <p className="text-xs text-muted-foreground">{rec.name}</p>
@@ -275,7 +275,7 @@ export default function RecipesPage() {
                             <span className="font-medium text-foreground">
                               {ing ? ing.name : 'Bahan Baku'}
                             </span>
-                            <span className="font-mono font-bold text-indigo-700 dark:text-indigo-400">
+                            <span className="font-mono font-bold text-foreground">
                               {item.quantity} {unit?.code || 'UNIT'}
                             </span>
                           </div>
@@ -443,7 +443,7 @@ export default function RecipesPage() {
               <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
                 Batal
               </Button>
-              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={saving}>
+              <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={saving}>
                 {saving ? (
                   <>
                     <Loader2 className="mr-2 size-4 animate-spin" /> Menyimpan...

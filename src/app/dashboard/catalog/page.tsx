@@ -350,22 +350,22 @@ export default function CatalogPage() {
           <RefreshCw className={`size-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
         </Button>
         {activeTab === 'products' && (
-          <Button onClick={() => openProductModal()} className="bg-indigo-600 hover:bg-indigo-700 text-white" size="sm">
+          <Button onClick={() => openProductModal()} className="bg-primary hover:bg-primary/90 text-primary-foreground" size="sm">
             <Plus className="size-4 mr-1.5" /> Tambah Produk
           </Button>
         )}
         {activeTab === 'ingredients' && (
-          <Button onClick={() => openIngredientModal()} className="bg-indigo-600 hover:bg-indigo-700 text-white" size="sm">
+          <Button onClick={() => openIngredientModal()} className="bg-primary hover:bg-primary/90 text-primary-foreground" size="sm">
             <Plus className="size-4 mr-1.5" /> Tambah Bahan Baku
           </Button>
         )}
         {activeTab === 'units' && (
-          <Button onClick={openUnitModal} className="bg-indigo-600 hover:bg-indigo-700 text-white" size="sm">
+          <Button onClick={openUnitModal} className="bg-primary hover:bg-primary/90 text-primary-foreground" size="sm">
             <Plus className="size-4 mr-1.5" /> Tambah Satuan
           </Button>
         )}
         {activeTab === 'suppliers' && (
-          <Button onClick={() => openSupplierModal()} className="bg-indigo-600 hover:bg-indigo-700 text-white" size="sm">
+          <Button onClick={() => openSupplierModal()} className="bg-primary hover:bg-primary/90 text-primary-foreground" size="sm">
             <Plus className="size-4 mr-1.5" /> Tambah Supplier
           </Button>
         )}
@@ -391,7 +391,7 @@ export default function CatalogPage() {
                 }}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
                   isCurrent
-                    ? 'bg-indigo-600 text-white shadow-xs'
+                    ? 'bg-primary text-primary-foreground shadow-xs'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
@@ -477,7 +477,7 @@ export default function CatalogPage() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="font-bold text-indigo-700 dark:text-indigo-400">
+                        <TableCell className="font-bold text-foreground">
                           {formatRupiah(p.selling_price)}
                         </TableCell>
                         <TableCell>
@@ -583,7 +583,7 @@ export default function CatalogPage() {
                 <Card key={unit.id} className="p-4 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-mono text-sm font-extrabold text-indigo-700 dark:text-indigo-400">
+                      <span className="font-mono text-sm font-extrabold text-foreground">
                         {unit.code}
                       </span>
                       <Badge variant="outline" className="text-[10px]">
@@ -737,7 +737,7 @@ export default function CatalogPage() {
                 <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
                   Batal
                 </Button>
-                <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={saving}>
+                <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={saving}>
                   {saving ? 'Menyimpan...' : 'Simpan Produk'}
                 </Button>
               </DialogFooter>
@@ -789,7 +789,7 @@ export default function CatalogPage() {
                 <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
                   Batal
                 </Button>
-                <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={saving}>
+                <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={saving}>
                   {saving ? 'Menyimpan...' : 'Simpan Bahan'}
                 </Button>
               </DialogFooter>
@@ -839,7 +839,7 @@ export default function CatalogPage() {
                 <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
                   Batal
                 </Button>
-                <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={saving}>
+                <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={saving}>
                   {saving ? 'Menyimpan...' : 'Simpan Satuan'}
                 </Button>
               </DialogFooter>
@@ -901,7 +901,7 @@ export default function CatalogPage() {
                 <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
                   Batal
                 </Button>
-                <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={saving}>
+                <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={saving}>
                   {saving ? 'Menyimpan...' : 'Simpan Supplier'}
                 </Button>
               </DialogFooter>

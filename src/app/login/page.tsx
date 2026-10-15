@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { ApiError } from '@/lib/api';
 
 function LoginForm() {
@@ -25,7 +26,7 @@ function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      setErrorMsg('Email dan password wajib diisi.');
+      setErrorMsg('Email dan kata sandi wajib diisi.');
       return;
     }
 
@@ -61,46 +62,51 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-indigo-50/50 via-background to-slate-100/50 dark:from-zinc-950 dark:to-zinc-900">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-background bg-grid relative">
+      {/* Top right theme toggle */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+        <ThemeToggle />
+      </div>
+
+      <div className="w-full max-w-[420px] space-y-6">
         {/* Branding Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center size-14 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/25">
-            <Coffee className="size-7" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            POS Multi-Tenant Coffee & F&B
+          <Link href="/" className="inline-flex items-center justify-center size-10 rounded-md bg-primary text-primary-foreground mb-1 shadow-xs">
+            <Coffee className="size-5" strokeWidth={2.2} />
+          </Link>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            Masuk ke Kopi Nusantara
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Sistem Kasir, QR Self-Order & Manajemen Bahan Baku
+          <p className="text-[13px] text-muted-foreground">
+            Sistem POS multi-tenant & manajemen outlet
           </p>
         </div>
 
         {/* Login Card */}
-        <Card className="border-border/60 shadow-xl shadow-black/5 backdrop-blur-sm">
+        <Card className="shadow-elevated border-border bg-card">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-xl">Masuk ke Akun</CardTitle>
-            <CardDescription>
-              Masukkan kredensial Anda untuk mengakses dashboard outlet
+            <CardTitle className="text-base font-semibold">Kredensial Akun</CardTitle>
+            <CardDescription className="text-xs">
+              Masukkan email dan kata sandi Anda
             </CardDescription>
           </CardHeader>
 
           <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3.5">
               {errorMsg && (
-                <div className="flex items-center gap-2 p-3 text-sm rounded-lg bg-destructive/10 text-destructive border border-destructive/20 animate-in fade-in">
+                <div className="flex items-center gap-2 p-2.5 text-xs rounded-md bg-destructive/10 text-destructive border border-destructive/20 animate-in fade-in">
                   <AlertCircle className="size-4 shrink-0" />
                   <span>{errorMsg}</span>
                 </div>
               )}
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-muted-foreground">
                   Alamat Email
                 </label>
                 <Input
                   type="email"
-                  placeholder="nama@kopinusantara.com"
+                  placeholder="owner@kopinusantara.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
@@ -108,12 +114,10 @@ function LoginForm() {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Kata Sandi
-                  </label>
-                </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-muted-foreground">
+                  Kata Sandi
+                </label>
                 <Input
                   type="password"
                   placeholder="••••••••"
@@ -126,85 +130,77 @@ function LoginForm() {
 
               <Button
                 type="submit"
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-md shadow-indigo-600/20"
+                className="w-full mt-2"
                 disabled={loading}
               >
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 size-4 animate-spin" />
-                    Memproses...
+                    Memverifikasi...
                   </>
                 ) : (
-                  'Masuk Sekarang'
+                  'Masuk ke Sistem'
                 )}
               </Button>
             </CardContent>
           </form>
 
           {/* Quick Demo Credentials */}
-          <div className="px-6 pb-6 pt-2 border-t border-border/50">
-            <p className="text-xs font-medium text-muted-foreground mb-3 text-center">
-              Quick Fill Demo Accounts:
+          <div className="px-5 pb-5 pt-3 border-t border-border">
+            <p className="text-[11px] font-medium text-muted-foreground mb-2.5 text-center">
+              Akun Demo Cepat:
             </p>
             <div className="grid grid-cols-2 gap-2">
-              <Button
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
                 onClick={() => handleQuickFill('owner@kopinusantara.com', 'Password123!')}
-                className="h-auto py-2 px-2.5 flex flex-col items-start gap-0.5 text-left border-indigo-200/50 hover:bg-indigo-50 dark:hover:bg-indigo-950/20"
+                className="p-2 rounded-md border border-border bg-surface text-left transition-colors hover:border-foreground/30 hover:bg-accent flex flex-col gap-0.5"
               >
-                <span className="flex items-center gap-1.5 font-semibold text-xs text-indigo-800 dark:text-indigo-300">
+                <span className="flex items-center gap-1.5 font-medium text-xs text-foreground">
                   <Store className="size-3.5" /> Tenant Owner
                 </span>
                 <span className="text-[10px] text-muted-foreground truncate w-full">owner@kopinusantara.com</span>
-              </Button>
+              </button>
 
-              <Button
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
                 onClick={() => handleQuickFill('kasir@kopinusantara.com', 'Password123!')}
-                className="h-auto py-2 px-2.5 flex flex-col items-start gap-0.5 text-left border-blue-200/50 hover:bg-blue-50 dark:hover:bg-blue-950/20"
+                className="p-2 rounded-md border border-border bg-surface text-left transition-colors hover:border-foreground/30 hover:bg-accent flex flex-col gap-0.5"
               >
-                <span className="flex items-center gap-1.5 font-semibold text-xs text-blue-800 dark:text-blue-300">
+                <span className="flex items-center gap-1.5 font-medium text-xs text-foreground">
                   <UserCheck className="size-3.5" /> Kasir POS
                 </span>
                 <span className="text-[10px] text-muted-foreground truncate w-full">kasir@kopinusantara.com</span>
-              </Button>
+              </button>
 
-              <Button
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
                 onClick={() => handleQuickFill('gudang@kopinusantara.com', 'Password123!')}
-                className="h-auto py-2 px-2.5 flex flex-col items-start gap-0.5 text-left border-emerald-200/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                className="p-2 rounded-md border border-border bg-surface text-left transition-colors hover:border-foreground/30 hover:bg-accent flex flex-col gap-0.5"
               >
-                <span className="flex items-center gap-1.5 font-semibold text-xs text-emerald-800 dark:text-emerald-300">
+                <span className="flex items-center gap-1.5 font-medium text-xs text-foreground">
                   <Package className="size-3.5" /> Staf Gudang
                 </span>
                 <span className="text-[10px] text-muted-foreground truncate w-full">gudang@kopinusantara.com</span>
-              </Button>
+              </button>
 
-              <Button
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
                 onClick={() => handleQuickFill('admin@pos.com', 'SuperAdmin123!')}
-                className="h-auto py-2 px-2.5 flex flex-col items-start gap-0.5 text-left border-purple-200/50 hover:bg-purple-50 dark:hover:bg-purple-950/20"
+                className="p-2 rounded-md border border-border bg-surface text-left transition-colors hover:border-foreground/30 hover:bg-accent flex flex-col gap-0.5"
               >
-                <span className="flex items-center gap-1.5 font-semibold text-xs text-purple-800 dark:text-purple-300">
+                <span className="flex items-center gap-1.5 font-medium text-xs text-foreground">
                   <Shield className="size-3.5" /> Super Admin
                 </span>
                 <span className="text-[10px] text-muted-foreground truncate w-full">admin@pos.com</span>
-              </Button>
+              </button>
             </div>
           </div>
 
-          <CardFooter className="justify-center border-t border-border/40 py-3 text-xs text-muted-foreground">
-            Belum punya akun bisnis?{' '}
-            <Link href="/register" className="ml-1 font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
-              Daftar Tenant Baru
+          <CardFooter className="justify-center border-t border-border py-3 text-xs text-muted-foreground">
+            Belum punya akun?{' '}
+            <Link href="/register" className="ml-1 text-foreground font-medium hover:underline">
+              Daftar outlet baru
             </Link>
           </CardFooter>
         </Card>
@@ -218,7 +214,7 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-background">
-          <Loader2 className="size-8 animate-spin text-indigo-600" />
+          <Loader2 className="size-6 animate-spin text-foreground" />
         </div>
       }
     >
