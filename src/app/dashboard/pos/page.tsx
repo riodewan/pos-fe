@@ -906,11 +906,11 @@ function PosCashierContent() {
 
                         {/* Payment Status Badge */}
                         {isPaid ? (
-                          <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle2 className="size-3" /> Lunas
+                          <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                            <CheckCircle2 className="size-3" /> Lunas (QRIS/Online)
                           </span>
                         ) : (
-                          <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                          <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
                             Belum Bayar
                           </span>
                         )}
@@ -1015,18 +1015,18 @@ function PosCashierContent() {
                           </Button>
                         )}
 
-                        {/* Step 3: Ready -> Completed */}
-                        {isReady && isPaid && (
+                        {/* Step 3: Close Order (if Ready or already Paid) */}
+                        {(isReady || (isPaid && isPreparing)) && (
                           <Button
                             size="xs"
                             onClick={() => handleUpdateOrderStatus(order.id, 'COMPLETED')}
                             disabled={actionLoadingId === order.id}
-                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs py-1.5"
+                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs py-1.5 shadow-xs"
                           >
                             {actionLoadingId === order.id ? (
                               <Loader2 className="size-3.5 animate-spin" />
                             ) : (
-                              'Selesaikan Pesanan'
+                              'Close Order'
                             )}
                           </Button>
                         )}

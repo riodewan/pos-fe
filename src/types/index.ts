@@ -370,6 +370,10 @@ export interface PublicQrResolved {
     code: string;
     capacity: number;
   };
+  settings?: {
+    tax_percentage?: number;
+    service_charge_percentage?: number;
+  };
   active_order?: Order | null;
   products: Array<{
     id: ULID;

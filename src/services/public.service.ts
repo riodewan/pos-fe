@@ -15,6 +15,7 @@ export const publicService = {
       customer_name: string;
       customer_phone?: string | null;
       notes?: string | null;
+      payment_method?: string | null;
       items: Array<{
         product_id: string;
         quantity: number;
@@ -23,6 +24,20 @@ export const publicService = {
     }
   ) =>
     api.post<ApiResponse<Order>>(`/public/qr/${token}/order`, data, {
+      skipAuth: true,
+      skipTenant: true,
+      skipStore: true,
+    }),
+
+  payCustomerOrder: (
+    token: string,
+    orderId: string,
+    data: {
+      method: string;
+      provider?: string | null;
+    }
+  ) =>
+    api.post<ApiResponse<Order>>(`/public/qr/${token}/order/${orderId}/pay`, data, {
       skipAuth: true,
       skipTenant: true,
       skipStore: true,

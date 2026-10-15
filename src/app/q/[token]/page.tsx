@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, use, Suspense } from 'react';
-
 import {
   Coffee,
   Plus,
@@ -10,9 +9,19 @@ import {
   AlertCircle,
   ArrowRight,
   Loader2,
+  QrCode as QrIcon,
+  CreditCard,
+  ShieldCheck,
+  Clock,
+  ChevronRight,
+  Check,
+  Utensils,
+  Receipt,
+  Sparkles,
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { publicService } from '@/services';
-import { PublicQrResolved } from '@/types';
+import { PublicQrResolved, Order, OrderStatus } from '@/types';
 import { ApiError } from '@/lib/api';
 import { formatRupiah } from '@/utils';
 import { Button } from '@/components/ui/button';
@@ -28,26 +37,29 @@ interface CustomerCartItem {
   notes?: string;
 }
 
+type PaymentOption = 'QRIS' | 'EWALLET' | 'VA';
+
 function CustomerQrContent({ token }: { token: string }) {
   const [session, setSession] = useState<PublicQrResolved | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Cart
+  // Cart & Customer details
   const [cart, setCart] = useState<CustomerCartItem[]>([]);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
-  const [submittingOrder, setSubmittingOrder] = useState(false);
 
-  // Order Confirmed State
-  const [orderSuccess, setOrderSuccess] = useState(false);
-  const [submittedOrderInfo, setSubmittedOrderInfo] = useState<{
-    orderNumber?: string;
-    customerName: string;
-    totalAmount: number;
-  } | null>(null);
+  // Payment Gateway State
+  const [selectedPayment, setSelectedPayment] = useState<PaymentOption>('QRIS');
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
+  const [countdownSeconds, setCountdownSeconds] = useState(900); // 15 mins
+
+  // Confirmed Order State & Live Tracker
+  const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
+  const [liveOrderStatus, setLiveOrderStatus] = useState<OrderStatus>('PREPARING');
 
   // Fetch Public QR Data
   useEffect(() => {
@@ -58,7 +70,6 @@ function CustomerQrContent({ token }: { token: string }) {
         const res = await publicService.resolveQrToken(token);
         setSession(res.data);
       } catch (err: unknown) {
-
         if (err instanceof ApiError) {
           setErrorMsg(err.message || 'QR code tidak valid atau telah kedaluwarsa.');
         } else {
@@ -72,6 +83,31 @@ function CustomerQrContent({ token }: { token: string }) {
       resolveQr();
     }
   }, [token]);
+
+  // Payment Countdown Timer
+  useEffect(() => {
+    if (!paymentModalOpen || countdownSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setCountdownSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [paymentModalOpen, countdownSeconds]);
+
+  // Live Order Status Polling (after order is placed)
+  useEffect(() => {
+    if (!confirmedOrder || !token) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await publicService.trackCustomerOrder(token, confirmedOrder.id);
+        if (res.data) {
+          setLiveOrderStatus(res.data.status);
+        }
+      } catch (err) {
+        // silently catch tracking error
+      }
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [confirmedOrder, token]);
 
   // Cart Actions
   const addToCart = (prod: PublicQrResolved['products'][0]) => {
@@ -113,22 +149,35 @@ function CustomerQrContent({ token }: { token: string }) {
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
+  // Calculate tax if configured
+  const taxPct = session?.settings?.tax_percentage || 0;
+  const taxAmount = taxPct > 0 ? Math.round((subtotal * taxPct) / 100) : 0;
+  const totalPayable = subtotal + taxAmount;
+
   const formatCurrency = formatRupiah;
 
-  const handleSubmitOrder = async (e: React.FormEvent) => {
+  // Step 1: Open Payment Gateway Step
+  const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerName) {
-      alert('Mohon isi nama Anda.');
+    if (!customerName.trim()) {
+      alert('Mohon isi nama Anda terlebih dahulu.');
       return;
     }
     if (cart.length === 0) return;
 
-    setSubmittingOrder(true);
+    setCountdownSeconds(900);
+    setPaymentModalOpen(true);
+  };
+
+  // Step 2: Execute Direct Self-Service Payment & Order Creation
+  const handleConfirmExecutePayment = async () => {
+    setProcessingPayment(true);
     try {
       const payload = {
-        customer_name: customerName,
-        customer_phone: customerPhone || null,
-        notes: orderNotes || null,
+        customer_name: customerName.trim(),
+        customer_phone: customerPhone.trim() || null,
+        notes: orderNotes.trim() || null,
+        payment_method: selectedPayment === 'QRIS' ? 'QRIS' : 'ONLINE',
         items: cart.map((i) => ({
           product_id: i.productId,
           quantity: i.quantity,
@@ -137,24 +186,21 @@ function CustomerQrContent({ token }: { token: string }) {
       };
 
       const res = await publicService.submitCustomerOrder(token, payload);
+      const newOrder = res.data;
 
-
-      setSubmittedOrderInfo({
-        orderNumber: res.data?.order_number || 'ORD-NEW',
-        customerName,
-        totalAmount: subtotal,
-      });
-      setOrderSuccess(true);
+      setConfirmedOrder(newOrder);
+      setLiveOrderStatus(newOrder.status || 'PREPARING');
+      setPaymentModalOpen(false);
       setCheckoutOpen(false);
       setCart([]);
     } catch (err: unknown) {
       if (err instanceof ApiError) {
-        alert(err.message || 'Gagal mengirim pesanan');
+        alert(err.message || 'Gagal memproses pembayaran pesanan.');
       } else {
-        alert('Terjadi kesalahan koneksi.');
+        alert('Terjadi kesalahan saat memproses pembayaran.');
       }
     } finally {
-      setSubmittingOrder(false);
+      setProcessingPayment(false);
     }
   };
 
@@ -183,52 +229,147 @@ function CustomerQrContent({ token }: { token: string }) {
     );
   }
 
-  if (orderSuccess) {
+  // ============================================================
+  // CONFIRMED ORDER & LIVE TRACKING VIEW
+  // ============================================================
+  if (confirmedOrder) {
+    const isPreparing = liveOrderStatus === 'PREPARING' || liveOrderStatus === 'CONFIRMED' || liveOrderStatus === 'PENDING';
+    const isReady = liveOrderStatus === 'READY';
+    const isCompleted = liveOrderStatus === 'COMPLETED';
+
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-background">
-        <div className="size-16 rounded-full bg-emerald-500/15 text-emerald-600 flex items-center justify-center mb-4 animate-in zoom-in-75">
-          <CheckCircle2 className="size-10" />
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 bg-zinc-50 dark:bg-zinc-950">
+        <div className="w-full max-w-md bg-card rounded-3xl border border-border p-6 shadow-xl space-y-6 text-center">
+          {/* Success Banner */}
+          <div className="space-y-2">
+            <div className="size-16 rounded-full bg-emerald-500/15 text-emerald-600 flex items-center justify-center mx-auto animate-in zoom-in-75">
+              <CheckCircle2 className="size-10" />
+            </div>
+            <Badge className="bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30 font-bold px-3 py-1">
+              ✓ LUNAS VIA QRIS
+            </Badge>
+            <h2 className="text-2xl font-black text-foreground tracking-tight">
+              Pembayaran Berhasil!
+            </h2>
+            <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+              Terima kasih <strong className="text-foreground">{customerName}</strong>. Pesanan Anda sudah dibayar dan otomatis masuk ke antrean barista.
+            </p>
+          </div>
+
+          {/* Real-time Order Preparation Stepper */}
+          <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 text-left space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-border/40">
+              <span className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Utensils className="size-3.5 text-amber-600" /> Status Dapur / Barista
+              </span>
+              <span className="text-[11px] text-muted-foreground font-mono">
+                #{confirmedOrder.order_number}
+              </span>
+            </div>
+
+            {/* Step 1: Paid */}
+            <div className="flex items-start gap-3">
+              <div className="size-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs shrink-0 mt-0.5">
+                <Check className="size-3.5" />
+              </div>
+              <div className="text-xs">
+                <p className="font-bold text-foreground">Pembayaran QRIS Diterima</p>
+                <p className="text-[11px] text-muted-foreground">Transaksi diverifikasi otomatis</p>
+              </div>
+            </div>
+
+            {/* Step 2: Preparing */}
+            <div className="flex items-start gap-3">
+              <div
+                className={`size-6 rounded-full flex items-center justify-center text-xs shrink-0 mt-0.5 ${
+                  isPreparing
+                    ? 'bg-amber-600 text-white animate-pulse'
+                    : isReady || isCompleted
+                    ? 'bg-emerald-500 text-white'
+                    : 'bg-muted text-muted-foreground'
+                }`}
+              >
+                {isReady || isCompleted ? <Check className="size-3.5" /> : <Loader2 className="size-3.5 animate-spin" />}
+              </div>
+              <div className="text-xs">
+                <p className="font-bold text-foreground">Sedang Disiapkan Barista</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {isPreparing ? 'Pesanan sedang diracik/dimasak di dapur' : 'Selesai disiapkan'}
+                </p>
+              </div>
+            </div>
+
+            {/* Step 3: Ready / Served */}
+            <div className="flex items-start gap-3">
+              <div
+                className={`size-6 rounded-full flex items-center justify-center text-xs shrink-0 mt-0.5 ${
+                  isReady
+                    ? 'bg-emerald-600 text-white animate-bounce'
+                    : isCompleted
+                    ? 'bg-emerald-500 text-white'
+                    : 'bg-muted text-muted-foreground'
+                }`}
+              >
+                {isCompleted ? <Check className="size-3.5" /> : <Coffee className="size-3.5" />}
+              </div>
+              <div className="text-xs">
+                <p className={`font-bold ${isReady ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' : 'text-foreground'}`}>
+                  {isReady ? '🎉 Siap Disajikan!' : isCompleted ? 'Pesanan Selesai' : 'Siap Saji'}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {isReady ? 'Staf kami segera mengantarkan ke meja Anda' : 'Disajikan langsung ke meja Anda'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Order Details Receipt Box */}
+          <div className="p-4 rounded-2xl border border-border bg-card text-left text-xs space-y-2">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Outlet:</span>
+              <span className="font-semibold text-foreground">{session.store.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Nomor Meja:</span>
+              <span className="font-bold text-amber-700 dark:text-amber-400">{session.table.name} ({session.table.code})</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Metode Bayar:</span>
+              <span className="font-semibold text-foreground">QRIS Instan (Lunas)</span>
+            </div>
+            <div className="flex justify-between pt-2 border-t border-border/50 font-bold text-sm">
+              <span>Total Terbayar:</span>
+              <span className="text-amber-700 dark:text-amber-400">
+                {formatCurrency(confirmedOrder.total_amount)}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              ☕ Silakan duduk santai di meja Anda. Pihak cafe akan langsung menyajikan pesanan Anda!
+            </p>
+            <Button
+              onClick={() => {
+                setConfirmedOrder(null);
+                setCart([]);
+              }}
+              variant="outline"
+              className="w-full text-xs font-semibold py-4 rounded-xl"
+            >
+              Pesan Menu Tambahan
+            </Button>
+          </div>
         </div>
-        <Badge variant="success" className="mb-2">Pesanan Terkonfirmasi</Badge>
-        <h2 className="text-2xl font-extrabold text-foreground">Pesanan Diterima Dapur!</h2>
-        <p className="text-sm text-muted-foreground mt-2 max-w-xs">
-          Terima kasih <strong className="text-foreground">{submittedOrderInfo?.customerName}</strong>. Barista & staf dapur sedang menyiapkan pesanan Anda di <strong>{session.table.name}</strong>.
-        </p>
-
-        <div className="mt-6 p-4 rounded-xl border border-border bg-card w-full max-w-xs text-xs space-y-2 text-left">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Outlet:</span>
-            <span className="font-semibold text-foreground">{session.store.name}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Meja:</span>
-            <span className="font-semibold text-foreground">{session.table.name} ({session.table.code})</span>
-          </div>
-          <div className="flex justify-between pt-2 border-t border-border/50 font-bold">
-            <span>Estimasi Total:</span>
-            <span className="text-amber-700 dark:text-amber-400">
-              {formatCurrency(submittedOrderInfo?.totalAmount || 0)}
-            </span>
-          </div>
-        </div>
-
-        <p className="text-[11px] text-muted-foreground mt-4">
-          Pembayaran dapat dilakukan di kasir saat pesanan selesai.
-        </p>
-
-        <Button
-          onClick={() => setOrderSuccess(false)}
-          variant="outline"
-          className="mt-6 text-xs"
-        >
-          Pesan Menu Tambahan
-        </Button>
       </div>
     );
   }
 
+  // ============================================================
+  // MAIN MENU CATALOG VIEW
+  // ============================================================
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-50/60 dark:bg-zinc-950 pb-24">
+    <div className="min-h-screen flex flex-col bg-zinc-50/60 dark:bg-zinc-950 pb-28">
       {/* Store & Table Header */}
       <header className="sticky top-0 z-30 bg-card/90 backdrop-blur-md border-b border-border/60 p-4 shadow-xs">
         <div className="max-w-md mx-auto flex items-center justify-between">
@@ -245,8 +386,8 @@ function CustomerQrContent({ token }: { token: string }) {
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="text-[10px] uppercase font-semibold">
-            Self-Order
+          <Badge variant="outline" className="text-[10px] uppercase font-semibold gap-1">
+            <Sparkles className="size-3 text-amber-600" /> Self-Order
           </Badge>
         </div>
       </header>
@@ -256,7 +397,7 @@ function CustomerQrContent({ token }: { token: string }) {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base font-bold text-foreground">Daftar Menu</h2>
-            <p className="text-xs text-muted-foreground">Pilih hidangan dan minuman favorit Anda</p>
+            <p className="text-xs text-muted-foreground">Pesan & bayar langsung dari tempat duduk Anda</p>
           </div>
           <span className="text-xs text-muted-foreground font-medium">
             {session.products.length} Pilihan
@@ -342,7 +483,7 @@ function CustomerQrContent({ token }: { token: string }) {
       </main>
 
       {/* Floating Bottom Cart Bar */}
-      {cart.length > 0 && (
+      {cart.length > 0 && !checkoutOpen && !paymentModalOpen && (
         <div className="fixed bottom-0 inset-x-0 z-40 p-3 bg-gradient-to-t from-background via-background/95 to-transparent backdrop-blur-xs">
           <div className="max-w-md mx-auto">
             <button
@@ -353,10 +494,10 @@ function CustomerQrContent({ token }: { token: string }) {
                 <div className="size-7 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">
                   {totalItems}
                 </div>
-                <span className="text-sm">Lihat Pesanan</span>
+                <span className="text-sm font-bold">Lihat Pesanan</span>
               </div>
               <div className="flex items-center gap-1.5 text-sm font-bold">
-                <span>{formatCurrency(subtotal)}</span>
+                <span>{formatCurrency(totalPayable)}</span>
                 <ArrowRight className="size-4" />
               </div>
             </button>
@@ -364,22 +505,24 @@ function CustomerQrContent({ token }: { token: string }) {
         </div>
       )}
 
-      {/* Checkout Bottom Sheet / Drawer */}
-      {checkoutOpen && (
+      {/* ============================================================ */}
+      {/* STEP 1: CHECKOUT & CUSTOMER INFO DRAWER */}
+      {/* ============================================================ */}
+      {checkoutOpen && !paymentModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4">
           <div className="w-full max-w-md bg-card rounded-t-3xl sm:rounded-2xl border border-border p-5 space-y-4 max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-5">
             <div className="flex items-center justify-between pb-2 border-b border-border/60">
-              <h3 className="text-base font-bold text-foreground">Konfirmasi Pesanan</h3>
+              <h3 className="text-base font-bold text-foreground">Ringkasan & Pembayaran</h3>
               <button
                 onClick={() => setCheckoutOpen(false)}
                 className="text-xs text-muted-foreground hover:text-foreground"
               >
-                Kembali
+                Tutup
               </button>
             </div>
 
             {/* Cart Items List */}
-            <div className="space-y-2.5 max-h-52 overflow-y-auto pr-1">
+            <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
               {cart.map((item) => (
                 <div
                   key={item.productId}
@@ -427,7 +570,7 @@ function CustomerQrContent({ token }: { token: string }) {
             </div>
 
             {/* Customer Information Form */}
-            <form onSubmit={handleSubmitOrder} className="space-y-3 pt-2 border-t border-border/60">
+            <form onSubmit={handleProceedToPayment} className="space-y-3 pt-2 border-t border-border/60">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-muted-foreground uppercase">
                   Nama Anda (Wajib)
@@ -443,7 +586,7 @@ function CustomerQrContent({ token }: { token: string }) {
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-muted-foreground uppercase">
-                  Nomor Telepon / WhatsApp (Opsional)
+                  Nomor WhatsApp (Opsional)
                 </label>
                 <Input
                   placeholder="08123456789"
@@ -458,34 +601,173 @@ function CustomerQrContent({ token }: { token: string }) {
                   Catatan untuk Dapur
                 </label>
                 <Input
-                  placeholder="Mis: Disajikan serentak, less ice..."
+                  placeholder="Mis: Less ice, gula dipisah..."
                   value={orderNotes}
                   onChange={(e) => setOrderNotes(e.target.value)}
                   className="h-9 text-xs"
                 />
               </div>
 
-              <div className="flex justify-between items-center pt-2 font-bold text-sm">
-                <span>Total Pesanan</span>
-                <span className="text-amber-700 dark:text-amber-400 text-base">
-                  {formatCurrency(subtotal)}
-                </span>
+              {/* Direct Payment Method Selection */}
+              <div className="space-y-2 pt-2 border-t border-border/50">
+                <label className="text-xs font-bold text-foreground flex items-center justify-between">
+                  <span>Metode Pembayaran Mandiri</span>
+                  <span className="text-[10px] text-emerald-600 font-semibold">Langsung Lunas</span>
+                </label>
+
+                <div className="grid grid-cols-1 gap-2">
+                  {/* Option 1: QRIS */}
+                  <label
+                    onClick={() => setSelectedPayment('QRIS')}
+                    className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                      selectedPayment === 'QRIS'
+                        ? 'border-amber-600 bg-amber-500/10 text-foreground ring-1 ring-amber-600'
+                        : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="size-8 rounded-lg bg-red-600 text-white flex items-center justify-center font-bold text-[10px]">
+                        QRIS
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-foreground">QRIS (Semua E-Wallet & M-Banking)</p>
+                        <p className="text-[10px] text-muted-foreground">GoPay, OVO, ShopeePay, BCA, Mandiri, Dana</p>
+                      </div>
+                    </div>
+                    <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] border-emerald-500/30">
+                      Instan
+                    </Badge>
+                  </label>
+
+                  {/* Option 2: E-Wallet */}
+                  <label
+                    onClick={() => setSelectedPayment('EWALLET')}
+                    className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                      selectedPayment === 'EWALLET'
+                        ? 'border-amber-600 bg-amber-500/10 text-foreground ring-1 ring-amber-600'
+                        : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="size-8 rounded-lg bg-blue-600 text-white flex items-center justify-center">
+                        <CreditCard className="size-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-foreground">E-Wallet Apps</p>
+                        <p className="text-[10px] text-muted-foreground">GoPay, OVO, DANA, LinkAja</p>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Total Calculation */}
+              <div className="pt-2 border-t border-border/50 space-y-1 text-xs">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span>{formatCurrency(subtotal)}</span>
+                </div>
+                {taxAmount > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>PPN ({taxPct}%)</span>
+                    <span>{formatCurrency(taxAmount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-1 font-extrabold text-sm border-t border-border/40">
+                  <span>Total Pembayaran</span>
+                  <span className="text-amber-700 dark:text-amber-400 text-base">
+                    {formatCurrency(totalPayable)}
+                  </span>
+                </div>
               </div>
 
               <Button
                 type="submit"
-                disabled={submittingOrder}
-                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-5 mt-2"
+                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-5 mt-2 gap-2 shadow-md shadow-amber-600/20"
               >
-                {submittingOrder ? (
-                  <>
-                    <Loader2 className="mr-2 size-4 animate-spin" /> Mengirim Pesanan...
-                  </>
-                ) : (
-                  'Kirim Pesanan ke Dapur'
-                )}
+                <span>Bayar Sekarang ({formatCurrency(totalPayable)})</span>
+                <ChevronRight className="size-4" />
               </Button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* STEP 2: DYNAMIC QRIS PAYMENT MODAL GATEWAY */}
+      {/* ============================================================ */}
+      {paymentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm bg-card rounded-3xl border border-border p-6 space-y-4 shadow-2xl animate-in zoom-in-95 text-center">
+            <div className="flex items-center justify-between pb-2 border-b border-border/50">
+              <div className="flex items-center gap-2">
+                <div className="px-2 py-0.5 rounded bg-red-600 text-white font-black text-xs tracking-wider">
+                  QRIS
+                </div>
+                <span className="text-xs font-bold text-foreground">Pembayaran Mandiri</span>
+              </div>
+              <button
+                onClick={() => setPaymentModalOpen(false)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Batal
+              </button>
+            </div>
+
+            {/* Total Display */}
+            <div>
+              <span className="text-xs text-muted-foreground">Total yang harus dibayar</span>
+              <h3 className="text-2xl font-black text-amber-700 dark:text-amber-400 mt-0.5">
+                {formatCurrency(totalPayable)}
+              </h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {session.table.name} ({session.table.code}) • {customerName}
+              </p>
+            </div>
+
+            {/* Dynamic QRIS Barcode Box */}
+            <div className="relative p-4 rounded-2xl bg-white border border-zinc-200 shadow-inner flex flex-col items-center justify-center mx-auto w-56">
+              <QRCodeSVG
+                value={`https://qris.id/pay/${token}?amount=${totalPayable}&t=${Date.now()}`}
+                size={180}
+                level="H"
+                includeMargin={false}
+              />
+              <div className="mt-2 flex items-center justify-center gap-1.5 text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">
+                <ShieldCheck className="size-3 text-emerald-600" /> Standar QRIS Nasional
+              </div>
+            </div>
+
+            {/* Countdown Timer */}
+            <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="size-3.5 text-amber-600" />
+              <span>Sisa Waktu Bayar: </span>
+              <span className="font-mono font-bold text-foreground">
+                {String(Math.floor(countdownSeconds / 60)).padStart(2, '0')}:
+                {String(countdownSeconds % 60).padStart(2, '0')}
+              </span>
+            </div>
+
+            <div className="text-[11px] text-muted-foreground leading-relaxed bg-muted/40 p-2.5 rounded-xl border border-border/50 text-left space-y-1">
+              <p className="font-semibold text-foreground">Petunjuk Pembayaran:</p>
+              <p>1. Buka aplikasi m-Banking (BCA, Mandiri, BRI) atau E-Wallet (GoPay, OVO, Dana, ShopeePay).</p>
+              <p>2. Scan kode QRIS di atas dan selesaikan transaksi.</p>
+            </div>
+
+            {/* Interactive Payment Execution Simulation */}
+            <Button
+              onClick={handleConfirmExecutePayment}
+              disabled={processingPayment}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-5 shadow-lg shadow-emerald-600/25"
+            >
+              {processingPayment ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" /> Memverifikasi Pembayaran...
+                </>
+              ) : (
+                'Simulasikan Pembayaran Berhasil'
+              )}
+            </Button>
           </div>
         </div>
       )}
