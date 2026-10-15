@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -64,6 +64,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </header>
           <main className="p-6">
             <LoadingScreen message="Memuat sesi kerja..." />
+            <div className="hidden">
+              <Suspense fallback={null}>{children}</Suspense>
+            </div>
           </main>
         </div>
       </div>
@@ -269,7 +272,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         {/* Page Children Container */}
-        <main className="flex-1 p-4 sm:p-6 max-w-7xl w-full mx-auto">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 max-w-7xl w-full mx-auto">
+          <Suspense fallback={<LoadingScreen message="Memuat halaman..." />}>
+            {children}
+          </Suspense>
+        </main>
       </div>
     </div>
   );

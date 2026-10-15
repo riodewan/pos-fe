@@ -95,7 +95,7 @@ function PosCashierContent() {
   const [sourceFilter, setSourceFilter] = useState<'ALL' | 'QR' | 'POS'>('ALL');
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date>(new Date());
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   // Cancel Order Modal State
@@ -431,7 +431,7 @@ function PosCashierContent() {
           {activeTab === 'orders' && (
             <div className="flex items-center gap-2">
               <span className="hidden md:inline-flex text-[11px]">
-                Update: {lastRefreshedAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                Update: {lastRefreshedAt ? lastRefreshedAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-'}
               </span>
               <Button
                 variant="outline"

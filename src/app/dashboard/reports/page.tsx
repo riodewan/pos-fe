@@ -59,13 +59,20 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
 
   // Date Filter Range
-  const [startDate, setStartDate] = useState(getPastDateISO(30));
-  const [endDate, setEndDate] = useState(getISODateOnly());
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   // Data states
   const [dashboardData, setDashboardData] = useState<DashboardReport | null>(null);
   const [cogsData, setCogsData] = useState<InventoryUsageReport | null>(null);
   const [cashierData, setCashierData] = useState<CashierAuditReport | null>(null);
+
+  useEffect(() => {
+    if (!startDate && !endDate) {
+      setStartDate(getPastDateISO(30));
+      setEndDate(getISODateOnly());
+    }
+  }, [startDate, endDate]);
 
   const loadReports = useCallback(async () => {
     if (isLoading || !activeStore || !isOwnerOrManager) {
@@ -73,11 +80,13 @@ export default function ReportsPage() {
       return;
     }
     setLoading(true);
+    const effectiveStart = startDate || getPastDateISO(30);
+    const effectiveEnd = endDate || getISODateOnly();
     try {
       const [dashRes, cogsRes, cashierRes] = await Promise.all([
-        reportsService.getDashboardOverview(startDate, endDate),
-        reportsService.getInventoryUsage(startDate, endDate),
-        reportsService.getCashierAudit(startDate, endDate),
+        reportsService.getDashboardOverview(effectiveStart, effectiveEnd),
+        reportsService.getInventoryUsage(effectiveStart, effectiveEnd),
+        reportsService.getCashierAudit(effectiveStart, effectiveEnd),
       ]);
 
       setDashboardData(dashRes.data || null);

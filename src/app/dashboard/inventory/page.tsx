@@ -84,7 +84,7 @@ export default function InventoryPage() {
 
   // PO Form State
   const [poSupplierId, setPoSupplierId] = useState('');
-  const [poDate, setPoDate] = useState(new Date().toISOString().split('T')[0]);
+  const [poDate, setPoDate] = useState('');
   const [poNotes, setPoNotes] = useState('');
   const [poItems, setPoItems] = useState([
     { ingredient_id: '', unit_id: '', quantity: '10', unit_cost: '50000' },
@@ -96,7 +96,7 @@ export default function InventoryPage() {
   const [opnameNotes, setOpnameNotes] = useState('Stock opname fisik gudang');
 
   // Wastage Form State
-  const [wasteDate, setWasteDate] = useState(new Date().toISOString().split('T')[0]);
+  const [wasteDate, setWasteDate] = useState('');
   const [wasteReason, setWasteReason] = useState('Bahan kadaluarsa / rusak');
   const [wasteItems, setWasteItems] = useState([
     { ingredient_id: '', unit_id: '', quantity: '1' },
