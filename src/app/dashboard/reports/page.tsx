@@ -12,6 +12,8 @@ import {
   RefreshCw,
   Wallet,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
 import { reportsService } from '@/services';
 import { DashboardReport, InventoryUsageReport, CashierAuditReport } from '@/types';
@@ -33,7 +35,25 @@ import {
 type ReportTab = 'summary' | 'products' | 'cogs' | 'cashiers';
 
 export default function ReportsPage() {
+  const router = useRouter();
+  const { user, activeTenant, isLoading } = useAuth();
   const { activeStore } = useStore();
+
+  const roleName = user?.is_internal ? 'SUPER_ADMIN' : activeTenant?.role?.toUpperCase();
+  const isOwnerOrManager = roleName === 'SUPER_ADMIN' || roleName === 'OWNER' || roleName === 'MANAGER';
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isOwnerOrManager) {
+      if (roleName === 'CASHIER') {
+        router.replace('/dashboard/pos');
+      } else if (roleName === 'INVENTORY') {
+        router.replace('/dashboard/inventory');
+      } else {
+        router.replace('/dashboard');
+      }
+    }
+  }, [isOwnerOrManager, roleName, isLoading, router]);
 
   const [activeTab, setActiveTab] = useState<ReportTab>('summary');
   const [loading, setLoading] = useState(true);
@@ -48,7 +68,10 @@ export default function ReportsPage() {
   const [cashierData, setCashierData] = useState<CashierAuditReport | null>(null);
 
   const loadReports = useCallback(async () => {
-    if (!activeStore) return;
+    if (isLoading || !activeStore || !isOwnerOrManager) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [dashRes, cogsRes, cashierRes] = await Promise.all([
@@ -65,11 +88,17 @@ export default function ReportsPage() {
     } finally {
       setLoading(false);
     }
-  }, [activeStore, startDate, endDate]);
+  }, [activeStore, startDate, endDate, isOwnerOrManager, isLoading]);
 
   useEffect(() => {
-    loadReports();
-  }, [loadReports]);
+    if (!isLoading && isOwnerOrManager && activeStore) {
+      loadReports();
+    }
+  }, [loadReports, isLoading, isOwnerOrManager, activeStore]);
+
+  if (isLoading || !isOwnerOrManager) {
+    return <LoadingScreen message="Memuat dan memvalidasi akses laporan..." />;
+  }
 
   const setQuickRange = (days: number) => {
     const end = getISODateOnly();

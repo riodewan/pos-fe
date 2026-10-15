@@ -28,27 +28,28 @@ import { Badge } from '@/components/ui/badge';
 
 export default function DashboardOverviewPage() {
   const router = useRouter();
-  const { user, activeTenant } = useAuth();
+  const { user, activeTenant, isLoading } = useAuth();
   const { activeStore } = useStore();
 
   const [report, setReport] = useState<DashboardReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [daysFilter, setDaysFilter] = useState<'today' | '7days' | '30days'>('30days');
 
-  const userRole = (user?.is_internal ? 'SUPER_ADMIN' : activeTenant?.role || 'OWNER').toUpperCase();
+  const roleName = user?.is_internal ? 'SUPER_ADMIN' : activeTenant?.role?.toUpperCase();
+  const isOwnerOrManager = roleName === 'SUPER_ADMIN' || roleName === 'OWNER' || roleName === 'MANAGER';
 
   // Role-based redirect from overview: Cashier goes to POS, Inventory goes to Stock
   useEffect(() => {
-    if (userRole === 'CASHIER') {
+    if (isLoading) return;
+    if (roleName === 'CASHIER') {
       router.replace(ROUTES.DASHBOARD.POS);
-    } else if (userRole === 'INVENTORY') {
+    } else if (roleName === 'INVENTORY') {
       router.replace(ROUTES.DASHBOARD.INVENTORY);
     }
-  }, [userRole, router]);
+  }, [roleName, isLoading, router]);
 
   const fetchDashboardData = useCallback(async () => {
-    if (!activeStore) return;
-    if (userRole === 'CASHIER' || userRole === 'INVENTORY') {
+    if (isLoading || !activeStore || !isOwnerOrManager) {
       setLoading(false);
       return;
     }
@@ -71,11 +72,35 @@ export default function DashboardOverviewPage() {
     } finally {
       setLoading(false);
     }
-  }, [activeStore, daysFilter, userRole]);
+  }, [activeStore, daysFilter, isOwnerOrManager, isLoading]);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+    if (!isLoading && isOwnerOrManager && activeStore) {
+      fetchDashboardData();
+    }
+  }, [fetchDashboardData, isLoading, isOwnerOrManager, activeStore]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3">
+        <div className="size-8 rounded-xl bg-amber-600 animate-pulse flex items-center justify-center text-white">
+          <Coffee className="size-4" />
+        </div>
+        <span className="text-xs font-medium text-muted-foreground">Memuat sesi dashboard...</span>
+      </div>
+    );
+  }
+
+  if (!isOwnerOrManager) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3">
+        <div className="size-8 rounded-xl bg-amber-600 animate-pulse flex items-center justify-center text-white">
+          <Coffee className="size-4" />
+        </div>
+        <span className="text-xs font-medium text-muted-foreground">Mengarahkan ke ruang kerja operasional Anda...</span>
+      </div>
+    );
+  }
 
   const kpis = report?.kpis || {
     gross_sales: 0,

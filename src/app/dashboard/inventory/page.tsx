@@ -12,6 +12,8 @@ import {
   DollarSign,
   AlertCircle,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
 import { inventoryService, catalogService } from '@/services';
 import {
@@ -50,7 +52,18 @@ import {
 type InventoryTab = 'stocks' | 'purchases' | 'wastages' | 'movements';
 
 export default function InventoryPage() {
+  const router = useRouter();
+  const { user, activeTenant, isLoading } = useAuth();
   const { activeStore } = useStore();
+
+  const roleName = user?.is_internal ? 'SUPER_ADMIN' : activeTenant?.role?.toUpperCase();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (roleName === 'CASHIER') {
+      router.replace('/dashboard/pos');
+    }
+  }, [roleName, isLoading, router]);
 
   const [activeTab, setActiveTab] = useState<InventoryTab>('stocks');
   const [loading, setLoading] = useState(true);

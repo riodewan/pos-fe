@@ -16,6 +16,8 @@ import {
   Coffee,
   Loader2,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
 import { catalogService, posService } from '@/services';
 import { Product, DiningTable, Order, PaymentMethod } from '@/types';
@@ -34,7 +36,18 @@ interface CartItem {
 }
 
 export default function PosCashierPage() {
+  const router = useRouter();
+  const { user, activeTenant, isLoading } = useAuth();
   const { activeStore } = useStore();
+
+  const roleName = user?.is_internal ? 'SUPER_ADMIN' : activeTenant?.role?.toUpperCase();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (roleName === 'INVENTORY') {
+      router.replace('/dashboard/inventory');
+    }
+  }, [roleName, isLoading, router]);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [tables, setTables] = useState<DiningTable[]>([]);

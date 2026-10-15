@@ -19,6 +19,8 @@ import {
   Printer,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
 import { posService } from '@/services';
 import { DiningTable, QrCode } from '@/types';
@@ -32,7 +34,18 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 export default function TablesManagementPage() {
+  const router = useRouter();
+  const { user, activeTenant, isLoading } = useAuth();
   const { activeStore } = useStore();
+
+  const roleName = user?.is_internal ? 'SUPER_ADMIN' : activeTenant?.role?.toUpperCase();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (roleName === 'INVENTORY') {
+      router.replace('/dashboard/inventory');
+    }
+  }, [roleName, isLoading, router]);
 
   const [tables, setTables] = useState<DiningTable[]>([]);
   const [loading, setLoading] = useState(true);

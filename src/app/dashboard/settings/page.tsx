@@ -13,6 +13,8 @@ import {
   AlertCircle,
   Building,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
 import { tenantService } from '@/services';
 import { Store, User } from '@/types';
@@ -42,7 +44,25 @@ import {
 type SettingsTab = 'tenant' | 'stores' | 'team';
 
 export default function SettingsPage() {
+  const router = useRouter();
+  const { user, activeTenant, isLoading } = useAuth();
   const { stores, refreshStores } = useStore();
+
+  const roleName = user?.is_internal ? 'SUPER_ADMIN' : activeTenant?.role?.toUpperCase();
+  const isOwner = roleName === 'SUPER_ADMIN' || roleName === 'OWNER';
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isOwner) {
+      if (roleName === 'CASHIER') {
+        router.replace('/dashboard/pos');
+      } else if (roleName === 'INVENTORY') {
+        router.replace('/dashboard/inventory');
+      } else {
+        router.replace('/dashboard');
+      }
+    }
+  }, [isOwner, roleName, isLoading, router]);
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('tenant');
   const [loading, setLoading] = useState(true);
@@ -69,6 +89,10 @@ export default function SettingsPage() {
   const [teamUsers, setTeamUsers] = useState<User[]>([]);
 
   const loadSettingsData = useCallback(async () => {
+    if (!isOwner) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [profRes, usersRes] = await Promise.all([
@@ -89,7 +113,7 @@ export default function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isOwner]);
 
   useEffect(() => {
     loadSettingsData();

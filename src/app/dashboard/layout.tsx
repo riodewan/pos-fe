@@ -43,6 +43,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
+  const userRole = user?.is_internal ? 'SUPER_ADMIN' : (activeTenant?.role?.toUpperCase() || '');
+  const brandHomeHref =
+    userRole === 'CASHIER'
+      ? '/dashboard/pos'
+      : userRole === 'INVENTORY'
+      ? '/dashboard/inventory'
+      : '/dashboard';
+
   return (
     <div className="min-h-screen flex bg-zinc-50/50 dark:bg-zinc-950">
       {/* Mobile Sidebar Overlay */}
@@ -62,7 +70,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex h-full flex-col">
           {/* Brand Header */}
           <div className="flex h-16 items-center justify-between border-b border-border/60 px-5">
-            <Link href="/dashboard" className="flex items-center gap-3">
+            <Link href={brandHomeHref} className="flex items-center gap-3">
               <div className="size-9 rounded-xl bg-amber-600 flex items-center justify-center text-white shadow-sm shadow-amber-600/30">
                 <Coffee className="size-5" />
               </div>
@@ -86,10 +94,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Navigation Links */}
           <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
             {(() => {
-              const userRole = (user?.is_internal ? 'SUPER_ADMIN' : activeTenant?.role || 'OWNER').toUpperCase();
               const accessibleItems = SIDEBAR_NAV_ITEMS.filter((item) => {
                 if (!item.roles || item.roles.length === 0) return true;
-                return item.roles.includes(userRole);
+                return userRole ? item.roles.includes(userRole) : false;
               });
 
               return accessibleItems.map((item) => {
@@ -210,11 +217,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Header Right Actions */}
           <div className="flex items-center gap-3">
-            <Link href="/dashboard/pos">
-              <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs">
-                <ShoppingCart className="mr-1.5 size-3.5" /> Buka Kasir POS
-              </Button>
-            </Link>
+            {userRole !== 'INVENTORY' && (
+              <Link href="/dashboard/pos">
+                <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs">
+                  <ShoppingCart className="mr-1.5 size-3.5" /> Buka Kasir POS
+                </Button>
+              </Link>
+            )}
           </div>
         </header>
 

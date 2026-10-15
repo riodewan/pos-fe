@@ -12,6 +12,8 @@ import {
   AlertCircle,
   HelpCircle,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
 import { catalogService } from '@/services';
 import { Recipe, Product, Ingredient, Unit } from '@/types';
@@ -30,7 +32,18 @@ interface RecipeFormItem {
 }
 
 export default function RecipesPage() {
+  const router = useRouter();
+  const { user, activeTenant, isLoading } = useAuth();
   const { activeStore } = useStore();
+
+  const roleName = user?.is_internal ? 'SUPER_ADMIN' : activeTenant?.role?.toUpperCase();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (roleName === 'CASHIER') {
+      router.replace('/dashboard/pos');
+    }
+  }, [roleName, isLoading, router]);
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
