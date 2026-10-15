@@ -30,7 +30,7 @@ export function StatCard({
           <div
             className={cn(
               'size-8 rounded-lg flex items-center justify-center shrink-0',
-              iconClassName || 'bg-amber-500/10 text-amber-600'
+              iconClassName || 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
             )}
           >
             <Icon className="size-4" />

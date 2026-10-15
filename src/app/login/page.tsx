@@ -61,11 +61,11 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-amber-50/50 via-background to-stone-100/50 dark:from-zinc-950 dark:to-zinc-900">
+    <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-indigo-50/50 via-background to-slate-100/50 dark:from-zinc-950 dark:to-zinc-900">
       <div className="w-full max-w-md space-y-6">
         {/* Branding Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center size-14 rounded-2xl bg-amber-600 text-white shadow-lg shadow-amber-600/25">
+          <div className="inline-flex items-center justify-center size-14 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/25">
             <Coffee className="size-7" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
@@ -126,7 +126,7 @@ function LoginForm() {
 
               <Button
                 type="submit"
-                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium shadow-md shadow-amber-600/20"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-md shadow-indigo-600/20"
                 disabled={loading}
               >
                 {loading ? (
@@ -152,9 +152,9 @@ function LoginForm() {
                 variant="outline"
                 size="sm"
                 onClick={() => handleQuickFill('owner@kopinusantara.com', 'Password123!')}
-                className="h-auto py-2 px-2.5 flex flex-col items-start gap-0.5 text-left border-amber-200/50 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+                className="h-auto py-2 px-2.5 flex flex-col items-start gap-0.5 text-left border-indigo-200/50 hover:bg-indigo-50 dark:hover:bg-indigo-950/20"
               >
-                <span className="flex items-center gap-1.5 font-semibold text-xs text-amber-800 dark:text-amber-300">
+                <span className="flex items-center gap-1.5 font-semibold text-xs text-indigo-800 dark:text-indigo-300">
                   <Store className="size-3.5" /> Tenant Owner
                 </span>
                 <span className="text-[10px] text-muted-foreground truncate w-full">owner@kopinusantara.com</span>
@@ -203,7 +203,7 @@ function LoginForm() {
 
           <CardFooter className="justify-center border-t border-border/40 py-3 text-xs text-muted-foreground">
             Belum punya akun bisnis?{' '}
-            <Link href="/register" className="ml-1 font-semibold text-amber-600 hover:underline">
+            <Link href="/register" className="ml-1 font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
               Daftar Tenant Baru
             </Link>
           </CardFooter>
@@ -218,7 +218,7 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-background">
-          <Loader2 className="size-8 animate-spin text-amber-600" />
+          <Loader2 className="size-8 animate-spin text-indigo-600" />
         </div>
       }
     >

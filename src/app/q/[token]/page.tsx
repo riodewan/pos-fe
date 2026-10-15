@@ -307,7 +307,7 @@ function CustomerQrContent({ token }: { token: string }) {
           <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 text-left space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-border/40">
               <span className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <Utensils className="size-3.5 text-amber-600" /> Status Dapur / Barista
+                <Utensils className="size-3.5 text-indigo-600" /> Status Dapur / Barista
               </span>
               <span className="text-[11px] text-muted-foreground font-mono">
                 #{confirmedOrder.order_number}
@@ -330,7 +330,7 @@ function CustomerQrContent({ token }: { token: string }) {
               <div
                 className={`size-6 rounded-full flex items-center justify-center text-xs shrink-0 mt-0.5 ${
                   isPreparing
-                    ? 'bg-amber-600 text-white animate-pulse'
+                    ? 'bg-indigo-600 text-white animate-pulse'
                     : isReady || isCompleted
                     ? 'bg-emerald-500 text-white'
                     : 'bg-muted text-muted-foreground'
@@ -378,7 +378,7 @@ function CustomerQrContent({ token }: { token: string }) {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Nomor Meja:</span>
-              <span className="font-bold text-amber-700 dark:text-amber-400">{session.table.name} ({session.table.code})</span>
+              <span className="font-bold text-indigo-600 dark:text-indigo-400">{session.table.name} ({session.table.code})</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Metode Bayar:</span>
@@ -386,7 +386,7 @@ function CustomerQrContent({ token }: { token: string }) {
             </div>
             <div className="flex justify-between pt-2 border-t border-border/50 font-bold text-sm">
               <span>Total Terbayar:</span>
-              <span className="text-amber-700 dark:text-amber-400">
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
                 {formatCurrency(confirmedOrder.total_amount)}
               </span>
             </div>
@@ -421,7 +421,7 @@ function CustomerQrContent({ token }: { token: string }) {
       <header className="sticky top-0 z-30 bg-card/90 backdrop-blur-md border-b border-border/60 p-4 shadow-xs">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="size-9 rounded-xl bg-amber-600 text-white flex items-center justify-center shadow-xs">
+            <div className="size-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
               <Coffee className="size-4" />
             </div>
             <div>
@@ -429,12 +429,12 @@ function CustomerQrContent({ token }: { token: string }) {
                 {session.store.name}
               </h1>
               <p className="text-[11px] text-muted-foreground">
-                Dine-in: <strong className="text-amber-700 dark:text-amber-300">{session.table.name}</strong> ({session.table.code})
+                Dine-in: <strong className="text-indigo-600 dark:text-indigo-400">{session.table.name}</strong> ({session.table.code})
               </p>
             </div>
           </div>
           <Badge variant="outline" className="text-[10px] uppercase font-semibold gap-1">
-            <Sparkles className="size-3 text-amber-600" /> Self-Order
+            <Sparkles className="size-3 text-indigo-600" /> Self-Order
           </Badge>
         </div>
       </header>
@@ -458,7 +458,7 @@ function CustomerQrContent({ token }: { token: string }) {
             return (
               <div
                 key={prod.id}
-                className="group p-3 rounded-2xl border border-border/70 bg-card shadow-xs flex items-center gap-3.5 hover:border-amber-500/40 hover:shadow-md transition-all"
+                className="group p-3 rounded-2xl border border-border/70 bg-card shadow-xs flex items-center gap-3.5 hover:border-indigo-500/40 hover:shadow-md transition-all"
               >
                 {/* Product Photo Thumbnail */}
                 <div className="relative size-20 sm:size-24 rounded-xl overflow-hidden shrink-0 bg-muted/60 border border-border/50">
@@ -470,7 +470,7 @@ function CustomerQrContent({ token }: { token: string }) {
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-indigo-500/10 text-indigo-700 dark:text-indigo-300">
                       <Coffee className="size-6 opacity-60" />
                     </div>
                   )}
@@ -479,7 +479,7 @@ function CustomerQrContent({ token }: { token: string }) {
                 {/* Details */}
                 <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch py-0.5">
                   <div>
-                    <h3 className="text-sm font-bold text-foreground leading-snug line-clamp-1 group-hover:text-amber-600 transition-colors">
+                    <h3 className="text-sm font-bold text-foreground leading-snug line-clamp-1 group-hover:text-indigo-600 transition-colors">
                       {prod.name}
                     </h3>
                     {prod.description && (
@@ -489,7 +489,7 @@ function CustomerQrContent({ token }: { token: string }) {
                     )}
                   </div>
                   <div className="flex items-center justify-between mt-2 pt-1 border-t border-border/30">
-                    <span className="text-xs font-extrabold text-amber-700 dark:text-amber-400">
+                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
                       {formatCurrency(Number(prod.selling_price))}
                     </span>
 
@@ -515,7 +515,7 @@ function CustomerQrContent({ token }: { token: string }) {
                         <Button
                           size="sm"
                           onClick={() => addToCart(prod)}
-                          className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold h-7 px-2.5 rounded-lg shadow-xs"
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold h-7 px-2.5 rounded-lg shadow-xs"
                         >
                           <Plus className="size-3 mr-1" /> Tambah
                         </Button>
@@ -535,7 +535,7 @@ function CustomerQrContent({ token }: { token: string }) {
           <div className="max-w-md mx-auto">
             <button
               onClick={() => setCheckoutOpen(true)}
-              className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-lg shadow-amber-600/30 transition-all active:scale-[0.99]"
+              className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-lg shadow-indigo-600/25 transition-all active:scale-[0.99]"
             >
               <div className="flex items-center gap-2.5">
                 <div className="size-7 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">
@@ -668,7 +668,7 @@ function CustomerQrContent({ token }: { token: string }) {
                     onClick={() => setSelectedPayment('QRIS')}
                     className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
                       selectedPayment === 'QRIS'
-                        ? 'border-amber-600 bg-amber-500/10 text-foreground ring-1 ring-amber-600'
+                        ? 'border-indigo-600 bg-indigo-500/10 text-foreground ring-1 ring-indigo-600'
                         : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
                     }`}
                   >
@@ -691,7 +691,7 @@ function CustomerQrContent({ token }: { token: string }) {
                     onClick={() => setSelectedPayment('EWALLET')}
                     className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
                       selectedPayment === 'EWALLET'
-                        ? 'border-amber-600 bg-amber-500/10 text-foreground ring-1 ring-amber-600'
+                        ? 'border-indigo-600 bg-indigo-500/10 text-foreground ring-1 ring-indigo-600'
                         : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
                     }`}
                   >
@@ -722,7 +722,7 @@ function CustomerQrContent({ token }: { token: string }) {
                 )}
                 <div className="flex justify-between items-center pt-1 font-extrabold text-sm border-t border-border/40">
                   <span>Total Pembayaran</span>
-                  <span className="text-amber-700 dark:text-amber-400 text-base">
+                  <span className="text-indigo-600 dark:text-indigo-400 text-base">
                     {formatCurrency(totalPayable)}
                   </span>
                 </div>
@@ -730,7 +730,7 @@ function CustomerQrContent({ token }: { token: string }) {
 
               <Button
                 type="submit"
-                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-5 mt-2 gap-2 shadow-md shadow-amber-600/20"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-5 mt-2 gap-2 shadow-md shadow-indigo-600/25"
               >
                 <span>Bayar Sekarang ({formatCurrency(totalPayable)})</span>
                 <ChevronRight className="size-4" />
@@ -764,7 +764,7 @@ function CustomerQrContent({ token }: { token: string }) {
             {/* Total Display */}
             <div>
               <span className="text-xs text-muted-foreground">Total yang harus dibayar</span>
-              <h3 className="text-2xl font-black text-amber-700 dark:text-amber-400 mt-0.5">
+              <h3 className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-0.5">
                 {formatCurrency(totalPayable)}
               </h3>
               <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -787,7 +787,7 @@ function CustomerQrContent({ token }: { token: string }) {
 
             {/* Countdown Timer */}
             <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-              <Clock className="size-3.5 text-amber-600" />
+              <Clock className="size-3.5 text-indigo-600" />
               <span>Sisa Waktu Bayar: </span>
               <span className="font-mono font-bold text-foreground">
                 {String(Math.floor(countdownSeconds / 60)).padStart(2, '0')}:

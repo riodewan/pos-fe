@@ -98,7 +98,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Brand Header */}
           <div className="flex h-16 items-center justify-between border-b border-border/60 px-5">
             <Link href={brandHomeHref} className="flex items-center gap-3">
-              <div className="size-9 rounded-xl bg-amber-600 flex items-center justify-center text-white shadow-sm shadow-amber-600/30">
+              <div className="size-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-sm shadow-indigo-600/25">
                 <Coffee className="size-5" />
               </div>
               <div className="flex flex-col">
@@ -150,7 +150,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       isActive
-                        ? 'bg-amber-600 text-white shadow-xs'
+                        ? 'bg-indigo-600 text-white shadow-xs font-semibold'
                         : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                     }`}
                   >
@@ -166,7 +166,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="border-t border-border/60 p-3 bg-muted/30">
             <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-card border border-border/40">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="size-8 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 flex items-center justify-center text-xs font-bold shrink-0">
+                <div className="size-8 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-xs font-bold shrink-0">
                   {getInitials(user?.name)}
                 </div>
                 <div className="min-w-0 flex flex-col">
@@ -205,7 +205,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 onClick={() => setStoreDropdownOpen(!storeDropdownOpen)}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/80 bg-background text-xs font-medium hover:bg-muted/60 transition-colors"
               >
-                <StoreIcon className="size-3.5 text-amber-600" />
+                <StoreIcon className="size-3.5 text-indigo-600 dark:text-indigo-400" />
                 <span className="font-semibold text-foreground">
                   {activeStore ? activeStore.name : 'Pilih Outlet Toko'}
                 </span>
@@ -237,7 +237,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         }}
                         className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${
                           activeStore?.id === store.id
-                            ? 'bg-amber-600/10 text-amber-800 dark:text-amber-300 font-semibold'
+                            ? 'bg-indigo-600/10 text-indigo-800 dark:text-indigo-300 font-semibold'
                             : 'hover:bg-muted text-foreground'
                         }`}
                       >
@@ -246,7 +246,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           <span className="text-[10px] text-muted-foreground">{store.code}</span>
                         </div>
                         {activeStore?.id === store.id && (
-                          <div className="size-1.5 rounded-full bg-amber-600" />
+                          <div className="size-1.5 rounded-full bg-indigo-600" />
                         )}
                       </button>
                     ))}
@@ -260,7 +260,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-3">
             {userRole !== 'INVENTORY' && (
               <Link href="/dashboard/pos">
-                <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs">
+                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs shadow-xs">
                   <ShoppingCart className="mr-1.5 size-3.5" /> Buka Kasir POS
                 </Button>
               </Link>

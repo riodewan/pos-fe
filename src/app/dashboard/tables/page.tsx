@@ -273,7 +273,7 @@ export default function TablesManagementPage() {
         <Button variant="outline" size="sm" onClick={fetchTables} disabled={loading}>
           <RefreshCw className={`size-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
         </Button>
-        <Button onClick={openAddModal} className="bg-amber-600 hover:bg-amber-700 text-white" size="sm">
+        <Button onClick={openAddModal} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs" size="sm">
           <Plus className="size-4 mr-1.5" /> Tambah Meja
         </Button>
       </PageHeader>
@@ -319,7 +319,7 @@ export default function TablesManagementPage() {
               key={table.id}
               className={`relative overflow-hidden transition-all border ${
                 table.is_occupied
-                  ? 'border-amber-500/50 bg-amber-500/5 dark:bg-amber-950/10'
+                  ? 'border-indigo-500/40 bg-indigo-500/5 dark:bg-indigo-950/20'
                   : 'hover:border-border'
               }`}
             >
@@ -341,7 +341,7 @@ export default function TablesManagementPage() {
                     <Users className="size-3.5" /> Kapasitas {table.capacity} Orang
                   </span>
                   {Number(table.active_orders_count || 0) > 0 && (
-                    <span className="flex items-center gap-1 text-amber-700 dark:text-amber-400 font-semibold">
+                    <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-semibold">
                       <Clock className="size-3.5" /> {table.active_orders_count} Pesanan Aktif
                     </span>
                   )}
@@ -355,7 +355,7 @@ export default function TablesManagementPage() {
                     variant="outline"
                     size="xs"
                     onClick={() => openQrModal(table)}
-                    className="text-xs gap-1 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                    className="text-xs gap-1 border-indigo-200 dark:border-indigo-900 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/30"
                   >
                     <QrIcon className="size-3.5" /> QR Code
                   </Button>
@@ -364,7 +364,7 @@ export default function TablesManagementPage() {
                     <Link href={`/dashboard/pos?tab=orders`}>
                       <Button
                         size="xs"
-                        className="text-xs gap-1 bg-amber-600 hover:bg-amber-700 text-white font-medium"
+                        className="text-xs gap-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-xs"
                       >
                         <ClipboardList className="size-3.5" /> Pesanan
                       </Button>
@@ -452,7 +452,7 @@ export default function TablesManagementPage() {
               <Button type="button" variant="outline" onClick={() => setFormModalOpen(false)} disabled={saving}>
                 Batal
               </Button>
-              <Button type="submit" className="bg-amber-600 hover:bg-amber-700 text-white" disabled={saving}>
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs" disabled={saving}>
                 {saving ? (
                   <>
                     <Loader2 className="mr-2 size-4 animate-spin" /> Menyimpan...
@@ -485,7 +485,7 @@ export default function TablesManagementPage() {
 
           {loadingQr ? (
             <div className="py-12 flex flex-col items-center justify-center gap-3 text-muted-foreground">
-              <Loader2 className="size-7 animate-spin text-amber-600" />
+              <Loader2 className="size-7 animate-spin text-indigo-600" />
               <span className="text-xs">Menyiapkan token QR meja...</span>
             </div>
           ) : activeQr ? (
@@ -521,7 +521,7 @@ export default function TablesManagementPage() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 px-2.5 text-xs text-amber-600 hover:text-amber-700"
+                    className="h-7 px-2.5 text-xs text-indigo-600 hover:text-indigo-700"
                     onClick={handleCopyUrl}
                   >
                     {copied ? <Check className="size-3.5 text-emerald-600 mr-1" /> : <Copy className="size-3.5 mr-1" />}
@@ -556,7 +556,7 @@ export default function TablesManagementPage() {
                   size="sm"
                   onClick={handleRotateQr}
                   disabled={generatingQr}
-                  className="text-xs text-amber-700 dark:text-amber-300"
+                  className="text-xs text-indigo-600 dark:text-indigo-400"
                 >
                   <RefreshCw className={`size-3.5 mr-1.5 ${generatingQr ? 'animate-spin' : ''}`} /> Rotasi QR
                 </Button>
@@ -568,7 +568,7 @@ export default function TablesManagementPage() {
               <Button
                 onClick={handleRotateQr}
                 disabled={generatingQr}
-                className="bg-amber-600 hover:bg-amber-700 text-white"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
                 size="sm"
               >
                 {generatingQr ? (

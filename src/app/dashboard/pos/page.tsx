@@ -400,7 +400,7 @@ function PosCashierContent() {
             onClick={() => setActiveTab('register')}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
               activeTab === 'register'
-                ? 'bg-amber-600 text-white shadow-xs'
+                ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             }`}
           >
@@ -412,7 +412,7 @@ function PosCashierContent() {
             onClick={() => setActiveTab('orders')}
             className={`relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
               activeTab === 'orders'
-                ? 'bg-amber-600 text-white shadow-xs'
+                ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             }`}
           >
@@ -440,7 +440,7 @@ function PosCashierContent() {
                 disabled={loadingOrders}
                 className="h-8 text-xs gap-1.5"
               >
-                <RefreshCw className={`size-3.5 ${loadingOrders ? 'animate-spin text-amber-600' : ''}`} />
+                <RefreshCw className={`size-3.5 ${loadingOrders ? 'animate-spin text-indigo-600' : ''}`} />
                 <span className="hidden sm:inline">Segarkan</span>
               </Button>
             </div>
@@ -509,7 +509,7 @@ function PosCashierContent() {
                     <div
                       key={product.id}
                       onClick={() => addToCart(product)}
-                      className="group relative flex flex-col justify-between p-2.5 rounded-xl border border-border/70 bg-background hover:border-amber-500/50 hover:shadow-md transition-all cursor-pointer select-none overflow-hidden"
+                      className="group relative flex flex-col justify-between p-2.5 rounded-xl border border-border/70 bg-background hover:border-indigo-500/50 hover:shadow-md transition-all cursor-pointer select-none overflow-hidden"
                     >
                       <div className="space-y-2">
                         {/* Thumbnail Image */}
@@ -522,11 +522,11 @@ function PosCashierContent() {
                               loading="lazy"
                             />
                           ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground bg-amber-500/5">
-                              <Coffee className="size-6 text-amber-600/60" />
+                            <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground bg-indigo-500/5">
+                              <Coffee className="size-6 text-indigo-600/60" />
                             </div>
                           )}
-                          <span className="absolute top-1.5 right-1.5 size-6 rounded-md bg-black/50 backdrop-blur-xs text-white flex items-center justify-center group-hover:bg-amber-600 transition-colors shadow-xs">
+                          <span className="absolute top-1.5 right-1.5 size-6 rounded-md bg-black/50 backdrop-blur-xs text-white flex items-center justify-center group-hover:bg-indigo-600 transition-colors shadow-xs">
                             <Plus className="size-3.5" />
                           </span>
                         </div>
@@ -535,14 +535,14 @@ function PosCashierContent() {
                           <span className="text-[10px] font-mono font-semibold text-muted-foreground">
                             {product.sku}
                           </span>
-                          <h4 className="text-xs font-semibold text-foreground line-clamp-1 leading-tight group-hover:text-amber-600 transition-colors">
+                          <h4 className="text-xs font-semibold text-foreground line-clamp-1 leading-tight group-hover:text-indigo-600 transition-colors">
                             {product.name}
                           </h4>
                         </div>
                       </div>
 
                       <div className="mt-2 pt-1.5 border-t border-border/40 flex items-center justify-between">
-                        <span className="text-xs font-bold text-amber-700 dark:text-amber-400">
+                        <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
                           {formatCurrency(product.selling_price)}
                         </span>
                       </div>
@@ -557,7 +557,7 @@ function PosCashierContent() {
           <div className="w-full lg:w-96 flex flex-col bg-card rounded-2xl border border-border p-4 shadow-xs overflow-hidden shrink-0">
             <div className="flex items-center justify-between pb-3 border-b border-border/60">
               <div className="flex items-center gap-2">
-                <ShoppingCart className="size-4 text-amber-600" />
+                <ShoppingCart className="size-4 text-indigo-600" />
                 <h3 className="text-sm font-bold text-foreground">Keranjang Pesanan</h3>
               </div>
               {cart.length > 0 && (
@@ -664,7 +664,7 @@ function PosCashierContent() {
                         placeholder="Catatan (Less sugar, es...)"
                         value={item.notes || ''}
                         onChange={(e) => updateNotes(item.product.id, e.target.value)}
-                        className="h-6 w-36 text-[10px] bg-transparent border-b border-border/80 px-1 focus:outline-none focus:border-amber-600"
+                        className="h-6 w-36 text-[10px] bg-transparent border-b border-border/80 px-1 focus:outline-none focus:border-indigo-600"
                       />
                       <div className="flex items-center gap-1.5">
                         <button
@@ -705,13 +705,13 @@ function PosCashierContent() {
               </div>
               <div className="flex justify-between font-bold text-sm text-foreground pt-1 border-t border-border/40">
                 <span>Total Tagihan</span>
-                <span className="text-amber-700 dark:text-amber-400 text-base">{formatCurrency(total)}</span>
+                <span className="text-indigo-600 dark:text-indigo-400 text-base">{formatCurrency(total)}</span>
               </div>
 
               <Button
                 onClick={handleProceedCartCheckout}
                 disabled={cart.length === 0}
-                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-md shadow-amber-600/20 mt-2 py-5"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-600/20 mt-2 py-5"
               >
                 Bayar Pesanan ({formatCurrency(total)})
               </Button>
@@ -754,7 +754,7 @@ function PosCashierContent() {
                 onClick={() => setSourceFilter('QR')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                   sourceFilter === 'QR'
-                    ? 'bg-amber-600 text-white shadow-xs'
+                    ? 'bg-indigo-600 text-white shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -789,7 +789,7 @@ function PosCashierContent() {
                   onClick={() => setStatusFilter(s.id)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
                     statusFilter === s.id
-                      ? 'border-amber-600 bg-amber-500/10 text-amber-800 dark:text-amber-300'
+                      ? 'border-indigo-600 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-bold'
                       : 'border-border/60 bg-card text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -856,12 +856,12 @@ function PosCashierContent() {
                     key={order.id}
                     className={`flex flex-col justify-between bg-card rounded-2xl border transition-all shadow-xs overflow-hidden ${
                       isPending && isQrSource
-                        ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/[0.02]'
+                        ? 'border-indigo-500/70 ring-2 ring-indigo-500/15 bg-indigo-500/[0.015]'
                         : isCompleted
                         ? 'border-border/60 opacity-80'
                         : isCancelled
                         ? 'border-destructive/30 bg-destructive/5 opacity-70'
-                        : 'border-border hover:border-amber-500/40'
+                        : 'border-border hover:border-indigo-500/40'
                     }`}
                   >
                     {/* Card Header */}
@@ -904,7 +904,7 @@ function PosCashierContent() {
                         {/* Order Status Badge */}
                         <div>
                           {isPending && (
-                            <Badge className="bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/40 text-[11px] font-bold animate-pulse">
+                            <Badge className="bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30 text-[11px] font-bold">
                               Menunggu
                             </Badge>
                           )}
@@ -945,14 +945,14 @@ function PosCashierContent() {
                             <CheckCircle2 className="size-3" /> Lunas (QRIS/Online)
                           </span>
                         ) : (
-                          <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                          <span className="flex items-center gap-1 text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
                             Belum Bayar
                           </span>
                         )}
                       </div>
 
                       {order.notes && (
-                        <div className="mt-1.5 p-2 rounded-lg bg-amber-500/10 text-amber-900 dark:text-amber-200 text-[11px] flex items-start gap-1.5">
+                        <div className="mt-1.5 p-2 rounded-lg bg-indigo-500/10 text-indigo-900 dark:text-indigo-200 text-[11px] flex items-start gap-1.5">
                           <FileText className="size-3.5 shrink-0 mt-0.5" />
                           <span className="italic leading-tight">{order.notes}</span>
                         </div>
@@ -973,7 +973,7 @@ function PosCashierContent() {
                                 loading="lazy"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-amber-500/5 text-amber-600/60">
+                              <div className="w-full h-full flex items-center justify-center bg-indigo-500/5 text-indigo-600/60">
                                 <Coffee className="size-4" />
                               </div>
                             )}
@@ -998,7 +998,7 @@ function PosCashierContent() {
                             </div>
 
                             {item.notes && (
-                              <p className="text-[10px] text-amber-700 dark:text-amber-400 italic mt-0.5 truncate">
+                              <p className="text-[10px] text-indigo-600 dark:text-indigo-400 italic mt-0.5 truncate">
                                 Catatan: {item.notes}
                               </p>
                             )}
@@ -1011,7 +1011,7 @@ function PosCashierContent() {
                     <div className="p-4 pt-3 border-t border-border/50 bg-muted/20 space-y-3">
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground font-medium">Total Pembayaran:</span>
-                        <span className="text-base font-extrabold text-amber-700 dark:text-amber-400">
+                        <span className="text-base font-extrabold text-indigo-600 dark:text-indigo-400">
                           {formatCurrency(order.total_amount)}
                         </span>
                       </div>
@@ -1024,7 +1024,7 @@ function PosCashierContent() {
                             size="xs"
                             onClick={() => handleUpdateOrderStatus(order.id, 'PREPARING')}
                             disabled={actionLoadingId === order.id}
-                            className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs py-1.5"
+                            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs py-1.5"
                           >
                             {actionLoadingId === order.id ? (
                               <Loader2 className="size-3.5 animate-spin" />
@@ -1143,11 +1143,11 @@ function PosCashierContent() {
 
           <div className="space-y-4">
             {/* Total Amount Banner */}
-            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
-              <span className="text-xs font-medium text-amber-800 dark:text-amber-300">
+            <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-center">
+              <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">
                 Total Yang Wajib Dibayar
               </span>
-              <div className="text-2xl font-extrabold text-amber-700 dark:text-amber-400 mt-0.5">
+              <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-0.5">
                 {formatCurrency(activePayableAmount)}
               </div>
             </div>
@@ -1173,7 +1173,7 @@ function PosCashierContent() {
                       onClick={() => setPaymentMethod(m.id as PaymentMethod)}
                       className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-semibold transition-all ${
                         isSelected
-                          ? 'border-amber-600 bg-amber-600 text-white shadow-xs'
+                          ? 'border-indigo-600 bg-indigo-600 text-white shadow-xs'
                           : 'border-border bg-card text-foreground hover:bg-muted'
                       }`}
                     >
@@ -1235,7 +1235,7 @@ function PosCashierContent() {
             <Button
               onClick={handleExecutePayment}
               disabled={processingPayment || (paymentMethod === 'CASH' && tenderedNum < activePayableAmount)}
-              className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm shadow-emerald-600/20"
             >
               {processingPayment ? (
                 <>
@@ -1334,7 +1334,7 @@ function PosCashierContent() {
             </div>
             <div className="flex justify-between pt-2 border-t border-border/60 font-bold text-sm">
               <span>Total Terbayar:</span>
-              <span className="text-amber-700 dark:text-amber-400">
+              <span className="text-indigo-600 dark:text-indigo-400">
                 {formatCurrency(completedOrder?.total_amount || 0)}
               </span>
             </div>
@@ -1342,7 +1342,7 @@ function PosCashierContent() {
 
           <DialogFooter>
             <Button
-              className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-xs"
               onClick={() => setReceiptModalOpen(false)}
             >
               Tutup & Kembali

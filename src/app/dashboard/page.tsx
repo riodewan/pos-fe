@@ -111,7 +111,7 @@ export default function DashboardOverviewPage() {
             onClick={() => setDaysFilter('today')}
             className={`px-3 py-1 rounded-md font-medium transition-colors ${
               daysFilter === 'today'
-                ? 'bg-amber-600 text-white shadow-xs'
+                ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -121,7 +121,7 @@ export default function DashboardOverviewPage() {
             onClick={() => setDaysFilter('7days')}
             className={`px-3 py-1 rounded-md font-medium transition-colors ${
               daysFilter === '7days'
-                ? 'bg-amber-600 text-white shadow-xs'
+                ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -131,7 +131,7 @@ export default function DashboardOverviewPage() {
             onClick={() => setDaysFilter('30days')}
             className={`px-3 py-1 rounded-md font-medium transition-colors ${
               daysFilter === '30days'
-                ? 'bg-amber-600 text-white shadow-xs'
+                ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -173,7 +173,7 @@ export default function DashboardOverviewPage() {
           value={kpis.total_orders.toLocaleString('id-ID')}
           subtitle="Pesanan selesai terverifikasi"
           icon={ShoppingBag}
-          iconClassName="bg-amber-500/10 text-amber-600"
+          iconClassName="bg-indigo-500/10 text-indigo-600"
         />
 
         <StatCard
@@ -188,8 +188,8 @@ export default function DashboardOverviewPage() {
       {/* Quick Access Action Shortcuts */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Link href={ROUTES.DASHBOARD.POS}>
-          <Card className="hover:border-amber-500/40 hover:bg-muted/30 transition-all cursor-pointer p-4 flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0">
+          <Card className="hover:border-indigo-500/40 hover:bg-muted/30 transition-all cursor-pointer p-4 flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs shadow-indigo-600/30">
               <Coffee className="size-5" />
             </div>
             <div className="min-w-0">
@@ -200,7 +200,7 @@ export default function DashboardOverviewPage() {
         </Link>
 
         <Link href={ROUTES.DASHBOARD.TABLES}>
-          <Card className="hover:border-amber-500/40 hover:bg-muted/30 transition-all cursor-pointer p-4 flex items-center gap-3">
+          <Card className="hover:border-indigo-500/40 hover:bg-muted/30 transition-all cursor-pointer p-4 flex items-center gap-3">
             <div className="size-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
               <QrCode className="size-5" />
             </div>
@@ -212,7 +212,7 @@ export default function DashboardOverviewPage() {
         </Link>
 
         <Link href={ROUTES.DASHBOARD.INVENTORY}>
-          <Card className="hover:border-amber-500/40 hover:bg-muted/30 transition-all cursor-pointer p-4 flex items-center gap-3">
+          <Card className="hover:border-indigo-500/40 hover:bg-muted/30 transition-all cursor-pointer p-4 flex items-center gap-3">
             <div className="size-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
               <PackagePlus className="size-5" />
             </div>
@@ -224,7 +224,7 @@ export default function DashboardOverviewPage() {
         </Link>
 
         <Link href={ROUTES.DASHBOARD.RECIPES}>
-          <Card className="hover:border-amber-500/40 hover:bg-muted/30 transition-all cursor-pointer p-4 flex items-center gap-3">
+          <Card className="hover:border-indigo-500/40 hover:bg-muted/30 transition-all cursor-pointer p-4 flex items-center gap-3">
             <div className="size-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0">
               <UtensilsCrossed className="size-5" />
             </div>
@@ -247,7 +247,7 @@ export default function DashboardOverviewPage() {
             </div>
             <Link
               href={ROUTES.DASHBOARD.CATALOG}
-              className="text-xs text-amber-600 font-semibold hover:underline flex items-center gap-1"
+              className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1"
             >
               Lihat Semua <ArrowUpRight className="size-3" />
             </Link>
@@ -292,7 +292,7 @@ export default function DashboardOverviewPage() {
             </div>
             <Link
               href={ROUTES.DASHBOARD.REPORTS}
-              className="text-xs text-amber-600 font-semibold hover:underline flex items-center gap-1"
+              className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1"
             >
               Detail Laporan <ArrowUpRight className="size-3" />
             </Link>

@@ -47,11 +47,11 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-amber-50/50 via-background to-stone-100/50 dark:from-zinc-950 dark:to-zinc-900">
+    <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-indigo-50/50 via-background to-slate-100/50 dark:from-zinc-950 dark:to-zinc-900">
       <div className="w-full max-w-md space-y-6">
         {/* Branding Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center size-14 rounded-2xl bg-amber-600 text-white shadow-lg shadow-amber-600/25">
+          <div className="inline-flex items-center justify-center size-14 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/25">
             <Coffee className="size-7" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
@@ -138,7 +138,7 @@ export default function RegisterPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium shadow-md shadow-amber-600/20 mt-2"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-md shadow-indigo-600/20 mt-2"
                 disabled={loading}
               >
                 {loading ? (
@@ -155,7 +155,7 @@ export default function RegisterPage() {
 
           <CardFooter className="justify-center border-t border-border/40 py-3 text-xs text-muted-foreground">
             Sudah memiliki akun?{' '}
-            <Link href="/login" className="ml-1 font-semibold text-amber-600 hover:underline">
+            <Link href="/login" className="ml-1 font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
               Masuk di sini
             </Link>
           </CardFooter>

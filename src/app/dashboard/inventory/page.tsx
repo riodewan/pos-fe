@@ -274,7 +274,7 @@ export default function InventoryPage() {
         <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
           <RefreshCw className={`size-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
         </Button>
-        <Button onClick={openPurchaseModal} className="bg-amber-600 hover:bg-amber-700 text-white" size="sm">
+        <Button onClick={openPurchaseModal} className="bg-indigo-600 hover:bg-indigo-700 text-white" size="sm">
           <Plus className="size-4 mr-1.5" /> Pembelian (PO Baru)
         </Button>
       </PageHeader>
@@ -286,7 +286,7 @@ export default function InventoryPage() {
           value={totalStockItems}
           subtitle="Item bahan dalam gudang toko"
           icon={Package}
-          iconClassName="bg-amber-500/10 text-amber-600"
+          iconClassName="bg-indigo-500/10 text-indigo-600"
         />
         <StatCard
           title="Estimasi Nilai Aset Stok"
@@ -323,7 +323,7 @@ export default function InventoryPage() {
                 }}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
                   isCurrent
-                    ? 'bg-amber-600 text-white shadow-xs'
+                    ? 'bg-indigo-600 text-white shadow-xs'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
@@ -402,7 +402,7 @@ export default function InventoryPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <span className="font-mono font-bold text-amber-700 dark:text-amber-400 text-sm">
+                            <span className="font-mono font-bold text-indigo-700 dark:text-indigo-400 text-sm">
                               {Number(s.quantity).toLocaleString('id-ID')}
                             </span>{' '}
                             <span className="text-[10px] uppercase font-semibold text-muted-foreground">
@@ -612,7 +612,7 @@ export default function InventoryPage() {
                           </TableCell>
                           <TableCell
                             className={`font-mono font-bold ${
-                              isPositive ? 'text-emerald-600' : 'text-amber-700 dark:text-amber-400'
+                              isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                             }`}
                           >
                             {isPositive ? `+${mov.quantity}` : mov.quantity}
@@ -754,7 +754,7 @@ export default function InventoryPage() {
               <Button type="button" variant="outline" onClick={() => setModalType(null)}>
                 Batal
               </Button>
-              <Button type="submit" className="bg-amber-600 text-white" disabled={saving}>
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={saving}>
                 {saving ? 'Menyimpan...' : 'Simpan PO'}
               </Button>
             </DialogFooter>
@@ -822,7 +822,7 @@ export default function InventoryPage() {
               <Button type="button" variant="outline" onClick={() => setModalType(null)}>
                 Batal
               </Button>
-              <Button type="submit" className="bg-amber-600 text-white" disabled={saving}>
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={saving}>
                 {saving ? 'Menyimpan...' : 'Simpan Penyesuaian'}
               </Button>
             </DialogFooter>
@@ -912,7 +912,7 @@ export default function InventoryPage() {
               <Button type="button" variant="outline" onClick={() => setModalType(null)}>
                 Batal
               </Button>
-              <Button type="submit" className="bg-amber-600 text-white" disabled={saving}>
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={saving}>
                 {saving ? 'Menyimpan...' : 'Simpan Wastage'}
               </Button>
             </DialogFooter>
