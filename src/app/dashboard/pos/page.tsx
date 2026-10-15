@@ -267,23 +267,39 @@ export default function PosCashierPage() {
                 <div
                   key={product.id}
                   onClick={() => addToCart(product)}
-                  className="group relative flex flex-col justify-between p-3 rounded-xl border border-border/70 bg-background hover:border-amber-500/50 hover:shadow-md transition-all cursor-pointer select-none"
+                  className="group relative flex flex-col justify-between p-2.5 rounded-xl border border-border/70 bg-background hover:border-amber-500/50 hover:shadow-md transition-all cursor-pointer select-none overflow-hidden"
                 >
-                  <div>
-                    <div className="flex items-center justify-between gap-1 mb-1.5">
+                  <div className="space-y-2">
+                    {/* Thumbnail Image */}
+                    <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden bg-muted/60 border border-border/40">
+                      {product.image_url ? (
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground bg-amber-500/5">
+                          <Coffee className="size-6 text-amber-600/60" />
+                        </div>
+                      )}
+                      <span className="absolute top-1.5 right-1.5 size-6 rounded-md bg-black/50 backdrop-blur-xs text-white flex items-center justify-center group-hover:bg-amber-600 transition-colors shadow-xs">
+                        <Plus className="size-3.5" />
+                      </span>
+                    </div>
+
+                    <div>
                       <span className="text-[10px] font-mono font-semibold text-muted-foreground">
                         {product.sku}
                       </span>
-                      <span className="size-5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-colors">
-                        <Plus className="size-3" />
-                      </span>
+                      <h4 className="text-xs font-semibold text-foreground line-clamp-1 leading-tight group-hover:text-amber-600 transition-colors">
+                        {product.name}
+                      </h4>
                     </div>
-                    <h4 className="text-xs font-semibold text-foreground line-clamp-2 leading-tight">
-                      {product.name}
-                    </h4>
                   </div>
 
-                  <div className="mt-3 pt-2 border-t border-border/40 flex items-center justify-between">
+                  <div className="mt-2 pt-1.5 border-t border-border/40 flex items-center justify-between">
                     <span className="text-xs font-bold text-amber-700 dark:text-amber-400">
                       {formatCurrency(product.selling_price)}
                     </span>

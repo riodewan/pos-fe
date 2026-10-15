@@ -69,6 +69,7 @@ export default function CatalogPage() {
   const [prodSku, setProdSku] = useState('');
   const [prodPrice, setProdPrice] = useState('');
   const [prodDesc, setProdDesc] = useState('');
+  const [prodImage, setProdImage] = useState('');
   const [prodStatus, setProdStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
 
   // Form Fields - Ingredient
@@ -125,6 +126,7 @@ export default function CatalogPage() {
       setProdSku(p.sku);
       setProdPrice(String(p.selling_price));
       setProdDesc(p.description || '');
+      setProdImage(p.image_url || '');
       setProdStatus(p.status);
     } else {
       setEditingProductId(null);
@@ -132,6 +134,7 @@ export default function CatalogPage() {
       setProdSku(`PRD-${String(products.length + 1).padStart(3, '0')}`);
       setProdPrice('');
       setProdDesc('');
+      setProdImage('');
       setProdStatus('ACTIVE');
     }
     setModalOpen(true);
@@ -192,6 +195,7 @@ export default function CatalogPage() {
         sku: prodSku,
         selling_price: parseFloat(prodPrice) || 0,
         description: prodDesc || null,
+        image_url: prodImage.trim() || null,
         status: prodStatus,
       };
 
@@ -453,13 +457,24 @@ export default function CatalogPage() {
                           {p.sku}
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-foreground">{p.name}</span>
-                            {p.description && (
-                              <span className="text-[11px] text-muted-foreground line-clamp-1">
-                                {p.description}
-                              </span>
-                            )}
+                          <div className="flex items-center gap-3">
+                            <div className="size-10 rounded-lg overflow-hidden bg-muted shrink-0 border border-border/50">
+                              {p.image_url ? (
+                                <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                  <Coffee className="size-4 opacity-50" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-semibold text-foreground truncate">{p.name}</span>
+                              {p.description && (
+                                <span className="text-[11px] text-muted-foreground line-clamp-1">
+                                  {p.description}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell className="font-bold text-amber-700 dark:text-amber-400">
@@ -697,6 +712,25 @@ export default function CatalogPage() {
                   value={prodDesc}
                   onChange={(e) => setProdDesc(e.target.value)}
                 />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground uppercase">URL Foto Menu Produk</label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="https://images.unsplash.com/... atau tautan gambar"
+                    value={prodImage}
+                    onChange={(e) => setProdImage(e.target.value)}
+                  />
+                  {prodImage && (
+                    <div className="size-9 rounded-lg overflow-hidden border border-border shrink-0 bg-muted">
+                      <img src={prodImage} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Foto ini akan ditampilkan kepada pelanggan saat scan QR meja dan di layar kasir.
+                </p>
               </div>
 
               <DialogFooter>

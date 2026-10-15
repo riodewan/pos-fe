@@ -24,6 +24,7 @@ interface CustomerCartItem {
   name: string;
   price: number;
   quantity: number;
+  imageUrl?: string | null;
   notes?: string;
 }
 
@@ -88,6 +89,7 @@ function CustomerQrContent({ token }: { token: string }) {
           name: prod.name,
           price: Number(prod.selling_price),
           quantity: 1,
+          imageUrl: prod.image_url,
           notes: '',
         },
       ];
@@ -261,53 +263,77 @@ function CustomerQrContent({ token }: { token: string }) {
           </span>
         </div>
 
-        {/* Product Cards */}
+        {/* Product Cards with Photos */}
         <div className="space-y-3">
           {session.products.map((prod) => {
             const inCart = cart.find((i) => i.productId === prod.id);
             return (
               <div
                 key={prod.id}
-                className="p-3.5 rounded-xl border border-border/80 bg-card shadow-xs flex items-center justify-between gap-3 hover:border-amber-500/40 transition-colors"
+                className="group p-3 rounded-2xl border border-border/70 bg-card shadow-xs flex items-center gap-3.5 hover:border-amber-500/40 hover:shadow-md transition-all"
               >
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-bold text-foreground leading-tight">{prod.name}</h3>
-                  {prod.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
-                      {prod.description}
-                    </p>
+                {/* Product Photo Thumbnail */}
+                <div className="relative size-20 sm:size-24 rounded-xl overflow-hidden shrink-0 bg-muted/60 border border-border/50">
+                  {prod.image_url ? (
+                    <img
+                      src={prod.image_url}
+                      alt={prod.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                      <Coffee className="size-6 opacity-60" />
+                    </div>
                   )}
-                  <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mt-2">
-                    {formatCurrency(Number(prod.selling_price))}
-                  </p>
                 </div>
 
-                <div className="shrink-0">
-                  {inCart ? (
-                    <div className="flex items-center gap-2 bg-muted/60 p-1 rounded-lg border border-border/60">
-                      <button
-                        onClick={() => updateQuantity(prod.id, -1)}
-                        className="size-7 rounded-md bg-card border border-border flex items-center justify-center text-foreground hover:bg-muted active:scale-95 transition-transform"
-                      >
-                        <Minus className="size-3.5" />
-                      </button>
-                      <span className="text-xs font-bold w-4 text-center">{inCart.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(prod.id, 1)}
-                        className="size-7 rounded-md bg-card border border-border flex items-center justify-center text-foreground hover:bg-muted active:scale-95 transition-transform"
-                      >
-                        <Plus className="size-3.5" />
-                      </button>
+                {/* Details */}
+                <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch py-0.5">
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground leading-snug line-clamp-1 group-hover:text-amber-600 transition-colors">
+                      {prod.name}
+                    </h3>
+                    {prod.description && (
+                      <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5 leading-relaxed">
+                        {prod.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between mt-2 pt-1 border-t border-border/30">
+                    <span className="text-xs font-extrabold text-amber-700 dark:text-amber-400">
+                      {formatCurrency(Number(prod.selling_price))}
+                    </span>
+
+                    {/* Cart Controls */}
+                    <div className="shrink-0">
+                      {inCart ? (
+                        <div className="flex items-center gap-2 bg-muted/70 p-1 rounded-lg border border-border/60">
+                          <button
+                            onClick={() => updateQuantity(prod.id, -1)}
+                            className="size-6 rounded-md bg-card border border-border flex items-center justify-center text-foreground hover:bg-muted active:scale-95 transition-transform"
+                          >
+                            <Minus className="size-3" />
+                          </button>
+                          <span className="text-xs font-bold w-4 text-center">{inCart.quantity}</span>
+                          <button
+                            onClick={() => updateQuantity(prod.id, 1)}
+                            className="size-6 rounded-md bg-card border border-border flex items-center justify-center text-foreground hover:bg-muted active:scale-95 transition-transform"
+                          >
+                            <Plus className="size-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={() => addToCart(prod)}
+                          className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold h-7 px-2.5 rounded-lg shadow-xs"
+                        >
+                          <Plus className="size-3 mr-1" /> Tambah
+                        </Button>
+                      )}
                     </div>
-                  ) : (
-                    <Button
-                      size="sm"
-                      onClick={() => addToCart(prod)}
-                      className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold h-8 px-3 rounded-lg shadow-xs"
-                    >
-                      <Plus className="size-3.5 mr-1" /> Tambah
-                    </Button>
-                  )}
+                  </div>
                 </div>
               </div>
             );
@@ -353,21 +379,49 @@ function CustomerQrContent({ token }: { token: string }) {
             </div>
 
             {/* Cart Items List */}
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+            <div className="space-y-2.5 max-h-52 overflow-y-auto pr-1">
               {cart.map((item) => (
                 <div
                   key={item.productId}
-                  className="flex items-center justify-between text-xs p-2 rounded-lg bg-muted/40"
+                  className="flex items-center justify-between gap-3 text-xs p-2.5 rounded-xl bg-muted/40 border border-border/50"
                 >
-                  <div>
-                    <p className="font-semibold text-foreground">{item.name}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {item.quantity} x {formatCurrency(item.price)}
-                    </p>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="size-11 rounded-lg overflow-hidden shrink-0 bg-muted border border-border/40">
+                      {item.imageUrl ? (
+                        <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                          <Coffee className="size-4" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-foreground truncate">{item.name}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {formatCurrency(item.price)} × {item.quantity}
+                      </p>
+                    </div>
                   </div>
-                  <span className="font-bold text-foreground">
-                    {formatCurrency(item.price * item.quantity)}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-bold text-foreground">
+                      {formatCurrency(item.price * item.quantity)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => updateQuantity(item.productId, -1)}
+                      className="size-6 rounded-md bg-card border border-border flex items-center justify-center hover:bg-muted"
+                    >
+                      <Minus className="size-3" />
+                    </button>
+                    <span className="font-bold w-3 text-center">{item.quantity}</span>
+                    <button
+                      type="button"
+                      onClick={() => updateQuantity(item.productId, 1)}
+                      className="size-6 rounded-md bg-card border border-border flex items-center justify-center hover:bg-muted"
+                    >
+                      <Plus className="size-3" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
