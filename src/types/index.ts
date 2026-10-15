@@ -369,6 +369,7 @@ export interface PublicQrResolved {
     code: string;
     capacity: number;
   };
+  active_order?: Order | null;
   products: Array<{
     id: ULID;
     name: string;

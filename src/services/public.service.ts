@@ -27,5 +27,12 @@ export const publicService = {
       skipTenant: true,
       skipStore: true,
     }),
+
+  trackCustomerOrder: (token: string, orderId: string) =>
+    api.get<ApiResponse<Order>>(`/public/qr/${token}/order/${orderId}`, {
+      skipAuth: true,
+      skipTenant: true,
+      skipStore: true,
+    }),
 };
 
