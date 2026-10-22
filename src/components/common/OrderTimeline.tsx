@@ -9,6 +9,7 @@ export interface TimelineEvent {
   description?: string;
   metadata?: Array<{ label: string; value: string }>;
   actor?: string;
+  author?: string;
   status: 'completed' | 'active' | 'pending';
 }
 
@@ -79,10 +80,10 @@ export function OrderTimeline({ events, className = '' }: OrderTimelineProps) {
                 </div>
               )}
 
-              {/* Actor attribution */}
-              {ev.actor && (
+              {/* Actor / Author attribution */}
+              {(ev.actor || ev.author) && (
                 <p className="text-[11px] text-neutral-400">
-                  {ev.actor}
+                  {ev.actor || ev.author}
                 </p>
               )}
             </div>

@@ -59,7 +59,7 @@ export function StatusBadge({
     },
   };
 
-  const current = variantStyles[variant];
+  const current = variantStyles[variant] || variantStyles.neutral;
   const sizeClasses =
     size === 'sm'
       ? 'px-2.5 py-0.5 text-[11px]'
@@ -74,7 +74,7 @@ export function StatusBadge({
           className={`size-1.5 rounded-full shrink-0 ${current.dot}`}
         />
       )}
-      {icon && <span className="shrink-0">{icon}</span>}
+      {icon && <span className="shrink-0 flex items-center">{icon}</span>}
       <span>{children}</span>
     </span>
   );

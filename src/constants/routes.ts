@@ -12,6 +12,7 @@ export const ROUTES = {
     ROOT: '/dashboard',
     OVERVIEW: '/dashboard',
     ORDERS: '/dashboard/orders',
+    TRANSACTIONS: '/dashboard/transactions',
     POS: '/dashboard/pos',
     TABLES: '/dashboard/tables',
     CATALOG: '/dashboard/catalog',
