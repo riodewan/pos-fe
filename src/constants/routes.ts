@@ -15,6 +15,7 @@ export const ROUTES = {
     TRANSACTIONS: '/dashboard/transactions',
     POS: '/dashboard/pos',
     TABLES: '/dashboard/tables',
+    QR_ORDER: '/dashboard/qr-order',
     CATALOG: '/dashboard/catalog',
     RECIPES: '/dashboard/recipes',
     INVENTORY: '/dashboard/inventory',
