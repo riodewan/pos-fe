@@ -25,6 +25,7 @@ export interface PosProduct {
 }
 
 export const INITIAL_POS_PRODUCTS: PosProduct[] = [
+  // 9 Primary items matching Screenshot 1
   {
     id: 'p-1',
     name: 'Kopi Susu Gula Aren',
@@ -100,6 +101,68 @@ export const INITIAL_POS_PRODUCTS: PosProduct[] = [
     categoryBadge: 'Makanan Berat',
     price: 48000,
     imageUrl: 'https://images.unsplash.com/photo-1612874742237-6526221588e3?w=300&auto=format&fit=crop&q=80',
+  },
+
+  // Additional rich items for Minuman Non-Kopi, Makanan, Snack, Dessert
+  {
+    id: 'p-10',
+    name: 'Iced Lychee Tea',
+    category: 'Minuman Non-Kopi',
+    categoryBadge: 'Kopi',
+    price: 24000,
+    imageUrl: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=300&auto=format&fit=crop&q=80',
+    isFavorite: true,
+  },
+  {
+    id: 'p-11',
+    name: 'Signature Dark Chocolate',
+    category: 'Minuman Non-Kopi',
+    categoryBadge: 'Kopi',
+    price: 29000,
+    imageUrl: 'https://images.unsplash.com/photo-1542990253-0d0f5be5f0ed?w=300&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'p-12',
+    name: 'Nasi Goreng Spesial',
+    category: 'Makanan',
+    categoryBadge: 'Makanan Berat',
+    price: 42000,
+    imageUrl: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=300&auto=format&fit=crop&q=80',
+    isFavorite: true,
+  },
+  {
+    id: 'p-13',
+    name: 'Beef Cheeseburger',
+    category: 'Makanan',
+    categoryBadge: 'Makanan Berat',
+    price: 52000,
+    imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'p-14',
+    name: 'Truffle French Fries',
+    category: 'Snack',
+    categoryBadge: 'Pastry',
+    price: 28000,
+    imageUrl: 'https://images.unsplash.com/photo-1576107232684-1279f3908594?w=300&auto=format&fit=crop&q=80',
+    isFavorite: true,
+  },
+  {
+    id: 'p-15',
+    name: 'Basque Burnt Cheesecake',
+    category: 'Dessert',
+    categoryBadge: 'Pastry',
+    price: 35000,
+    imageUrl: 'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=300&auto=format&fit=crop&q=80',
+    isFavorite: true,
+  },
+  {
+    id: 'p-16',
+    name: 'Tiramisu Dessert Cup',
+    category: 'Dessert',
+    categoryBadge: 'Pastry',
+    price: 32000,
+    imageUrl: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=300&auto=format&fit=crop&q=80',
   },
 ];
 

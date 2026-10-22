@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Utensils,
   ShoppingBag,
@@ -8,6 +9,10 @@ import {
   QrCode,
   LayoutGrid,
   Search,
+  ShoppingCart,
+  ArrowLeft,
+  Clock,
+  Sparkles,
 } from 'lucide-react';
 import {
   PosProduct,
@@ -22,16 +27,35 @@ import { PaymentModal } from '@/components/pos/PaymentModal';
 import { BillPrintModal } from '@/components/pos/BillPrintModal';
 import { DiscountModal } from '@/components/pos/DiscountModal';
 import { PosOrdersDrawer } from '@/components/pos/PosOrdersDrawer';
+import { PosOrdersTab, PosOrder } from '@/components/pos/PosOrdersTab';
 import { Button } from '@/components/common/Button';
 import { Select } from '@/components/common/Select';
 import { SearchInput } from '@/components/common/SearchInput';
+import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { catalogService, posService } from '@/services';
 import { useStore } from '@/context/StoreContext';
 
 type OrderType = 'DINE_IN' | 'TAKEAWAY' | 'DELIVERY' | 'QR_ORDER';
+type PosViewMode = 'register' | 'orders';
 
-export default function PosPage() {
+function PosContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { activeStore } = useStore();
+
+  // Active top-level view: 'register' (Kasir) | 'orders' (Daftar Pesanan / KDS)
+  const queryTab = searchParams.get('tab');
+  const [activeView, setActiveView] = useState<PosViewMode>(
+    queryTab === 'orders' ? 'orders' : 'register'
+  );
+
+  useEffect(() => {
+    if (queryTab === 'orders') {
+      setActiveView('orders');
+    } else if (queryTab === 'register') {
+      setActiveView('register');
+    }
+  }, [queryTab]);
 
   // Mode and order type
   const [orderType, setOrderType] = useState<OrderType>('DINE_IN');
@@ -40,7 +64,7 @@ export default function PosPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 
-  // Products state (defaults to Screenshot 1's 9 items)
+  // Products state (defaults to rich menu with 9 primary items matching Screenshot 1)
   const [products, setProducts] = useState<PosProduct[]>(INITIAL_POS_PRODUCTS);
 
   // Initial cart matching Screenshot 1:
@@ -78,7 +102,6 @@ export default function PosPage() {
       try {
         const res = await catalogService.getProducts();
         if (res.data && res.data.length > 0) {
-          // Map backend products to PosProduct if available
           const mapped: PosProduct[] = res.data.map((p) => ({
             id: p.id,
             name: p.name,
@@ -97,6 +120,22 @@ export default function PosPage() {
     }
     fetchCatalog();
   }, [activeStore]);
+
+  // Handle switching order type
+  const handleSelectOrderType = (type: OrderType) => {
+    setOrderType(type);
+    if (type === 'DINE_IN') {
+      if (!selectedTable || selectedTable === 'Takeaway' || selectedTable === 'Delivery') {
+        setSelectedTable('Meja 3');
+      }
+    } else if (type === 'TAKEAWAY') {
+      setSelectedTable('Takeaway');
+    } else if (type === 'DELIVERY') {
+      setSelectedTable('Delivery');
+    } else if (type === 'QR_ORDER') {
+      setSelectedTable('Meja 5 (QR)');
+    }
+  };
 
   // Filter products by category, search, and favorites
   const filteredProducts = useMemo(() => {
@@ -165,7 +204,6 @@ export default function PosPage() {
     tendered: number,
     change: number
   ) => {
-    // Attempt real backend order creation if online
     try {
       await posService.createOrder({
         table_id: selectedTable || null,
@@ -182,14 +220,14 @@ export default function PosPage() {
         })),
       });
     } catch (e) {
-      // offline/mock mode handled gracefully
+      // offline/mock handled gracefully
     }
 
     setIsPaymentOpen(false);
     setIsBillPrintOpen(true);
   };
 
-  // Demo switchers for easy evaluation
+  // Demo switchers
   const setPopulatedDemo = () => {
     setProducts(INITIAL_POS_PRODUCTS);
     setCart([
@@ -224,174 +262,232 @@ export default function PosPage() {
       {/* Top Header matching Screenshot 1 & 2 */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-neutral-900 tracking-tight">
+          <h1 className="text-xl font-bold text-neutral-900 tracking-tight flex items-center gap-2">
             Point of Sales (POS)
+            {activeView === 'orders' && (
+              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                Daftar Pesanan & KDS
+              </span>
+            )}
           </h1>
           <p className="text-xs text-neutral-500 mt-0.5">
-            Proses pesanan dengan cepat dan mudah.
+            {activeView === 'orders'
+              ? 'Pantau antrean pesanan aktif, pesanan masuk dari QR meja, dan status saji dapur.'
+              : 'Proses pesanan dengan cepat dan mudah.'}
           </p>
         </div>
 
         <div className="flex items-center gap-2.5">
-          {/* Quick Demo Switcher */}
-          <div className="hidden md:flex items-center border border-neutral-200 rounded-lg p-0.5 bg-neutral-50 text-[11px]">
-            <button
-              type="button"
-              onClick={setPopulatedDemo}
-              className={`px-2.5 py-1 rounded-md transition-colors ${
-                cart.length > 0 && products.length > 0
-                  ? 'bg-white text-neutral-900 font-semibold shadow-2xs'
-                  : 'text-neutral-500 hover:text-neutral-800'
-              }`}
-            >
-              Ada Pesanan (Screenshot 1)
-            </button>
-            <button
-              type="button"
-              onClick={setEmptyDemo}
-              className={`px-2.5 py-1 rounded-md transition-colors ${
-                cart.length === 0 && products.length === 0
-                  ? 'bg-white text-neutral-900 font-semibold shadow-2xs'
-                  : 'text-neutral-500 hover:text-neutral-800'
-              }`}
-            >
-              Kosong (Screenshot 2)
-            </button>
-          </div>
+          {/* Quick Demo Switcher (when on register view) */}
+          {activeView === 'register' && (
+            <div className="hidden md:flex items-center border border-neutral-200 rounded-lg p-0.5 bg-neutral-50 text-[11px]">
+              <button
+                type="button"
+                onClick={setPopulatedDemo}
+                className={`px-2.5 py-1 rounded-md transition-colors ${
+                  cart.length > 0 && products.length > 0
+                    ? 'bg-white text-neutral-900 font-semibold shadow-2xs'
+                    : 'text-neutral-500 hover:text-neutral-800'
+                }`}
+              >
+                Ada Pesanan (Screenshot 1)
+              </button>
+              <button
+                type="button"
+                onClick={setEmptyDemo}
+                className={`px-2.5 py-1 rounded-md transition-colors ${
+                  cart.length === 0 && products.length === 0
+                    ? 'bg-white text-neutral-900 font-semibold shadow-2xs'
+                    : 'text-neutral-500 hover:text-neutral-800'
+                }`}
+              >
+                Kosong (Screenshot 2)
+              </button>
+            </div>
+          )}
 
-          {/* Daftar Pesanan Button matching Screenshot 1 */}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setIsOrdersDrawerOpen(true)}
-            className="text-xs font-semibold px-4 py-2"
-            leftIcon={<LayoutGrid className="size-4 text-[#FF5C38]" />}
-          >
-            Daftar Pesanan
-          </Button>
+          {/* Toggle View: Kasir POS vs Daftar Pesanan */}
+          {activeView === 'register' ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setActiveView('orders')}
+              className="text-xs font-semibold px-4 py-2"
+              leftIcon={<LayoutGrid className="size-4 text-[#FF5C38]" />}
+            >
+              Daftar Pesanan
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setActiveView('register')}
+              className="bg-[#FF5C38] hover:bg-[#E04B28] text-xs font-semibold px-4 py-2"
+              leftIcon={<ShoppingCart className="size-4" />}
+            >
+              Kembali ke Kasir (POS)
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Order Type & Filter Bar matching Screenshot 1 & 2 */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
-        {/* Order Mode Segmented Buttons */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
-          <button
-            type="button"
-            onClick={() => setOrderType('DINE_IN')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              orderType === 'DINE_IN'
-                ? 'bg-[#FF5C38] text-white shadow-xs'
-                : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
-            }`}
-          >
-            <Utensils className="size-3.5" />
-            <span>Dine-in</span>
-          </button>
+      {/* VIEW 1: KASIR BARU (REGISTER) matching Screenshot 1 & 2 */}
+      {activeView === 'register' && (
+        <div className="space-y-5 animate-in fade-in duration-150">
+          {/* Order Type & Filter Bar matching Screenshot 1 & 2 */}
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+            {/* Order Mode Segmented Buttons */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
+              <button
+                type="button"
+                onClick={() => handleSelectOrderType('DINE_IN')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  orderType === 'DINE_IN'
+                    ? 'bg-[#FF5C38] text-white shadow-xs'
+                    : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                }`}
+              >
+                <Utensils className="size-3.5" />
+                <span>Dine-in</span>
+              </button>
 
-          <button
-            type="button"
-            onClick={() => setOrderType('TAKEAWAY')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              orderType === 'TAKEAWAY'
-                ? 'bg-[#FF5C38] text-white shadow-xs'
-                : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
-            }`}
-          >
-            <ShoppingBag className="size-3.5" />
-            <span>Takeway</span>
-          </button>
+              <button
+                type="button"
+                onClick={() => handleSelectOrderType('TAKEAWAY')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  orderType === 'TAKEAWAY'
+                    ? 'bg-[#FF5C38] text-white shadow-xs'
+                    : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                }`}
+              >
+                <ShoppingBag className="size-3.5" />
+                <span>Takeway</span>
+              </button>
 
-          <button
-            type="button"
-            onClick={() => setOrderType('DELIVERY')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              orderType === 'DELIVERY'
-                ? 'bg-[#FF5C38] text-white shadow-xs'
-                : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
-            }`}
-          >
-            <Bike className="size-3.5" />
-            <span>Delivery</span>
-          </button>
+              <button
+                type="button"
+                onClick={() => handleSelectOrderType('DELIVERY')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  orderType === 'DELIVERY'
+                    ? 'bg-[#FF5C38] text-white shadow-xs'
+                    : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                }`}
+              >
+                <Bike className="size-3.5" />
+                <span>Delivery</span>
+              </button>
 
-          <button
-            type="button"
-            onClick={() => setOrderType('QR_ORDER')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              orderType === 'QR_ORDER'
-                ? 'bg-[#FF5C38] text-white shadow-xs'
-                : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
-            }`}
-          >
-            <QrCode className="size-3.5" />
-            <span>QR Order</span>
-          </button>
-        </div>
+              <button
+                type="button"
+                onClick={() => handleSelectOrderType('QR_ORDER')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  orderType === 'QR_ORDER'
+                    ? 'bg-[#FF5C38] text-white shadow-xs'
+                    : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                }`}
+              >
+                <QrCode className="size-3.5" />
+                <span>QR Order</span>
+              </button>
+            </div>
 
-        {/* Right side: Price tier dropdown & Search input */}
-        <div className="flex items-center gap-3">
-          <div className="w-40 shrink-0">
-            <Select
-              size="sm"
-              value={priceTier}
-              onChange={(e) => setPriceTier(e.target.value)}
-              className="text-xs font-semibold"
-            >
-              <option value="NORMAL">Harga Normal</option>
-              <option value="GOFOOD">Harga GoFood</option>
-              <option value="GRABFOOD">Harga GrabFood</option>
-              <option value="EVENT">Harga Event</option>
-            </Select>
+            {/* Right side: Price tier dropdown & Search input */}
+            <div className="flex items-center gap-3">
+              <div className="w-40 shrink-0">
+                <Select
+                  size="sm"
+                  value={priceTier}
+                  onChange={(e) => setPriceTier(e.target.value)}
+                  className="text-xs font-semibold"
+                >
+                  <option value="NORMAL">Harga Normal</option>
+                  <option value="GOFOOD">Harga GoFood</option>
+                  <option value="GRABFOOD">Harga GrabFood</option>
+                  <option value="EVENT">Harga Event</option>
+                </Select>
+              </div>
+
+              <div className="w-full sm:w-64">
+                <SearchInput
+                  size="sm"
+                  placeholder="Cari menu,..."
+                  value={menuSearch}
+                  onChange={(e) => setMenuSearch(e.target.value)}
+                  onClear={() => setMenuSearch('')}
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="w-full sm:w-64">
-            <SearchInput
-              size="sm"
-              placeholder="Cari menu,..."
-              value={menuSearch}
-              onChange={(e) => setMenuSearch(e.target.value)}
-              onClear={() => setMenuSearch('')}
+          {/* Special Banner for QR Order mode */}
+          {orderType === 'QR_ORDER' && (
+            <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl flex items-center justify-between gap-3 text-xs text-purple-900">
+              <div className="flex items-center gap-2.5">
+                <QrCode className="size-5 text-purple-600 shrink-0" />
+                <p>
+                  <strong>Mode QR Order Aktif:</strong> Pelanggan dapat memesan mandiri lewat QR Meja. Anda dapat meninjau antrean pesanan masuk di tab Daftar Pesanan.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={() => setActiveView('orders')}
+                className="border-purple-300 text-purple-700 hover:bg-purple-100 shrink-0"
+              >
+                Lihat Antrean QR
+              </Button>
+            </div>
+          )}
+
+          {/* Main 2-Column Section: Left Product Grid & Right Cart Panel */}
+          <div className="flex flex-col lg:flex-row gap-5 items-start">
+            {/* Left Column: Product Catalog Grid matching Screenshot 1 */}
+            <PosProductGrid
+              products={filteredProducts}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+              showOnlyFavorites={showOnlyFavorites}
+              onToggleFavorites={() => setShowOnlyFavorites((prev) => !prev)}
+              onAddToCart={handleAddToCart}
+              onResetDemoMenu={setPopulatedDemo}
+            />
+
+            {/* Right Column: Order Summary / Cart Panel matching Screenshot 1 */}
+            <PosCartPanel
+              cart={cart}
+              customerName={customerName}
+              customerPhone={customerPhone}
+              selectedTable={selectedTable}
+              orderNotes={orderNotes}
+              discountAmount={discountAmount}
+              onUpdateQuantity={handleUpdateQuantity}
+              onUpdateItemNote={handleUpdateItemNote}
+              onUpdateOrderNotes={setOrderNotes}
+              onSelectCustomer={(name, phone) => {
+                setCustomerName(name);
+                setCustomerPhone(phone);
+              }}
+              onSelectTable={setSelectedTable}
+              onOpenDiscountModal={() => setIsDiscountOpen(true)}
+              onOpenBillPrint={() => setIsBillPrintOpen(true)}
+              onOpenPayment={() => setIsPaymentOpen(true)}
+              onClearCart={() => setCart([])}
             />
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Main 2-Column Section: Left Product Grid & Right Cart Panel */}
-      <div className="flex flex-col lg:flex-row gap-5 items-start">
-        {/* Left Column: Product Catalog Grid matching Screenshot 1 */}
-        <PosProductGrid
-          products={filteredProducts}
-          selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
-          showOnlyFavorites={showOnlyFavorites}
-          onToggleFavorites={() => setShowOnlyFavorites((prev) => !prev)}
-          onAddToCart={handleAddToCart}
-          onResetDemoMenu={setPopulatedDemo}
-        />
-
-        {/* Right Column: Order Summary / Cart Panel matching Screenshot 1 */}
-        <PosCartPanel
-          cart={cart}
-          customerName={customerName}
-          customerPhone={customerPhone}
-          selectedTable={selectedTable}
-          orderNotes={orderNotes}
-          discountAmount={discountAmount}
-          onUpdateQuantity={handleUpdateQuantity}
-          onUpdateItemNote={handleUpdateItemNote}
-          onUpdateOrderNotes={setOrderNotes}
-          onSelectCustomer={(name, phone) => {
-            setCustomerName(name);
-            setCustomerPhone(phone);
-          }}
-          onSelectTable={setSelectedTable}
-          onOpenDiscountModal={() => setIsDiscountOpen(true)}
-          onOpenBillPrint={() => setIsBillPrintOpen(true)}
-          onOpenPayment={() => setIsPaymentOpen(true)}
-          onClearCart={() => setCart([])}
-        />
-      </div>
+      {/* VIEW 2: DAFTAR PESANAN & KDS QUEUE */}
+      {activeView === 'orders' && (
+        <div className="animate-in fade-in duration-150">
+          <PosOrdersTab
+            onBackToRegister={() => setActiveView('register')}
+            onPrintBill={(order) => {
+              setIsBillPrintOpen(true);
+            }}
+          />
+        </div>
+      )}
 
       {/* Payment Modal */}
       <PaymentModal
@@ -425,11 +521,19 @@ export default function PosPage() {
         onApplyDiscount={(amount) => setDiscountAmount(amount)}
       />
 
-      {/* Orders Drawer ("Daftar Pesanan") */}
+      {/* Orders Drawer ("Daftar Pesanan" quick drawer) */}
       <PosOrdersDrawer
         isOpen={isOrdersDrawerOpen}
         onClose={() => setIsOrdersDrawerOpen(false)}
       />
     </div>
+  );
+}
+
+export default function PosPage() {
+  return (
+    <Suspense fallback={<LoadingScreen message="Memuat Point of Sales..." />}>
+      <PosContent />
+    </Suspense>
   );
 }
