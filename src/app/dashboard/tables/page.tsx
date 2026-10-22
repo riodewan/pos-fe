@@ -1,594 +1,585 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
+import React, { useState, useMemo } from 'react';
 import {
-  Grid,
   Plus,
-  QrCode as QrIcon,
-  RefreshCw,
-  Trash2,
-  Edit2,
-  Users,
+  Search,
+  ChevronDown,
   Clock,
-  ExternalLink,
-  Loader2,
-  AlertCircle,
-  Copy,
+  Coffee,
+  Tag,
+  MapPin,
   Check,
-  Printer,
-  ClipboardList,
+  Users,
 } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import { useStore } from '@/context/StoreContext';
-import { posService } from '@/services';
-import { DiningTable, QrCode } from '@/types';
-import { ApiError } from '@/lib/api';
-import { ROUTES } from '@/constants';
-import { PageHeader, EmptyState, LoadingScreen } from '@/components/common';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+  TableItem,
+  TableDetailDrawer,
+  AddTableModal,
+  TableAreaManagement,
+  TableCategoryManagement,
+} from '@/components/tables';
+import { EmptyState } from '@/components/common/EmptyState';
 
-export default function TablesManagementPage() {
-  const router = useRouter();
-  const { user, activeTenant, isLoading } = useAuth();
-  const { activeStore } = useStore();
+// 12 Tables matching Screenshot 3 exactly
+const INITIAL_TABLES: TableItem[] = [
+  {
+    id: 'tbl-1',
+    tableNumber: 1,
+    area: 'Indoor',
+    capacity: 2,
+    status: 'Kosong',
+  },
+  {
+    id: 'tbl-2',
+    tableNumber: 2,
+    area: 'Indoor',
+    capacity: 2,
+    status: 'Kosong',
+  },
+  {
+    id: 'tbl-3',
+    tableNumber: 3,
+    area: 'Indoor',
+    capacity: 2,
+    status: 'Reservasi',
+    reservationTime: '15:00 WIB',
+    customer: {
+      name: 'Siti Nurhaliza',
+      phone: '081398765432',
+      initials: 'SN',
+      date: '14/10/2026',
+      time: '15:00',
+      note: 'Reservasi untuk ulang tahun',
+    },
+  },
+  {
+    id: 'tbl-4',
+    tableNumber: 4,
+    area: 'Indoor',
+    capacity: 2,
+    status: 'Kosong',
+  },
+  {
+    id: 'tbl-5',
+    tableNumber: 5,
+    area: 'Indoor',
+    capacity: 2,
+    status: 'Terisi',
+    elapsedTime: '00:13:34',
+    activeOrder: {
+      startTime: '12:00',
+      staffName: 'Budi',
+      guestCount: 2,
+      notes: '-',
+      items: [
+        {
+          id: 'item-1',
+          name: 'Kopi Susu Gula Aren',
+          variant: 'Regular, Less Ice',
+          qty: 1,
+          price: 28000,
+        },
+        {
+          id: 'item-2',
+          name: 'Matcha Latte',
+          variant: 'Regular',
+          note: 'Tanpa es untuk matcha latte ya.',
+          qty: 1,
+          price: 30000,
+        },
+      ],
+      subtotal: 58000,
+      tax: 0,
+      total: 58000,
+    },
+  },
+  {
+    id: 'tbl-6',
+    tableNumber: 6,
+    area: 'Outdoor',
+    capacity: 2,
+    status: 'Kosong',
+  },
+  {
+    id: 'tbl-7',
+    tableNumber: 7,
+    area: 'Outdoor',
+    capacity: 2,
+    status: 'Kosong',
+  },
+  {
+    id: 'tbl-8',
+    tableNumber: 8,
+    area: 'Outdoor',
+    capacity: 2,
+    status: 'Kosong',
+  },
+  {
+    id: 'tbl-9',
+    tableNumber: 9,
+    area: 'Outdoor',
+    capacity: 2,
+    status: 'Kosong',
+  },
+  {
+    id: 'tbl-10',
+    tableNumber: 10,
+    area: 'Outdoor',
+    capacity: 2,
+    status: 'Kosong',
+  },
+  {
+    id: 'tbl-11',
+    tableNumber: 11,
+    area: 'Outdoor',
+    capacity: 2,
+    status: 'Kosong',
+  },
+  {
+    id: 'tbl-12',
+    tableNumber: 12,
+    area: 'Outdoor',
+    capacity: 2,
+    status: 'Kosong',
+  },
+];
 
-  const roleName = user?.is_internal ? 'SUPER_ADMIN' : activeTenant?.role?.toUpperCase();
+type TablesTab = 'tables' | 'category' | 'area';
 
-  useEffect(() => {
-    if (isLoading) return;
-    if (roleName === 'INVENTORY') {
-      router.replace('/dashboard/inventory');
-    }
-  }, [roleName, isLoading, router]);
+export default function TablesPage() {
+  const [activeTab, setActiveTab] = useState<TablesTab>('tables');
+  const [tables, setTables] = useState<TableItem[]>(INITIAL_TABLES);
+  const [demoMode, setDemoMode] = useState<'populated' | 'empty'>('populated');
 
-  const [tables, setTables] = useState<DiningTable[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Filters
+  const [areaFilter, setAreaFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Table Create / Edit Modal State
-  const [formModalOpen, setFormModalOpen] = useState(false);
-  const [editingTable, setEditingTable] = useState<DiningTable | null>(null);
-  const [name, setName] = useState('');
-  const [code, setCode] = useState('');
-  const [capacity, setCapacity] = useState('4');
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  // Drawer / Modals
+  const [selectedTable, setSelectedTable] = useState<TableItem | null>(null);
+  const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
+  const [isAddTableOpen, setIsAddTableOpen] = useState(false);
+  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+  const [isAddAreaOpen, setIsAddAreaOpen] = useState(false);
 
-  // QR Code Modal State
-  const [qrModalOpen, setQrModalOpen] = useState(false);
-  const [selectedTableForQr, setSelectedTableForQr] = useState<DiningTable | null>(null);
-  const [qrList, setQrList] = useState<QrCode[]>([]);
-  const [loadingQr, setLoadingQr] = useState(false);
-  const [generatingQr, setGeneratingQr] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [qrError, setQrError] = useState<string | null>(null);
-
-  const fetchTables = useCallback(async () => {
-    if (!activeStore) return;
-    setLoading(true);
-    try {
-      const res = await posService.getTables();
-      setTables(res.data || []);
-    } catch (err) {
-      console.error('Failed to load tables:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [activeStore]);
-
-  useEffect(() => {
-    fetchTables();
-  }, [fetchTables]);
-
-  const openAddModal = () => {
-    setEditingTable(null);
-    setName('');
-    setCode(`M${String(tables.length + 1).padStart(2, '0')}`);
-    setCapacity('4');
-    setFormError(null);
-    setFormModalOpen(true);
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const openEditModal = (t: DiningTable) => {
-    setEditingTable(t);
-    setName(t.name);
-    setCode(t.code);
-    setCapacity(String(t.capacity));
-    setFormError(null);
-    setFormModalOpen(true);
-  };
+  // Filtered tables
+  const filteredTables = useMemo(() => {
+    if (demoMode === 'empty') return [];
 
-  const handleSaveTable = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setFormError(null);
-
-    try {
-      if (editingTable) {
-        await posService.updateTable(editingTable.id, {
-          name,
-          code,
-          capacity: Number(capacity) || 4,
-          status: 'ACTIVE',
-        });
-      } else {
-        await posService.createTable({
-          name,
-          code,
-          capacity: Number(capacity) || 4,
-          status: 'ACTIVE',
-        });
+    return tables.filter((t) => {
+      if (areaFilter !== 'all' && t.area !== areaFilter) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchNumber = t.tableNumber.toString().includes(q);
+        const matchArea = t.area.toLowerCase().includes(q);
+        const matchStatus = t.status.toLowerCase().includes(q);
+        const matchCustomer = t.customer?.name.toLowerCase().includes(q);
+        if (!matchNumber && !matchArea && !matchStatus && !matchCustomer) return false;
       }
-      setFormModalOpen(false);
-      fetchTables();
-    } catch (err: unknown) {
-      if (err instanceof ApiError) {
-        setFormError(err.message || 'Gagal menyimpan data meja.');
-      } else {
-        setFormError((err as Error).message);
-      }
-    } finally {
-      setSaving(false);
-    }
+      return true;
+    });
+  }, [tables, demoMode, areaFilter, searchQuery]);
+
+  const handleOpenDetail = (table: TableItem) => {
+    setSelectedTable(table);
+    setIsDetailDrawerOpen(true);
   };
 
-  const handleDeleteTable = async (id: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus meja ini?')) return;
-    try {
-      await posService.deleteTable(id);
-      fetchTables();
-    } catch (err: unknown) {
-      if (err instanceof ApiError) {
-        alert(err.message);
-      }
-    }
+  const handlePrevTable = () => {
+    if (!selectedTable) return;
+    const currentIndex = tables.findIndex((t) => t.id === selectedTable.id);
+    const prevIndex = (currentIndex - 1 + tables.length) % tables.length;
+    setSelectedTable(tables[prevIndex]);
   };
 
-  // QR Modal Functions
-  const openQrModal = async (t: DiningTable) => {
-    setSelectedTableForQr(t);
-    setQrModalOpen(true);
-    setLoadingQr(true);
-    setQrError(null);
-    setCopied(false);
-    try {
-      const res = await posService.getTableQrs(t.id);
-      let list = res.data || [];
-      // Auto-generate if table has no active QR yet
-      if (list.length === 0 || !list.some((q) => q.is_active || q.status === 'ACTIVE')) {
-        const genRes = await posService.rotateTableQr(t.id);
-        if (genRes.data) {
-          list = [genRes.data, ...list];
-          fetchTables();
-        }
-      }
-      setQrList(list);
-    } catch (err: unknown) {
-      console.error('Failed to load QR tokens:', err);
-      if (err instanceof ApiError) {
-        setQrError(err.message);
-      } else {
-        setQrError((err as Error).message);
-      }
-    } finally {
-      setLoadingQr(false);
-    }
+  const handleNextTable = () => {
+    if (!selectedTable) return;
+    const currentIndex = tables.findIndex((t) => t.id === selectedTable.id);
+    const nextIndex = (currentIndex + 1) % tables.length;
+    setSelectedTable(tables[nextIndex]);
   };
 
-  const handleRotateQr = async () => {
-    if (!selectedTableForQr) return;
-    setGeneratingQr(true);
-    setQrError(null);
-    try {
-      const rotateRes = await posService.rotateTableQr(selectedTableForQr.id);
-      const res = await posService.getTableQrs(selectedTableForQr.id);
-      const updatedList = res.data && res.data.length > 0 ? res.data : (rotateRes.data ? [rotateRes.data] : []);
-      setQrList(updatedList);
-      fetchTables();
-    } catch (err: unknown) {
-      if (err instanceof ApiError) {
-        setQrError(err.message || 'Gagal rotasi QR.');
-      } else {
-        setQrError((err as Error).message || 'Gagal rotasi QR.');
-      }
-    } finally {
-      setGeneratingQr(false);
-    }
+  const handleAddTable = (newTable: TableItem) => {
+    setTables((prev) => [...prev, newTable]);
+    showToast(`Meja ${newTable.tableNumber} berhasil ditambahkan!`);
   };
 
-  const activeQr = qrList.find((q) => q.is_active || q.status === 'ACTIVE');
-
-  const qrOrderUrl = typeof window !== 'undefined' && activeQr
-    ? `${window.location.origin}/q/${activeQr.token}`
-    : activeQr ? `/q/${activeQr.token}` : '';
-
-  const handleCopyUrl = async () => {
-    if (!qrOrderUrl) return;
-    try {
-      await navigator.clipboard.writeText(qrOrderUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // fallback
-    }
+  const handlePay = (table: TableItem) => {
+    setTables((prev) =>
+      prev.map((t) => (t.id === table.id ? { ...t, status: 'Kosong', activeOrder: undefined } : t))
+    );
+    setIsDetailDrawerOpen(false);
+    showToast(`Pembayaran Meja ${table.tableNumber} berhasil diselesaikan! Meja kembali kosong.`);
   };
 
-  const handlePrintQr = () => {
-    if (!activeQr || !selectedTableForQr) return;
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>QR Code - ${selectedTableForQr.name}</title>
-          <style>
-            @media print {
-              body { margin: 0; }
+  const handleCheckInReservation = (table: TableItem) => {
+    setTables((prev) =>
+      prev.map((t) =>
+        t.id === table.id
+          ? {
+              ...t,
+              status: 'Terisi',
+              elapsedTime: '00:01:00',
+              activeOrder: {
+                startTime: '15:00',
+                staffName: 'Budi',
+                guestCount: table.capacity,
+                notes: table.customer?.note || '-',
+                items: [],
+                subtotal: 0,
+                tax: 0,
+                total: 0,
+              },
             }
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #fafafa; }
-            .card { border: 2px solid #27272a; padding: 36px 28px; border-radius: 20px; text-align: center; max-width: 300px; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-            h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; color: #18181b; }
-            .code { font-size: 13px; font-weight: 700; color: #d97706; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
-            .qr-wrapper { display: inline-block; padding: 12px; background: white; border-radius: 12px; }
-            p { font-size: 13px; font-weight: 500; color: #52525b; margin: 16px 0 4px; }
-            .hint { font-size: 11px; color: #a1a1aa; }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <h1>${selectedTableForQr.name}</h1>
-            <div class="code">Meja: ${selectedTableForQr.code}</div>
-            <div class="qr-wrapper">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrOrderUrl)}" width="200" height="200" alt="QR Code" />
-            </div>
-            <p>Pindai untuk Pesan & Bayar</p>
-            <div class="hint">Self-Order Langsung dari Meja</div>
-          </div>
-          <script>
-            window.onload = function() {
-              window.print();
+          : t
+      )
+    );
+    setIsDetailDrawerOpen(false);
+    showToast(`Tamu Meja ${table.tableNumber} berhasil Check-In!`);
+  };
+
+  const handleCancelReservation = (table: TableItem) => {
+    if (confirm(`Yakin ingin membatalkan reservasi Meja ${table.tableNumber}?`)) {
+      setTables((prev) =>
+        prev.map((t) => (t.id === table.id ? { ...t, status: 'Kosong', customer: undefined } : t))
+      );
+      setIsDetailDrawerOpen(false);
+      showToast(`Reservasi Meja ${table.tableNumber} telah dibatalkan.`);
+    }
+  };
+
+  const handleOpenTable = (table: TableItem) => {
+    setTables((prev) =>
+      prev.map((t) =>
+        t.id === table.id
+          ? {
+              ...t,
+              status: 'Terisi',
+              elapsedTime: '00:01:00',
+              activeOrder: {
+                startTime: '15:30',
+                staffName: 'Kasir',
+                guestCount: table.capacity,
+                notes: '-',
+                items: [],
+                subtotal: 0,
+                tax: 0,
+                total: 0,
+              },
             }
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+          : t
+      )
+    );
+    showToast(`Meja ${table.tableNumber} dibuka untuk dine-in!`);
+  };
+
+  const getAddButtonText = () => {
+    switch (activeTab) {
+      case 'category':
+        return 'Tambah Kategori';
+      case 'area':
+        return 'Tambah Area';
+      default:
+        return 'Tambah Meja';
+    }
+  };
+
+  const handleTopAddClick = () => {
+    switch (activeTab) {
+      case 'category':
+        setIsAddCategoryOpen(true);
+        break;
+      case 'area':
+        setIsAddAreaOpen(true);
+        break;
+      default:
+        setIsAddTableOpen(true);
+        break;
+    }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <PageHeader
-        title="Manajemen Meja & QR Self-Order"
-        description="Kelola tata letak meja dine-in, status okupansi, dan token scan QR pelanggan"
-      >
-        <Button variant="outline" size="sm" onClick={fetchTables} disabled={loading}>
-          <RefreshCw className={`size-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
-        </Button>
-        <Button onClick={openAddModal} className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs" size="sm">
-          <Plus className="size-4 mr-1.5" /> Tambah Meja
-        </Button>
-      </PageHeader>
-
-      {/* Tables Grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <div
-              key={i}
-              className="p-4 rounded-xl border border-border/60 bg-card space-y-3"
-            >
-              <div className="flex justify-between items-center pb-2 border-b border-border/40">
-                <Skeleton className="h-5 w-20 rounded" />
-                <Skeleton className="h-5 w-16 rounded-full" />
-              </div>
-              <div className="space-y-1.5 py-1">
-                <Skeleton className="h-4 w-28 rounded" />
-                <Skeleton className="h-3 w-20 rounded" />
-              </div>
-              <div className="pt-2 border-t border-border/40 flex justify-between items-center">
-                <Skeleton className="h-7 w-20 rounded-lg" />
-                <div className="flex gap-1.5">
-                  <Skeleton className="size-7 rounded-lg" />
-                  <Skeleton className="size-7 rounded-lg" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : tables.length === 0 ? (
-        <EmptyState
-          icon={Grid}
-          title="Belum ada meja"
-          description="Tambahkan meja pertama Anda untuk mengaktifkan fitur dine-in dan QR self-order."
-          actionLabel="Tambah Meja Baru"
-          onAction={openAddModal}
-        />
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {tables.map((table) => (
-            <Card
-              key={table.id}
-              className={`relative overflow-hidden transition-all border ${
-                table.is_occupied
-                  ? 'border-foreground/20 bg-accent/60 dark:bg-accent'
-                  : 'hover:border-border'
-              }`}
-            >
-              {/* Top Status Bar */}
-              <div className="p-4 pb-2 flex items-center justify-between">
-                <span className="font-mono text-xs font-bold text-muted-foreground">
-                  {table.code}
-                </span>
-                <Badge variant={table.is_occupied ? 'warning' : 'success'}>
-                  {table.is_occupied ? 'Sedang Terisi' : 'Kosong'}
-                </Badge>
-              </div>
-
-              {/* Table Info */}
-              <div className="px-4 py-3">
-                <h3 className="text-base font-bold text-foreground">{table.name}</h3>
-                <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Users className="size-3.5" /> Kapasitas {table.capacity} Orang
-                  </span>
-                  {Number(table.active_orders_count || 0) > 0 && (
-                    <span className="flex items-center gap-1 text-foreground font-semibold">
-                      <Clock className="size-3.5" /> {table.active_orders_count} Pesanan Aktif
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Card Footer Actions */}
-              <div className="p-3 border-t border-border/50 bg-muted/20 flex items-center justify-between gap-1">
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    variant="outline"
-                    size="xs"
-                    onClick={() => openQrModal(table)}
-                    className="text-xs gap-1 border-border dark:border-border text-foreground hover:bg-accent dark:hover:bg-accent"
-                  >
-                    <QrIcon className="size-3.5" /> QR Code
-                  </Button>
-
-                  {(table.is_occupied || Number(table.active_orders_count || 0) > 0) && (
-                    <Link href={`/dashboard/pos?tab=orders`}>
-                      <Button
-                        size="xs"
-                        className="text-xs gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-xs"
-                      >
-                        <ClipboardList className="size-3.5" /> Pesanan
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => openEditModal(table)}
-                    className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                    title="Edit Meja"
-                  >
-                    <Edit2 className="size-3.5" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteTable(table.id)}
-                    className="p-1.5 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                    title="Hapus Meja"
-                  >
-                    <Trash2 className="size-3.5" />
-                  </button>
-                </div>
-              </div>
-            </Card>
-          ))}
+    <div className="p-6 lg:p-8 space-y-4 max-w-[1600px] mx-auto">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-20 right-6 z-50 bg-neutral-900 text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 border border-neutral-700 animate-in fade-in slide-in-from-top-2">
+          <Check className="size-4 text-emerald-400" />
+          <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Add / Edit Table Dialog */}
-      <Dialog open={formModalOpen} onOpenChange={setFormModalOpen}>
-        <DialogContent onClose={() => setFormModalOpen(false)}>
-          <DialogHeader>
-            <DialogTitle>{editingTable ? 'Edit Data Meja' : 'Tambah Meja Baru'}</DialogTitle>
-            <DialogDescription>
-              {editingTable
-                ? 'Perbarui nomor atau nama meja outlet'
-                : 'Buat meja baru. Token QR code aktif perdana akan di-generate otomatis.'}
-            </DialogDescription>
-          </DialogHeader>
+      {/* Top Page Header matching Screenshot 3 */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Meja</h1>
+          <p className="text-xs text-neutral-500 mt-1">
+            Kelola meja, pantau status, dan alur tata letak outlet
+          </p>
+        </div>
 
-          {formError && (
-            <div className="mb-4 flex items-center gap-2 p-3 text-xs rounded-lg bg-destructive/10 text-destructive border border-destructive/20">
-              <AlertCircle className="size-4 shrink-0" />
-              <span>{formError}</span>
+        {/* Right Header: Discrete Switcher & + Dynamic Add Button */}
+        <div className="flex items-center gap-3">
+          {/* Demo Switcher (available on Table tab) */}
+          {activeTab === 'tables' && (
+            <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-lg border border-neutral-200 text-xs">
+              <button
+                onClick={() => setDemoMode('populated')}
+                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
+                  demoMode === 'populated'
+                    ? 'bg-white text-neutral-800 shadow-2xs font-semibold'
+                    : 'text-neutral-500 hover:text-neutral-800'
+                }`}
+              >
+                Data Terisi
+              </button>
+              <button
+                onClick={() => setDemoMode('empty')}
+                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
+                  demoMode === 'empty'
+                    ? 'bg-white text-neutral-800 shadow-2xs font-semibold'
+                    : 'text-neutral-500 hover:text-neutral-800'
+                }`}
+              >
+                Belum Ada Meja
+              </button>
             </div>
           )}
 
-          <form onSubmit={handleSaveTable} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase">Nama Meja</label>
-              <Input
-                placeholder="Mis: Meja 01 atau Meja VIP Lantai 2"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
+          {/* Dynamic + Tambah Button */}
+          <button
+            onClick={handleTopAddClick}
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-[#FF4D4D] hover:bg-[#E53939] text-white text-xs font-semibold transition-colors shadow-2xs"
+          >
+            <Plus className="size-4 stroke-[2.5]" />
+            <span>{getAddButtonText()}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Navigation Tabs matching Screenshot 3: Menu (Meja), Kategori, Area */}
+      <div className="flex items-center border-b border-neutral-200 text-xs gap-1">
+        <button
+          onClick={() => setActiveTab('tables')}
+          className={`flex items-center gap-2 px-5 py-3 font-semibold border-b-2 transition-all relative ${
+            activeTab === 'tables'
+              ? 'border-[#FF5C38] text-[#FF5C38]'
+              : 'border-transparent text-neutral-500 hover:text-neutral-800'
+          }`}
+        >
+          <Coffee className="size-4" />
+          <span>Menu</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('category')}
+          className={`flex items-center gap-2 px-5 py-3 font-semibold border-b-2 transition-all relative ${
+            activeTab === 'category'
+              ? 'border-[#FF5C38] text-[#FF5C38]'
+              : 'border-transparent text-neutral-500 hover:text-neutral-800'
+          }`}
+        >
+          <Tag className="size-4" />
+          <span>Kategori</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('area')}
+          className={`flex items-center gap-2 px-5 py-3 font-semibold border-b-2 transition-all relative ${
+            activeTab === 'area'
+              ? 'border-[#FF5C38] text-[#FF5C38]'
+              : 'border-transparent text-neutral-500 hover:text-neutral-800'
+          }`}
+        >
+          <MapPin className="size-4" />
+          <span>Area</span>
+        </button>
+      </div>
+
+      {/* TAB CONTENT: TABLES GRID */}
+      {activeTab === 'tables' && (
+        <div className="space-y-4">
+          {/* Status Indicators Legend & Filter Bar matching Screenshot 3 & 4 */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            {/* Status Indicator Legend */}
+            <div className="flex items-center flex-wrap gap-4 text-xs font-medium text-neutral-700">
+              <div className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-neutral-400" />
+                <span>Kosong</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-[#10B981]" />
+                <span>Terisi</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-blue-500" />
+                <span>Pesanan selesai</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-[#F59E0B]" />
+                <span>Reservasi</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-[#EF4444]" />
+                <span>Diblokir</span>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase">Kode Singkat</label>
-                <Input
-                  placeholder="M01"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  required
-                />
+            {/* Right Filters matching Screenshot 3 & 4 */}
+            <div className="flex items-center gap-3">
+              {/* Area Filter */}
+              <div className="relative">
+                <select
+                  value={areaFilter}
+                  onChange={(e) => setAreaFilter(e.target.value)}
+                  className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none hover:bg-neutral-50"
+                >
+                  <option value="all">Semua meja</option>
+                  <option value="Indoor">Indoor</option>
+                  <option value="Outdoor">Outdoor</option>
+                  <option value="VIP">VIP</option>
+                </select>
+                <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase">Kapasitas Kursi</label>
-                <Input
-                  type="number"
-                  placeholder="4"
-                  value={capacity}
-                  onChange={(e) => setCapacity(e.target.value)}
-                  min="1"
-                  required
+              {/* Search input with dark circle magnifying button */}
+              <div className="relative w-64">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Cari nomor meja"
+                  className="w-full h-9 pl-3.5 pr-9 rounded-lg border border-neutral-200 bg-white text-xs text-neutral-900 placeholder:text-neutral-400 shadow-2xs focus:outline-none"
                 />
+                <div className="absolute right-2 top-2 size-5 rounded-full bg-neutral-900 text-white flex items-center justify-center">
+                  <Search className="size-2.5 stroke-[2.5]" />
+                </div>
               </div>
             </div>
+          </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setFormModalOpen(false)} disabled={saving}>
-                Batal
-              </Button>
-              <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs" disabled={saving}>
-                {saving ? (
-                  <>
-                    <Loader2 className="mr-2 size-4 animate-spin" /> Menyimpan...
-                  </>
-                ) : (
-                  'Simpan Meja'
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+          {/* Table Cards Grid (Screenshot 3) or Empty State (Screenshot 4) */}
+          {filteredTables.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pt-1">
+              {filteredTables.map((tbl) => {
+                const isOccupied = tbl.status === 'Terisi';
+                const isReserved = tbl.status === 'Reservasi';
 
-      {/* QR Code Inspection Dialog */}
-      <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>
-        <DialogContent onClose={() => setQrModalOpen(false)}>
-          <DialogHeader>
-            <DialogTitle>QR Code Meja: {selectedTableForQr?.name}</DialogTitle>
-            <DialogDescription>
-              Kode ({selectedTableForQr?.code}) — Pelanggan dapat memindai QR ini untuk self-order langsung dari meja
-            </DialogDescription>
-          </DialogHeader>
+                // Card Styling based on status
+                let cardBorderBg =
+                  'border-neutral-200/90 bg-neutral-50/20 hover:border-neutral-300 hover:bg-neutral-50/60';
+                if (isOccupied) {
+                  cardBorderBg =
+                    'border-[#10B981] bg-emerald-50/20 hover:bg-emerald-50/30 ring-1 ring-emerald-500/30';
+                } else if (isReserved) {
+                  cardBorderBg =
+                    'border-[#F59E0B] bg-amber-50/20 hover:bg-amber-50/30 ring-1 ring-amber-500/30';
+                }
 
-          {qrError && (
-            <div className="mb-4 flex items-center gap-2 p-3 text-xs rounded-lg bg-destructive/10 text-destructive border border-destructive/20">
-              <AlertCircle className="size-4 shrink-0" />
-              <span>{qrError}</span>
-            </div>
-          )}
-
-          {loadingQr ? (
-            <div className="py-12 flex flex-col items-center justify-center gap-3 text-muted-foreground">
-              <Loader2 className="size-7 animate-spin text-foreground" />
-              <span className="text-xs">Menyiapkan token QR meja...</span>
-            </div>
-          ) : activeQr ? (
-            <div className="space-y-4">
-              <div className="p-6 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-border flex flex-col items-center justify-center text-center">
-                {/* Real Scannable QR Code */}
-                <div className="p-3.5 bg-white rounded-2xl shadow-lg border border-zinc-200 dark:border-zinc-700">
-                  <QRCodeSVG
-                    value={qrOrderUrl}
-                    size={192}
-                    level="H"
-                    includeMargin={false}
-                    className="rounded-lg"
-                  />
-                </div>
-
-                <div className="mt-3 text-center">
-                  <span className="text-xs font-bold text-foreground">
-                    {selectedTableForQr?.name} ({selectedTableForQr?.code})
-                  </span>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Arahkan kamera smartphone ke kode di atas untuk memesan
-                  </p>
-                </div>
-
-                {/* Copy URL bar */}
-                <div className="flex items-center gap-2 w-full max-w-sm mt-3 bg-background p-1.5 rounded-xl border border-border">
-                  <input
-                    readOnly
-                    value={qrOrderUrl}
-                    className="bg-transparent text-[11px] font-mono flex-1 px-2 outline-hidden select-all text-muted-foreground truncate"
-                  />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 px-2.5 text-xs text-foreground hover:text-foreground"
-                    onClick={handleCopyUrl}
+                return (
+                  <div
+                    key={tbl.id}
+                    onClick={() => handleOpenDetail(tbl)}
+                    className={`h-[128px] rounded-2xl border p-4 flex flex-col justify-between cursor-pointer transition-all shadow-2xs ${cardBorderBg}`}
                   >
-                    {copied ? <Check className="size-3.5 text-emerald-600 mr-1" /> : <Copy className="size-3.5 mr-1" />}
-                    {copied ? 'Tersalin' : 'Salin'}
-                  </Button>
-                </div>
-              </div>
+                    {/* Top Row: Area label & Timer/Clock */}
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[11px] font-semibold text-blue-600 tracking-tight">
+                        {tbl.area}
+                      </span>
 
-              {/* Action Buttons */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePrintQr}
-                  className="text-xs"
-                >
-                  <Printer className="size-3.5 mr-1.5" /> Cetak QR
-                </Button>
+                      {/* Timer or Reservation Time badge matching Screenshot 3 */}
+                      {isOccupied && tbl.elapsedTime && (
+                        <div className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full">
+                          <Clock className="size-3" />
+                          <span>{tbl.elapsedTime}</span>
+                        </div>
+                      )}
 
-                <Link
-                  href={ROUTES.PUBLIC.QR_ORDER(activeQr.token)}
-                  target="_blank"
-                  className="w-full"
-                >
-                  <Button variant="outline" size="sm" className="w-full text-xs">
-                    <ExternalLink className="size-3.5 mr-1.5" /> Buka Menu
-                  </Button>
-                </Link>
+                      {isReserved && tbl.reservationTime && (
+                        <div className="flex items-center gap-1 text-[11px] font-semibold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full">
+                          <Clock className="size-3" />
+                          <span>{tbl.reservationTime}</span>
+                        </div>
+                      )}
+                    </div>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRotateQr}
-                  disabled={generatingQr}
-                  className="text-xs text-foreground"
-                >
-                  <RefreshCw className={`size-3.5 mr-1.5 ${generatingQr ? 'animate-spin' : ''}`} /> Rotasi QR
-                </Button>
-              </div>
+                    {/* Middle: Big Table Number */}
+                    <div className="text-center my-auto">
+                      <span className="text-2xl font-bold text-neutral-900 tracking-tight">
+                        {tbl.tableNumber}
+                      </span>
+                    </div>
+
+                    {/* Bottom: Capacity Subtext */}
+                    <div className="text-center">
+                      <span className="text-xs text-neutral-500 font-medium">
+                        {tbl.capacity} Orang
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
-            <div className="py-8 text-center text-muted-foreground text-xs space-y-3">
-              <p>Belum ada token QR aktif untuk meja ini.</p>
-              <Button
-                onClick={handleRotateQr}
-                disabled={generatingQr}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs"
-                size="sm"
-              >
-                {generatingQr ? (
-                  <>
-                    <Loader2 className="mr-2 size-4 animate-spin" /> Menghasilkan QR...
-                  </>
-                ) : (
-                  'Generate QR Sekarang'
-                )}
-              </Button>
+            /* Empty State matching Screenshot 4 */
+            <div className="py-24 flex flex-col items-center justify-center text-center">
+              <EmptyState
+                title="BELUM ADA MEJA"
+                description="Tambahkan meja dan atur tata letaknya untuk mulai mengelola pesanan dine-in di outletmu."
+                actionLabel="Tambah Meja"
+                onAction={() => setIsAddTableOpen(true)}
+              />
             </div>
           )}
+        </div>
+      )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setQrModalOpen(false)}>
-              Tutup
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* TAB CONTENT: KATEGORI */}
+      {activeTab === 'category' && (
+        <TableCategoryManagement
+          onShowToast={showToast}
+          isCreateOpen={isAddCategoryOpen}
+          onCloseCreate={() => setIsAddCategoryOpen(false)}
+        />
+      )}
+
+      {/* TAB CONTENT: AREA */}
+      {activeTab === 'area' && (
+        <TableAreaManagement
+          onShowToast={showToast}
+          isCreateOpen={isAddAreaOpen}
+          onCloseCreate={() => setIsAddAreaOpen(false)}
+        />
+      )}
+
+      {/* Detail Slide-over Drawer (Screenshot 1 & 2) */}
+      <TableDetailDrawer
+        isOpen={isDetailDrawerOpen}
+        onClose={() => setIsDetailDrawerOpen(false)}
+        table={selectedTable}
+        onPrevTable={handlePrevTable}
+        onNextTable={handleNextTable}
+        onPay={handlePay}
+        onAddOrder={() => alert(`Buka menu kasir untuk menambah pesanan Meja ${selectedTable?.tableNumber}`)}
+        onCheckInReservation={handleCheckInReservation}
+        onCancelReservation={handleCancelReservation}
+        onOpenTable={handleOpenTable}
+      />
+
+      {/* Add Table Drawer/Modal */}
+      <AddTableModal
+        isOpen={isAddTableOpen}
+        onClose={() => setIsAddTableOpen(false)}
+        onSave={handleAddTable}
+        nextTableNumber={tables.length + 1}
+      />
     </div>
   );
 }
