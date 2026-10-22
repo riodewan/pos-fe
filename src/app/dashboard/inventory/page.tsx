@@ -33,6 +33,12 @@ import {
   IngredientDetailDrawer,
   AddIngredientDrawer,
   InventoryIngredient,
+  PurchaseOrderManagement,
+  IngredientCategoryManagement,
+  IngredientUnitManagement,
+  StockInManagement,
+  StockOutManagement,
+  StockAdjustmentManagement,
 } from '@/components/inventory';
 import { formatRupiah } from '@/utils';
 
@@ -227,6 +233,59 @@ export default function InventoryPage() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Sub-tab creation modal triggers
+  const [isCreatePOOpen, setIsCreatePOOpen] = useState(false);
+  const [isCreateCategoryOpen, setIsCreateCategoryOpen] = useState(false);
+  const [isCreateUnitOpen, setIsCreateUnitOpen] = useState(false);
+  const [isCreateStockInOpen, setIsCreateStockInOpen] = useState(false);
+  const [isCreateStockOutOpen, setIsCreateStockOutOpen] = useState(false);
+  const [isCreateAdjustmentOpen, setIsCreateAdjustmentOpen] = useState(false);
+
+  const getAddButtonText = () => {
+    switch (activeTab) {
+      case 'po':
+        return 'Buat PO';
+      case 'category':
+        return 'Tambah Kategori';
+      case 'unit':
+        return 'Tambah Satuan';
+      case 'stock-in':
+        return 'Catat Stok Masuk';
+      case 'stock-out':
+        return 'Catat Stok Keluar';
+      case 'adjustment':
+        return 'Mulai Opname';
+      default:
+        return 'Tambah Bahan';
+    }
+  };
+
+  const handleTopAddClick = () => {
+    switch (activeTab) {
+      case 'po':
+        setIsCreatePOOpen(true);
+        break;
+      case 'category':
+        setIsCreateCategoryOpen(true);
+        break;
+      case 'unit':
+        setIsCreateUnitOpen(true);
+        break;
+      case 'stock-in':
+        setIsCreateStockInOpen(true);
+        break;
+      case 'stock-out':
+        setIsCreateStockOutOpen(true);
+        break;
+      case 'adjustment':
+        setIsCreateAdjustmentOpen(true);
+        break;
+      default:
+        setIsAddOpen(true);
+        break;
+    }
+  };
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -494,14 +553,14 @@ export default function InventoryPage() {
             </Button>
           </div>
 
-          {/* "+ Tambah Bahan" Primary Button */}
+          {/* Dynamic "+ Tambah ..." Primary Button */}
           <Button
             variant="primary"
-            onClick={() => setIsAddOpen(true)}
+            onClick={handleTopAddClick}
             className="bg-[#FF5C38] hover:bg-[#EE4E2A] text-white text-xs font-semibold h-9 px-4 rounded-xl shadow-2xs"
             leftIcon={<Plus className="size-4 stroke-[2.5]" />}
           >
-            Tambah Bahan
+            {getAddButtonText()}
           </Button>
         </div>
       </div>
@@ -696,21 +755,43 @@ export default function InventoryPage() {
             </div>
           )}
         </div>
-      ) : (
-        /* Sub-tab placeholders */
-        <div className="min-h-[360px] bg-white rounded-2xl border border-neutral-200 p-8 flex flex-col items-center justify-center text-center">
-          <div className="size-14 rounded-2xl bg-neutral-100 flex items-center justify-center mb-3 text-neutral-400">
-            <Package className="size-7" />
-          </div>
-          <h3 className="text-sm font-semibold text-neutral-800 capitalize mb-1">
-            Modul {activeTab.replace('-', ' ')}
-          </h3>
-          <p className="text-xs text-neutral-500 max-w-sm">
-            Manajemen operasional untuk {activeTab.replace('-', ' ')} telah terintegrasi dengan data
-            bahan baku.
-          </p>
-        </div>
-      )}
+      ) : activeTab === 'po' ? (
+        <PurchaseOrderManagement
+          onShowToast={showToast}
+          isCreateOpen={isCreatePOOpen}
+          onCloseCreate={() => setIsCreatePOOpen(false)}
+        />
+      ) : activeTab === 'category' ? (
+        <IngredientCategoryManagement
+          onShowToast={showToast}
+          isCreateOpen={isCreateCategoryOpen}
+          onCloseCreate={() => setIsCreateCategoryOpen(false)}
+        />
+      ) : activeTab === 'unit' ? (
+        <IngredientUnitManagement
+          onShowToast={showToast}
+          isCreateOpen={isCreateUnitOpen}
+          onCloseCreate={() => setIsCreateUnitOpen(false)}
+        />
+      ) : activeTab === 'stock-in' ? (
+        <StockInManagement
+          onShowToast={showToast}
+          isCreateOpen={isCreateStockInOpen}
+          onCloseCreate={() => setIsCreateStockInOpen(false)}
+        />
+      ) : activeTab === 'stock-out' ? (
+        <StockOutManagement
+          onShowToast={showToast}
+          isCreateOpen={isCreateStockOutOpen}
+          onCloseCreate={() => setIsCreateStockOutOpen(false)}
+        />
+      ) : activeTab === 'adjustment' ? (
+        <StockAdjustmentManagement
+          onShowToast={showToast}
+          isCreateOpen={isCreateAdjustmentOpen}
+          onCloseCreate={() => setIsCreateAdjustmentOpen(false)}
+        />
+      ) : null}
 
       {/* Ingredient Detail & Edit Drawer (Screenshot 1) */}
       <IngredientDetailDrawer
