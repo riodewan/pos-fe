@@ -18,7 +18,19 @@ import {
   Cookie,
   Utensils,
 } from 'lucide-react';
-import { DataTable, ColumnDef, StatusBadge } from '@/components/common';
+import {
+  DataTable,
+  ColumnDef,
+  StatusBadge,
+  Button,
+  Select,
+  SearchInput,
+  Drawer,
+  Modal,
+  Input,
+  Textarea,
+  FormField,
+} from '@/components/common';
 
 export interface SectionItem {
   id: string;
@@ -359,44 +371,39 @@ export function SectionManagement({ onShowToast, isCreateOpen, onCloseCreate }: 
       {/* Filters Bar: Clean individual pills directly on background */}
       <div className="flex flex-wrap items-center gap-3">
         {/* Placement Filter */}
-        <div className="relative">
-          <select
-            value={placementFilter}
-            onChange={(e) => setPlacementFilter(e.target.value)}
-            className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
-          >
-            <option value="all">Semua Penempatan</option>
-            <option value="Semua Channel">Semua Channel</option>
-            <option value="Hanya QR Order">Hanya QR Order</option>
-            <option value="Hanya POS Kasir">Hanya POS Kasir</option>
-          </select>
-          <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
-        </div>
+        <Select
+          value={placementFilter}
+          onChange={(e) => setPlacementFilter(e.target.value)}
+          size="sm"
+          options={[
+            { value: 'all', label: 'Semua Penempatan' },
+            { value: 'Semua Channel', label: 'Semua Channel' },
+            { value: 'Hanya QR Order', label: 'Hanya QR Order' },
+            { value: 'Hanya POS Kasir', label: 'Hanya POS Kasir' },
+          ]}
+        />
 
         {/* Status Filter */}
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
-          >
-            <option value="all">Semua Status</option>
-            <option value="Aktif">Aktif</option>
-            <option value="Nonaktif">Nonaktif</option>
-          </select>
-          <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
-        </div>
+        <Select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          size="sm"
+          options={[
+            { value: 'all', label: 'Semua Status' },
+            { value: 'Aktif', label: 'Aktif' },
+            { value: 'Nonaktif', label: 'Nonaktif' },
+          ]}
+        />
 
-        {/* Search input with right dropdown icon matching design */}
-        <div className="relative flex-1 min-w-[260px]">
-          <input
-            type="text"
+        {/* Search input with global SearchInput */}
+        <div className="flex-1 min-w-[260px]">
+          <SearchInput
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onClear={() => setSearchQuery('')}
             placeholder="Cari nama section..."
-            className="w-full h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs text-neutral-800 placeholder-neutral-400 shadow-2xs focus:outline-none focus:border-neutral-400"
+            size="sm"
           />
-          <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
         </div>
       </div>
 
@@ -415,227 +422,184 @@ export function SectionManagement({ onShowToast, isCreateOpen, onCloseCreate }: 
         entityName="section"
       />
 
-      {/* Slide-over Drawer for Add/Edit Section */}
-      {isDrawerOpen && (
-        <>
-          <div
-            onClick={handleCloseDrawer}
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] transition-opacity"
+      {/* Slide-over Drawer for Add/Edit Section using global Drawer */}
+      <Drawer
+        isOpen={isDrawerOpen}
+        onClose={handleCloseDrawer}
+        title={editingSection ? 'Edit Section' : 'Tambah Section'}
+        subtitle="Atur grup display khusus, penempatan channel, dan daftar menu terkait."
+        size="lg"
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <Button
+              variant="secondary"
+              size="sm"
+              leftIcon={<Bookmark className="size-4" />}
+              onClick={() => handleSave(true)}
+            >
+              Simpan sebagai Draf
+            </Button>
+
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<CheckCircle2 className="size-4 stroke-[2.5]" />}
+              onClick={() => handleSave(false)}
+            >
+              Simpan Section
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-5">
+          {/* Field: Nama Section */}
+          <Input
+            label="Nama Section"
+            required
+            value={formName}
+            onChange={(e) => setFormName(e.target.value)}
+            placeholder="Contoh: Rekomendasi Barista, Sarapan Hemat"
           />
-          <div className="fixed inset-y-0 right-0 z-50 w-full max-w-[640px] bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out">
-            {/* Header */}
-            <div className="p-6 border-b border-neutral-100 flex items-start justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-neutral-900 tracking-tight">
-                  {editingSection ? 'Edit Section' : 'Tambah Section'}
-                </h2>
-                <p className="text-xs text-neutral-500 mt-0.5">
-                  Atur grup display khusus, penempatan channel, dan daftar menu terkait.
-                </p>
-              </div>
 
-              <button
-                onClick={handleCloseDrawer}
-                className="size-7 rounded-full bg-neutral-100 text-neutral-400 hover:text-neutral-700 flex items-center justify-center transition-colors"
-              >
-                <X className="size-4" />
-              </button>
+          {/* Field: Penempatan Display */}
+          <FormField label="Penempatan Tampilan">
+            <div className="grid grid-cols-3 gap-2">
+              {(['Semua Channel', 'Hanya QR Order', 'Hanya POS Kasir'] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setFormPlacement(p)}
+                  className={`h-9 px-2 rounded-xl text-xs font-semibold border transition-all ${
+                    formPlacement === p
+                      ? 'border-blue-500 bg-blue-50 text-blue-600 shadow-2xs'
+                      : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
             </div>
+          </FormField>
 
-            {/* Form Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-5">
-              {/* Field: Nama Section */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-800">
-                  Nama Section <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="Contoh: Rekomendasi Barista, Sarapan Hemat"
-                  className="w-full h-10 px-3.5 rounded-xl border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:border-neutral-400 shadow-2xs"
-                />
-              </div>
+          {/* Field: Jadwal / Jam Tayang */}
+          <Input
+            label="Jadwal Tampil"
+            value={formActiveHours}
+            onChange={(e) => setFormActiveHours(e.target.value)}
+            placeholder="Contoh: Sepanjang Hari atau 07:00 - 11:00 WIB"
+          />
 
-              {/* Field: Penempatan Display */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-800">Penempatan Tampilan</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['Semua Channel', 'Hanya QR Order', 'Hanya POS Kasir'] as const).map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setFormPlacement(p)}
-                      className={`h-9 px-2 rounded-xl text-xs font-semibold border transition-all ${
-                        formPlacement === p
-                          ? 'border-blue-500 bg-blue-50 text-blue-600 shadow-2xs'
-                          : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
+          {/* Field: Urutan Tampilan */}
+          <Input
+            type="number"
+            min="1"
+            label="Urutan Tampilan"
+            value={formSortOrder}
+            onChange={(e) => setFormSortOrder(Number(e.target.value))}
+          />
 
-              {/* Field: Jadwal / Jam Tayang */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-800">Jadwal Tampil</label>
-                <input
-                  type="text"
-                  value={formActiveHours}
-                  onChange={(e) => setFormActiveHours(e.target.value)}
-                  placeholder="Contoh: Sepanjang Hari atau 07:00 - 11:00 WIB"
-                  className="w-full h-10 px-3.5 rounded-xl border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:border-neutral-400 shadow-2xs"
-                />
-              </div>
-
-              {/* Field: Urutan Tampilan */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-800">Urutan Tampilan</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={formSortOrder}
-                  onChange={(e) => setFormSortOrder(Number(e.target.value))}
-                  className="w-full h-10 px-3.5 rounded-xl border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:border-neutral-400 shadow-2xs"
-                />
-              </div>
-
-              {/* Field: Status */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-800">Status</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setFormStatus('Aktif')}
-                    className={`h-9 rounded-xl text-xs font-semibold border transition-all ${
-                      formStatus === 'Aktif'
-                        ? 'border-blue-500 bg-blue-50 text-blue-600 shadow-2xs'
-                        : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
-                    }`}
-                  >
-                    Aktif
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormStatus('Nonaktif')}
-                    className={`h-9 rounded-xl text-xs font-semibold border transition-all ${
-                      formStatus === 'Nonaktif'
-                        ? 'border-blue-500 bg-blue-50 text-blue-600 shadow-2xs'
-                        : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
-                    }`}
-                  >
-                    Nonaktif
-                  </button>
-                </div>
-              </div>
-
-              {/* Field: Pilih Menu Terdaftar dalam Section */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-neutral-800">
-                  Menu Terdaftar ({formSelectedMenuIds.length} Dipilih)
-                </label>
-                <div className="border border-neutral-200 rounded-xl p-3 max-h-48 overflow-y-auto space-y-1.5 bg-neutral-50/40">
-                  {AVAILABLE_MENUS.map((menu) => (
-                    <label
-                      key={menu.id}
-                      className="flex items-center justify-between p-2 rounded-lg bg-white border border-neutral-200/70 hover:border-neutral-300 cursor-pointer text-xs"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <input
-                          type="checkbox"
-                          checked={formSelectedMenuIds.includes(menu.id)}
-                          onChange={() => toggleMenuSelection(menu.id)}
-                          className="rounded border-neutral-300 text-[#FF4D4D] focus:ring-0 size-4"
-                        />
-                        <span className="font-semibold text-neutral-800">{menu.name}</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500">
-                          {menu.category}
-                        </span>
-                      </div>
-                      <span className="font-medium text-neutral-700">Rp{menu.price.toLocaleString('id-ID')}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Field: Deskripsi */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-800">Deskripsi Section</label>
-                <textarea
-                  rows={3}
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  placeholder="Keterangan singkat mengenai banner atau grup section ini..."
-                  className="w-full p-3 rounded-xl border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:border-neutral-400 shadow-2xs resize-none"
-                />
-              </div>
-            </div>
-
-            {/* Footer matching Tambah Menu styling */}
-            <div className="p-4 px-6 border-t border-neutral-100 flex items-center justify-between gap-4 bg-white">
+          {/* Field: Status */}
+          <FormField label="Status">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => handleSave(true)}
-                className="inline-flex items-center gap-2 h-11 px-5 rounded-xl border border-neutral-200 text-neutral-700 hover:bg-neutral-50 text-xs font-semibold transition-colors"
+                onClick={() => setFormStatus('Aktif')}
+                className={`h-9 rounded-xl text-xs font-semibold border transition-all ${
+                  formStatus === 'Aktif'
+                    ? 'border-blue-500 bg-blue-50 text-blue-600 shadow-2xs'
+                    : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
+                }`}
               >
-                <Bookmark className="size-4" />
-                <span>Simpan sebagai Draf</span>
+                Aktif
               </button>
-
               <button
                 type="button"
-                onClick={() => handleSave(false)}
-                className="inline-flex items-center gap-2 h-11 px-7 rounded-xl bg-[#E5484D] hover:bg-[#D9383D] text-white text-xs font-semibold transition-colors shadow-2xs"
+                onClick={() => setFormStatus('Nonaktif')}
+                className={`h-9 rounded-xl text-xs font-semibold border transition-all ${
+                  formStatus === 'Nonaktif'
+                    ? 'border-blue-500 bg-blue-50 text-blue-600 shadow-2xs'
+                    : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
+                }`}
               >
-                <CheckCircle2 className="size-4 stroke-[2.5]" />
-                <span>Simpan Section</span>
+                Nonaktif
               </button>
             </div>
-          </div>
-        </>
-      )}
+          </FormField>
 
-      {/* SUCCESS MODAL matching Screenshot 1 */}
-      {showSuccessModal && (
-        <>
-          <div className="fixed inset-0 z-60 bg-black/50 backdrop-blur-[2px] transition-opacity" />
-          <div className="fixed inset-0 z-70 flex items-center justify-center p-4">
-            <div className="w-full max-w-[480px] bg-white rounded-3xl p-8 shadow-2xl flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-200">
-              <div className="size-24 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25 mb-6">
-                <Check className="size-12 stroke-[3]" />
-              </div>
-
-              <h3 className="text-xl font-bold text-neutral-900 tracking-tight">
-                Section Berhasil Ditambahkan!
-              </h3>
-              <p className="text-xs text-neutral-500 mt-2 max-w-[360px] leading-relaxed">
-                Section &quot;{savedSectionName}&quot; berhasil disimpan dan akan ditampilkan pada channel yang ditentukan.
-              </p>
-
-              <div className="grid grid-cols-2 gap-3 w-full mt-8">
-                <button
-                  type="button"
-                  onClick={() => setShowSuccessModal(false)}
-                  className="h-11 rounded-2xl border border-red-200 hover:bg-red-50/50 text-[#E5484D] text-xs font-semibold transition-colors"
+          {/* Field: Pilih Menu Terdaftar dalam Section */}
+          <FormField label={`Menu Terdaftar (${formSelectedMenuIds.length} Dipilih)`}>
+            <div className="border border-neutral-200 rounded-xl p-3 max-h-48 overflow-y-auto space-y-1.5 bg-neutral-50/40">
+              {AVAILABLE_MENUS.map((menu) => (
+                <label
+                  key={menu.id}
+                  className="flex items-center justify-between p-2 rounded-lg bg-white border border-neutral-200/70 hover:border-neutral-300 cursor-pointer text-xs"
                 >
-                  Tutup
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowSuccessModal(false)}
-                  className="h-11 rounded-2xl bg-[#FF5C38] hover:bg-[#EE4E2A] text-white text-xs font-semibold transition-colors shadow-2xs"
-                >
-                  Kembali ke Daftar Section
-                </button>
-              </div>
+                  <div className="flex items-center gap-2.5">
+                    <input
+                      type="checkbox"
+                      checked={formSelectedMenuIds.includes(menu.id)}
+                      onChange={() => toggleMenuSelection(menu.id)}
+                      className="rounded border-neutral-300 text-orange-600 focus:ring-0 size-4"
+                    />
+                    <span className="font-semibold text-neutral-800">{menu.name}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500">
+                      {menu.category}
+                    </span>
+                  </div>
+                  <span className="font-medium text-neutral-700">Rp{menu.price.toLocaleString('id-ID')}</span>
+                </label>
+              ))}
             </div>
+          </FormField>
+
+          {/* Field: Deskripsi */}
+          <Textarea
+            label="Deskripsi Section"
+            rows={3}
+            value={formDescription}
+            onChange={(e) => setFormDescription(e.target.value)}
+            placeholder="Keterangan singkat mengenai banner atau grup section ini..."
+          />
+        </div>
+      </Drawer>
+
+      {/* SUCCESS MODAL using global Modal */}
+      <Modal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        showCloseButton={false}
+        size="md"
+      >
+        <div className="flex flex-col items-center text-center py-2">
+          <div className="size-20 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25 mb-5">
+            <Check className="size-10 stroke-[3]" />
           </div>
-        </>
-      )}
+
+          <h3 className="text-lg font-bold text-neutral-900 tracking-tight">
+            Section Berhasil Ditambahkan!
+          </h3>
+          <p className="text-xs text-neutral-500 mt-2 max-w-[340px] leading-relaxed">
+            Section &quot;{savedSectionName}&quot; berhasil disimpan dan akan ditampilkan pada channel yang ditentukan.
+          </p>
+
+          <div className="grid grid-cols-2 gap-3 w-full mt-6">
+            <Button
+              variant="outline-primary"
+              size="md"
+              onClick={() => setShowSuccessModal(false)}
+            >
+              Tutup
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => setShowSuccessModal(false)}
+            >
+              Kembali ke Daftar Section
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

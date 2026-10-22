@@ -25,6 +25,9 @@ import {
   DataTable,
   ColumnDef,
   ChannelBadge,
+  Button,
+  Select,
+  SearchInput,
 } from '@/components/common';
 import { OrderDetailsDrawer, DetailedOrder } from '@/components/orders/OrderDetailsDrawer';
 import { formatRupiah } from '@/utils';
@@ -487,15 +490,14 @@ export default function OrdersPage() {
 
         <div className="flex items-center gap-3">
           {/* Mode Switcher: Populated vs Empty preview for QA/User */}
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<Eye className="size-3.5 text-[#2563EB]" />}
             onClick={() => setPreviewMode(isEmpty ? 'populated' : 'empty')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-300 bg-white hover:bg-neutral-50 text-xs font-semibold text-neutral-700 transition-colors shadow-2xs"
-            title="Klik untuk berpindah antara tampilan data terisi dan kosong"
           >
-            <Eye className="size-3.5 text-[#2563EB]" />
-            <span>Mode: {isEmpty ? 'Data Kosong' : 'Data Terisi'}</span>
-          </button>
+            Mode: {isEmpty ? 'Data Kosong' : 'Data Terisi'}
+          </Button>
 
           {/* Auto Update indicator badge matching Screenshot 3 */}
           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-400/80 bg-emerald-50 text-emerald-700 text-xs font-semibold shadow-2xs">
@@ -617,63 +619,56 @@ export default function OrdersPage() {
           </div>
 
           {/* Channel Dropdown */}
-          <div className="relative">
-            <select
-              value={selectedChannel}
-              onChange={(e) => setSelectedChannel(e.target.value)}
-              className="appearance-none bg-white border border-neutral-200/90 shadow-2xs rounded-xl px-3 py-2 pr-7 font-semibold text-neutral-800 hover:bg-neutral-50 cursor-pointer focus:outline-none"
-            >
-              <option>Semua channel</option>
-              <option>QR Order</option>
-              <option>Kasir</option>
-              <option>GrabFood</option>
-              <option>ShopeeFood</option>
-              <option>GoFood</option>
-            </select>
-            <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
+          <Select
+            value={selectedChannel}
+            onChange={(e) => setSelectedChannel(e.target.value)}
+            size="sm"
+            options={[
+              { value: 'Semua channel', label: 'Semua channel' },
+              { value: 'QR Order', label: 'QR Order' },
+              { value: 'Kasir', label: 'Kasir' },
+              { value: 'GrabFood', label: 'GrabFood' },
+              { value: 'ShopeeFood', label: 'ShopeeFood' },
+              { value: 'GoFood', label: 'GoFood' },
+            ]}
+          />
 
           {/* Type Dropdown */}
-          <div className="relative">
-            <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="appearance-none bg-white border border-neutral-200/90 shadow-2xs rounded-xl px-3 py-2 pr-7 font-semibold text-neutral-800 hover:bg-neutral-50 cursor-pointer focus:outline-none"
-            >
-              <option>Semua tipe</option>
-              <option>Dine-in</option>
-              <option>Takeaway</option>
-              <option>Delivery</option>
-            </select>
-            <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
+          <Select
+            value={selectedType}
+            onChange={(e) => setSelectedType(e.target.value)}
+            size="sm"
+            options={[
+              { value: 'Semua tipe', label: 'Semua tipe' },
+              { value: 'Dine-in', label: 'Dine-in' },
+              { value: 'Takeaway', label: 'Takeaway' },
+              { value: 'Delivery', label: 'Delivery' },
+            ]}
+          />
 
           {/* Payment Dropdown */}
-          <div className="relative">
-            <select
-              value={selectedPayment}
-              onChange={(e) => setSelectedPayment(e.target.value)}
-              className="appearance-none bg-white border border-neutral-200/90 shadow-2xs rounded-xl px-3 py-2 pr-7 font-semibold text-neutral-800 hover:bg-neutral-50 cursor-pointer focus:outline-none"
-            >
-              <option>Semua pembayaran</option>
-              <option>Lunas</option>
-              <option>Menunggu</option>
-              <option>Dibatalkan</option>
-            </select>
-            <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
+          <Select
+            value={selectedPayment}
+            onChange={(e) => setSelectedPayment(e.target.value)}
+            size="sm"
+            options={[
+              { value: 'Semua pembayaran', label: 'Semua pembayaran' },
+              { value: 'Lunas', label: 'Lunas' },
+              { value: 'Menunggu', label: 'Menunggu' },
+              { value: 'Dibatalkan', label: 'Dibatalkan' },
+            ]}
+          />
         </div>
 
         {/* Search Input */}
-        <div className="relative min-w-[260px] lg:w-72">
-          <input
-            type="text"
+        <div className="min-w-[260px] lg:w-72">
+          <SearchInput
             placeholder="Cari nomor pesanan, nama pel..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-neutral-200/90 shadow-2xs rounded-xl pl-3.5 pr-8 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+            onClear={() => setSearchQuery('')}
+            size="sm"
           />
-          <Search className="size-3.5 text-neutral-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
       </div>
 

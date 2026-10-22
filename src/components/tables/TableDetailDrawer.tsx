@@ -19,7 +19,7 @@ import {
   Coffee,
   CheckCircle2,
 } from 'lucide-react';
-import { StatusBadge } from '@/components/common/StatusBadge';
+import { StatusBadge, Button } from '@/components/common';
 import { formatRupiah } from '@/utils';
 
 export type TableStatus = 'Kosong' | 'Terisi' | 'Reservasi' | 'Diblokir';
@@ -380,57 +380,60 @@ export function TableDetailDrawer({
           <div className="flex items-center gap-2.5 flex-1 justify-end">
             {isOccupied && (
               <>
-                <button
-                  type="button"
+                <Button
+                  variant="outline-primary"
+                  size="md"
                   onClick={() => onAddOrder?.(table)}
-                  className="h-10 px-4 rounded-xl border border-[#FF4D4D] text-[#FF4D4D] hover:bg-red-50 text-xs font-semibold transition-colors flex-1"
+                  className="flex-1"
                 >
                   Tambah Pesanan
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="primary"
+                  size="md"
                   onClick={() => onPay?.(table)}
-                  className="h-10 px-6 rounded-xl bg-[#E5484D] hover:bg-[#D9383D] text-white text-xs font-semibold transition-colors shadow-2xs flex-1"
+                  className="flex-1"
                 >
                   Bayar
-                </button>
+                </Button>
               </>
             )}
 
             {isReserved && (
               <>
-                <button
-                  type="button"
+                <Button
+                  variant="danger"
+                  size="md"
                   onClick={() => onCancelReservation?.(table)}
-                  className="h-10 px-4 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold transition-colors"
                 >
                   Batalkan
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="md"
                   onClick={() => alert(`Ubah reservasi Meja ${table.tableNumber}`)}
-                  className="h-10 px-4 rounded-xl border border-neutral-200 text-neutral-700 hover:bg-neutral-50 text-xs font-semibold transition-colors"
                 >
                   Ubah
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="primary"
+                  size="md"
                   onClick={() => onCheckInReservation?.(table)}
-                  className="h-10 px-5 rounded-xl bg-[#E5484D] hover:bg-[#D9383D] text-white text-xs font-semibold transition-colors shadow-2xs"
                 >
                   Check-In
-                </button>
+                </Button>
               </>
             )}
 
             {isAvailable && (
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="md"
+                fullWidth
                 onClick={() => onOpenTable?.(table)}
-                className="w-full h-10 px-5 rounded-xl bg-[#E5484D] hover:bg-[#D9383D] text-white text-xs font-semibold transition-colors shadow-2xs"
               >
                 Buka Meja (Dine-In)
-              </button>
+              </Button>
             )}
           </div>
 

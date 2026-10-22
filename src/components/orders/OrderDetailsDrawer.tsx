@@ -13,7 +13,7 @@ import {
   Store,
   Truck,
 } from 'lucide-react';
-import { StatusBadge } from '@/components/common/StatusBadge';
+import { StatusBadge, Button } from '@/components/common';
 import { OrderTimeline, TimelineEvent } from '@/components/common/OrderTimeline';
 import { formatRupiah } from '@/utils';
 
@@ -456,21 +456,21 @@ export function OrderDetailsDrawer({
                 <ChevronLeft className="size-4" />
               </button>
 
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                className="flex-1 border-rose-500 text-rose-500 hover:bg-rose-50"
                 onClick={() => onReject?.(order.id)}
-                className="flex-1 h-10 rounded-xl border border-red-500 hover:bg-red-50 text-red-500 text-xs font-bold transition-colors"
               >
                 Tolak Pesanan
-              </button>
+              </Button>
 
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                className="flex-1"
                 onClick={() => onAccept?.(order.id)}
-                className="flex-1 h-10 rounded-xl bg-[#FF5C38] hover:bg-[#FF4D2D] text-white text-xs font-bold transition-colors shadow-sm"
               >
                 Terima Pesanan
-              </button>
+              </Button>
 
               <button
                 type="button"

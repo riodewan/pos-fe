@@ -17,7 +17,7 @@ import {
   Clock,
   Ban,
 } from 'lucide-react';
-import { StatusBadge } from '@/components/common/StatusBadge';
+import { StatusBadge, Button } from '@/components/common';
 import { OrderTimeline, TimelineEvent } from '@/components/common/OrderTimeline';
 import { formatRupiah } from '@/utils';
 
@@ -439,18 +439,24 @@ export function TransactionDetailsDrawer({
           </button>
 
           <div className="flex-1 flex items-center gap-2.5">
-            <button
+            <Button
+              variant="outline-primary"
+              size="md"
+              leftIcon={<Printer className="size-4" />}
               onClick={() => onPrintReceipt?.(transaction.id)}
-              className="flex-1 h-10 px-4 rounded-lg border border-[#E5484D] text-[#E5484D] bg-white hover:bg-red-50 text-xs font-semibold transition-colors flex items-center justify-center shadow-2xs"
+              className="flex-1"
             >
               Cetak Struk
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              leftIcon={<Send className="size-4" />}
               onClick={() => onSendReceipt?.(transaction.id)}
-              className="flex-1 h-10 px-4 rounded-lg bg-[#E5484D] hover:bg-[#D93D42] text-white text-xs font-semibold transition-colors flex items-center justify-center shadow-2xs"
+              className="flex-1"
             >
               Kirim Struk
-            </button>
+            </Button>
           </div>
 
           <button
