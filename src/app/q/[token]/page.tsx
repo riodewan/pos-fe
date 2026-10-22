@@ -293,8 +293,9 @@ function CustomerQrContent({ token }: { token: string }) {
             <div className="size-16 rounded-full bg-emerald-500/15 text-emerald-600 flex items-center justify-center mx-auto animate-in zoom-in-75">
               <CheckCircle2 className="size-10" />
             </div>
-            <Badge className="bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30 font-bold px-3 py-1">
-              ✓ LUNAS VIA QRIS
+            <Badge className="bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30 font-bold px-3 py-1 gap-1.5 inline-flex items-center">
+              <Check className="size-3 stroke-[2.5]" />
+              <span>LUNAS VIA QRIS</span>
             </Badge>
             <h2 className="text-2xl font-black text-foreground tracking-tight">
               Pembayaran Berhasil!
@@ -362,7 +363,7 @@ function CustomerQrContent({ token }: { token: string }) {
               </div>
               <div className="text-xs">
                 <p className={`font-bold ${isReady ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' : 'text-foreground'}`}>
-                  {isReady ? '🎉 Siap Disajikan!' : isCompleted ? 'Pesanan Selesai' : 'Siap Saji'}
+                  {isReady ? 'Siap Disajikan!' : isCompleted ? 'Pesanan Selesai' : 'Siap Saji'}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
                   {isReady ? 'Staf kami segera mengantarkan ke meja Anda' : 'Disajikan langsung ke meja Anda'}
@@ -394,8 +395,9 @@ function CustomerQrContent({ token }: { token: string }) {
           </div>
 
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">
-              ☕ Silakan duduk santai di meja Anda. Pihak cafe akan langsung menyajikan pesanan Anda!
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
+              <Coffee className="size-3.5 text-muted-foreground shrink-0" />
+              <span>Silakan duduk santai di meja Anda. Pihak cafe akan langsung menyajikan pesanan Anda!</span>
             </p>
             <Button
               onClick={() => {

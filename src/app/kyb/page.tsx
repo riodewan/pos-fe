@@ -8,6 +8,7 @@ import {
   FileText,
   User,
   CheckCircle2,
+  Check,
   UploadCloud,
   X,
   ChevronDown,
@@ -426,7 +427,8 @@ export default function KybPage() {
                       <div>
                         <p className="text-sm font-semibold text-[#111827]">{nibFile.name}</p>
                         <p className="text-xs text-[#16A34A] flex items-center gap-1 font-medium">
-                          <span>✔ Completed</span>
+                          <Check className="size-3 stroke-[2.5]" />
+                          <span>Completed</span>
                           <span className="text-gray-300">•</span>
                           <span className="text-gray-400 font-normal">{nibFile.size}</span>
                         </p>
@@ -477,7 +479,8 @@ export default function KybPage() {
                       <div>
                         <p className="text-sm font-semibold text-[#111827]">{npwpFile.name}</p>
                         <p className="text-xs text-[#16A34A] flex items-center gap-1 font-medium">
-                          <span>✔ Completed</span>
+                          <Check className="size-3 stroke-[2.5]" />
+                          <span>Completed</span>
                           <span className="text-gray-300">•</span>
                           <span className="text-gray-400 font-normal">{npwpFile.size}</span>
                         </p>
@@ -528,7 +531,8 @@ export default function KybPage() {
                       <div>
                         <p className="text-sm font-semibold text-[#111827]">{siuFile.name}</p>
                         <p className="text-xs text-[#16A34A] flex items-center gap-1 font-medium">
-                          <span>✔ Completed</span>
+                          <Check className="size-3 stroke-[2.5]" />
+                          <span>Completed</span>
                           <span className="text-gray-300">•</span>
                           <span className="text-gray-400 font-normal">{siuFile.size}</span>
                         </p>

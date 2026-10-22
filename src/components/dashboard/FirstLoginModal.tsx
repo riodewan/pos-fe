@@ -713,7 +713,7 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
               <div className="space-y-3">
                 {/* 1. Identitas Outlet */}
                 <ReviewSummaryCard
-                  icon="🏢"
+                  icon={<Building className="size-3.5" />}
                   iconBgColor="bg-emerald-50"
                   iconTextColor="text-emerald-600"
                   title="Identitas Outlet"
@@ -749,7 +749,7 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
 
                 {/* 2. Jam Operasional */}
                 <ReviewSummaryCard
-                  icon="⏰"
+                  icon={<Clock className="size-3.5" />}
                   iconBgColor="bg-teal-50"
                   iconTextColor="text-teal-600"
                   title="Jam Operasional"
@@ -765,7 +765,7 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
 
                 {/* 3. Deskripsi */}
                 <ReviewSummaryCard
-                  icon="📄"
+                  icon={<FileText className="size-3.5" />}
                   iconBgColor="bg-teal-50"
                   iconTextColor="text-teal-600"
                   title="Deskripsi"
@@ -778,7 +778,7 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
 
                 {/* 4. Fasilitas */}
                 <ReviewSummaryCard
-                  icon="⚡"
+                  icon={<Zap className="size-3.5" />}
                   iconBgColor="bg-emerald-50"
                   iconTextColor="text-emerald-600"
                   title="Fasilitas"

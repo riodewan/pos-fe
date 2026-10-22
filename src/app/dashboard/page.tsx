@@ -16,6 +16,12 @@ import {
   Package,
   Layers,
   Sparkle,
+  BarChart3,
+  ShoppingCart,
+  Coins,
+  Clock,
+  Check,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
@@ -146,7 +152,7 @@ export default function DashboardOverviewPage() {
           <div>
             <div className="flex items-center gap-2">
               <div className="size-6 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <span className="text-xs">📊</span>
+                <BarChart3 className="size-3.5" />
               </div>
               <span className="text-xs text-neutral-500 font-medium">
                 Total Penjualan
@@ -177,7 +183,7 @@ export default function DashboardOverviewPage() {
         <div className="p-4 rounded-2xl bg-white border border-neutral-200/80 shadow-xs">
           <div className="flex items-center gap-2">
             <div className="size-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
-              <span className="text-xs">💳</span>
+              <CreditCard className="size-3.5" />
             </div>
             <span className="text-xs text-neutral-500 font-medium">
               Total Transaksi
@@ -195,7 +201,7 @@ export default function DashboardOverviewPage() {
         <div className="p-4 rounded-2xl bg-white border border-neutral-200/80 shadow-xs">
           <div className="flex items-center gap-2">
             <div className="size-6 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center">
-              <span className="text-xs">🛒</span>
+              <ShoppingCart className="size-3.5" />
             </div>
             <span className="text-xs text-neutral-500 font-medium truncate">
               Average Order Value (AOV)
@@ -214,7 +220,7 @@ export default function DashboardOverviewPage() {
           <div>
             <div className="flex items-center gap-2">
               <div className="size-6 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center">
-                <span className="text-xs">🌾</span>
+                <Coins className="size-3.5" />
               </div>
               <span className="text-xs text-neutral-500 font-medium">
                 Profit Estimasi
@@ -382,8 +388,8 @@ export default function DashboardOverviewPage() {
               {/* Item: Baru */}
               <div className="flex items-center justify-between p-2 rounded-xl hover:bg-neutral-50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <span className="size-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center text-xs">
-                    ✦
+                  <span className="size-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
+                    <Sparkles className="size-3.5" />
                   </span>
                   <span className="text-xs font-medium text-neutral-800">
                     Baru
@@ -395,8 +401,8 @@ export default function DashboardOverviewPage() {
               {/* Item: Diproses */}
               <div className="flex items-center justify-between p-2 rounded-xl hover:bg-neutral-50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <span className="size-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs">
-                    ▶
+                  <span className="size-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <Clock className="size-3.5" />
                   </span>
                   <span className="text-xs font-medium text-neutral-800">
                     Diproses
@@ -408,8 +414,8 @@ export default function DashboardOverviewPage() {
               {/* Item: Siap diambil */}
               <div className="flex items-center justify-between p-2 rounded-xl hover:bg-neutral-50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <span className="size-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center text-xs">
-                    🛍️
+                  <span className="size-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
+                    <ShoppingBag className="size-3.5" />
                   </span>
                   <span className="text-xs font-medium text-neutral-800">
                     Siap diambil
@@ -421,8 +427,8 @@ export default function DashboardOverviewPage() {
               {/* Item: Selesai */}
               <div className="flex items-center justify-between p-2 rounded-xl hover:bg-neutral-50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <span className="size-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs">
-                    ✓
+                  <span className="size-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <Check className="size-3.5" />
                   </span>
                   <span className="text-xs font-medium text-neutral-800">
                     Selesai
@@ -434,8 +440,8 @@ export default function DashboardOverviewPage() {
               {/* Item: Dibatalkan */}
               <div className="flex items-center justify-between p-2 rounded-xl hover:bg-neutral-50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <span className="size-7 rounded-lg bg-neutral-100 text-neutral-500 flex items-center justify-center text-xs">
-                    ✕
+                  <span className="size-7 rounded-lg bg-neutral-100 text-neutral-500 flex items-center justify-center">
+                    <X className="size-3.5" />
                   </span>
                   <span className="text-xs font-medium text-neutral-800">
                     Dibatalkan

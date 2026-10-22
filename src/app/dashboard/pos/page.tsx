@@ -1319,9 +1319,18 @@ function PosCashierContent() {
               <span className="font-mono font-bold">{completedOrder?.order_number}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Sumber Pesanan:</span>
-              <Badge variant="outline">
-                {completedOrder?.source === 'QR' ? '📱 Scan QR Meja' : '🛒 Kasir POS'}
+              <Badge variant="outline" className="gap-1.5 inline-flex items-center">
+                {completedOrder?.source === 'QR' ? (
+                  <>
+                    <QrIcon className="size-3 text-blue-500" />
+                    <span>Scan QR Meja</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="size-3 text-orange-500" />
+                    <span>Kasir POS</span>
+                  </>
+                )}
               </Badge>
             </div>
             <div className="flex justify-between">

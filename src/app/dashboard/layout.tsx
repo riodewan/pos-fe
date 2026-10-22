@@ -12,6 +12,19 @@ import {
   Menu as MenuIcon,
   X,
   Slash,
+  ClipboardList,
+  CreditCard,
+  LayoutGrid,
+  QrCode,
+  Package,
+  TrendingUp,
+  Banknote,
+  Users,
+  ShieldCheck,
+  Bell,
+  Printer,
+  ChefHat,
+  Ticket,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
@@ -142,10 +155,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       'flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium transition-colors',
                       pathname === '/dashboard'
                         ? 'bg-white/10 text-white font-semibold'
-                        : 'text-neutral-300 hover:bg-white/5 hover:text-white'
+                        : 'text-neutral-400 hover:bg-white/5 hover:text-white'
                     )}
                   >
-                    <span className="size-4 flex items-center justify-center shrink-0">▤</span>
+                    <LayoutGrid className="size-4 shrink-0 text-neutral-400" />
                     <span className="truncate">Dashboard</span>
                   </Link>
 
@@ -159,7 +172,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         : 'text-neutral-400 hover:bg-white/5 hover:text-white'
                     )}
                   >
-                    <span className="size-4 flex items-center justify-center shrink-0">📋</span>
+                    <ClipboardList className="size-4 shrink-0 text-neutral-400" />
                     <span className="truncate">Pesanan</span>
                   </Link>
 
@@ -173,7 +186,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         : 'text-neutral-400 hover:bg-white/5 hover:text-white'
                     )}
                   >
-                    <span className="size-4 flex items-center justify-center shrink-0">💳</span>
+                    <CreditCard className="size-4 shrink-0 text-neutral-400" />
                     <span className="truncate">Transaksi</span>
                   </Link>
 
@@ -187,7 +200,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         : 'text-neutral-400 hover:bg-white/5 hover:text-white'
                     )}
                   >
-                    <span className="size-4 flex items-center justify-center shrink-0">☕</span>
+                    <Coffee className="size-4 shrink-0 text-neutral-400" />
                     <span className="truncate">Menu</span>
                   </Link>
 
@@ -201,7 +214,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         : 'text-neutral-400 hover:bg-white/5 hover:text-white'
                     )}
                   >
-                    <span className="size-4 flex items-center justify-center shrink-0">🪑</span>
+                    <LayoutGrid className="size-4 shrink-0 text-neutral-400" />
                     <span className="truncate">Meja</span>
                   </Link>
 
@@ -210,7 +223,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium text-neutral-400 hover:bg-white/5 hover:text-white transition-colors"
                   >
-                    <span className="size-4 flex items-center justify-center shrink-0">📱</span>
+                    <QrCode className="size-4 shrink-0 text-neutral-400" />
                     <span className="truncate">QR Order</span>
                   </Link>
                 </div>
@@ -232,7 +245,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         : 'text-neutral-400 hover:bg-white/5 hover:text-white'
                     )}
                   >
-                    <span className="size-4 flex items-center justify-center shrink-0">📦</span>
+                    <Package className="size-4 shrink-0 text-neutral-400" />
                     <span className="truncate">Inventori & Stok</span>
                   </Link>
 
@@ -241,7 +254,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium text-neutral-400 hover:bg-white/5 hover:text-white transition-colors"
                   >
-                    <span className="size-4 flex items-center justify-center shrink-0">📈</span>
+                    <TrendingUp className="size-4 shrink-0 text-neutral-400" />
                     <span className="truncate">Laporan</span>
                   </Link>
 
@@ -250,7 +263,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium text-neutral-400 hover:bg-white/5 hover:text-white transition-colors"
                   >
-                    <span className="size-4 flex items-center justify-center shrink-0">💰</span>
+                    <Banknote className="size-4 shrink-0 text-neutral-400" />
                     <span className="truncate">Keuangan & Rekonsiliasi</span>
                   </Link>
                 </div>
@@ -267,7 +280,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium text-neutral-400 hover:bg-white/5 hover:text-white transition-colors"
                   >
-                    <span className="size-4 flex items-center justify-center shrink-0">👤</span>
+                    <Users className="size-4 shrink-0 text-neutral-400" />
                     <span className="truncate">Pelanggan</span>
                   </Link>
 
@@ -276,7 +289,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium text-neutral-400 hover:bg-white/5 hover:text-white transition-colors"
                   >
-                    <span className="size-4 flex items-center justify-center shrink-0">👥</span>
+                    <ShieldCheck className="size-4 shrink-0 text-neutral-400" />
                     <span className="truncate">Staff & Akses</span>
                   </Link>
                 </div>
@@ -331,7 +344,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 href="/dashboard/pos"
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-semibold text-white transition-colors"
               >
-                <span className="text-[#FF5C38] text-sm">📠</span>
+                <Printer className="size-3.5 text-[#FF5C38]" />
                 <span>POS</span>
               </Link>
 
@@ -339,7 +352,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 href="/dashboard/pos?tab=orders"
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-semibold text-neutral-300 hover:text-white transition-colors"
               >
-                <span className="text-[#FF5C38] text-sm">🍳</span>
+                <ChefHat className="size-3.5 text-[#FF5C38]" />
                 <span>KDS</span>
               </Link>
 
@@ -347,7 +360,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 href="/dashboard/tables"
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-semibold text-neutral-300 hover:text-white transition-colors"
               >
-                <span className="text-[#FF5C38] text-sm">🎟️</span>
+                <Ticket className="size-3.5 text-[#FF5C38]" />
                 <span>Reservasi</span>
               </Link>
             </div>
@@ -359,7 +372,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               className="size-9 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white flex items-center justify-center transition-colors"
               title="Notifikasi"
             >
-              <span className="text-sm">✉️</span>
+              <Bell className="size-4 text-neutral-400" />
             </button>
 
             <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-neutral-900 border border-neutral-800">
@@ -372,9 +385,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <button
                 onClick={() => logout()}
                 title="Keluar"
-                className="text-neutral-500 hover:text-neutral-300 text-xs font-semibold ml-1"
+                className="text-neutral-500 hover:text-neutral-300 p-0.5 rounded transition-colors ml-1"
               >
-                ✕
+                <LogOut className="size-3.5" />
               </button>
             </div>
           </div>
