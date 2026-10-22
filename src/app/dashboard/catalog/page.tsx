@@ -1,914 +1,571 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  Coffee,
   Plus,
   Search,
-  RefreshCw,
-  Edit2,
-  Trash2,
-  Scale,
-  Truck,
-  Layers,
-  AlertCircle,
+  ChevronDown,
+  MoreVertical,
+  Check,
+  Coffee,
+  Tag,
+  LayoutGrid,
+  Columns,
+  Utensils,
+  Cookie,
 } from 'lucide-react';
-import { useStore } from '@/context/StoreContext';
-import { catalogService } from '@/services';
-import { Product, Ingredient, Unit, Supplier, UnitType } from '@/types';
-
-import { ApiError } from '@/lib/api';
+import {
+  DataTable,
+  ColumnDef,
+  StatusBadge,
+} from '@/components/common';
+import {
+  MenuDetailsDrawer,
+  MenuItem,
+} from '@/components/menu/MenuDetailsDrawer';
 import { formatRupiah } from '@/utils';
-import { useDebounce } from '@/hooks';
-import { PageHeader, EmptyState, LoadingScreen } from '@/components/common';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
 
-type CatalogTab = 'products' | 'ingredients' | 'units' | 'suppliers';
+// 9 Items matching Screenshot 1 exactly
+const INITIAL_MENU_ITEMS: MenuItem[] = [
+  {
+    id: 'm-1',
+    name: 'Kopi Susu Gula Aren',
+    sku: 'DRK-001',
+    category: 'Kopi',
+    type: 'Minuman',
+    price: 28000,
+    cost: 8000,
+    margin: 69.6,
+    status: 'Aktif',
+    description: 'Kopi espresso dengan susu fresh dan gula aren asli.',
+  },
+  {
+    id: 'm-2',
+    name: 'Matcha Latte',
+    sku: 'DRK-002',
+    category: 'Kopi',
+    type: 'Minuman',
+    price: 30000,
+    cost: 9200,
+    margin: 69.3,
+    status: 'Aktif',
+    description: 'Matcha premium Jepang dengan steamed milk gurih.',
+  },
+  {
+    id: 'm-3',
+    name: 'Americano',
+    sku: 'DRK-003',
+    category: 'Kopi',
+    type: 'Minuman',
+    price: 22000,
+    cost: 5800,
+    margin: 73.6,
+    status: 'Aktif',
+    description: 'Double espresso shot dengan air panas atau dingin segar.',
+  },
+  {
+    id: 'm-4',
+    name: 'Cappucino',
+    sku: 'DRK-004',
+    category: 'Kopi',
+    type: 'Minuman',
+    price: 28000,
+    cost: 7900,
+    margin: 71.8,
+    status: 'Aktif',
+    description: 'Espresso dengan foam susu tebal dan taburan bubuk cokelat.',
+  },
+  {
+    id: 'm-5',
+    name: 'Latte',
+    sku: 'DRK-005',
+    category: 'Kopi',
+    type: 'Minuman',
+    price: 27000,
+    cost: 7500,
+    margin: 72.2,
+    status: 'Aktif',
+    description: 'Perpaduan lembut espresso dan susu segar bercita rasa creamy.',
+  },
+  {
+    id: 'm-6',
+    name: 'Croissant',
+    sku: 'DRK-006',
+    category: 'Pastry',
+    type: 'Makanan',
+    price: 25000,
+    cost: 10000,
+    margin: 60.0,
+    status: 'Aktif',
+    description: 'Pastry mentega renyah berlapis-lapis khas Prancis.',
+  },
+  {
+    id: 'm-7',
+    name: 'Chocolate Croissant',
+    sku: 'DRK-007',
+    category: 'Pastry',
+    type: 'Makanan',
+    price: 28000,
+    cost: 11500,
+    margin: 58.9,
+    status: 'Aktif',
+    description: 'Croissant renyah dengan isian cokelat lumer lezat.',
+  },
+  {
+    id: 'm-8',
+    name: 'Chicken Sandwich',
+    sku: 'DRK-008',
+    category: 'Makanan Berat',
+    type: 'Makanan',
+    price: 45000,
+    cost: 18000,
+    margin: 60.0,
+    status: 'Aktif',
+    description: 'Roti lapis ayam panggang dengan sayuran segar dan keju.',
+  },
+  {
+    id: 'm-9',
+    name: 'Pasta Carbonara',
+    sku: 'DRK-009',
+    category: 'Makanan Berat',
+    type: 'Makanan',
+    price: 48000,
+    cost: 20500,
+    margin: 57.3,
+    status: 'Aktif',
+    description: 'Spaghetti saus krim telur kaya rasa dengan taburan smoked beef.',
+  },
+];
 
-export default function CatalogPage() {
-  const { activeStore } = useStore();
+type MenuTab = 'menu' | 'category' | 'type' | 'section';
 
-  const [activeTab, setActiveTab] = useState<CatalogTab>('products');
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const debouncedSearch = useDebounce(search, 300);
+export default function MenuCatalogPage() {
+  const [activeTab, setActiveTab] = useState<MenuTab>('menu');
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(INITIAL_MENU_ITEMS);
+  const [demoMode, setDemoMode] = useState<'populated' | 'empty'>('populated');
 
-  // Data states
-  const [products, setProducts] = useState<Product[]>([]);
-  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  // Filter states
+  const [selectedChannel, setSelectedChannel] = useState<string>('all');
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // Dialog & Form States
-  const [modalOpen, setModalOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  // Drawer states
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Form Fields - Product
-  const [editingProductId, setEditingProductId] = useState<string | null>(null);
-  const [prodName, setProdName] = useState('');
-  const [prodSku, setProdSku] = useState('');
-  const [prodPrice, setProdPrice] = useState('');
-  const [prodDesc, setProdDesc] = useState('');
-  const [prodImage, setProdImage] = useState('');
-  const [prodStatus, setProdStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
-
-  // Form Fields - Ingredient
-  const [editingIngId, setEditingIngId] = useState<string | null>(null);
-  const [ingName, setIngName] = useState('');
-  const [ingSku, setIngSku] = useState('');
-  const [ingUnitId, setIngUnitId] = useState('');
-
-  // Form Fields - Unit
-  const [unitName, setUnitName] = useState('');
-  const [unitCode, setUnitCode] = useState('');
-  const [unitType, setUnitType] = useState<'WEIGHT' | 'VOLUME' | 'PIECE' | 'LENGTH'>('WEIGHT');
-
-  // Form Fields - Supplier
-  const [editingSupId, setEditingSupId] = useState<string | null>(null);
-  const [supName, setSupName] = useState('');
-  const [supContact, setSupContact] = useState('');
-  const [supPhone, setSupPhone] = useState('');
-  const [supEmail, setSupEmail] = useState('');
-  const [supAddress, setSupAddress] = useState('');
-
-  // Fetch all catalog datasets
-  const loadCatalogData = useCallback(async () => {
-    if (!activeStore) return;
-    setLoading(true);
-    try {
-      const [prodRes, ingRes, unitRes, supRes] = await Promise.all([
-        catalogService.getProducts(),
-        catalogService.getIngredients(),
-        catalogService.getUnits(),
-        catalogService.getSuppliers(),
-      ]);
-      setProducts(prodRes.data || []);
-      setIngredients(ingRes.data || []);
-      setUnits(unitRes.data || []);
-      setSuppliers(supRes.data || []);
-    } catch (err) {
-      console.error('Failed to load catalog:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [activeStore]);
-
-  useEffect(() => {
-    loadCatalogData();
-  }, [loadCatalogData]);
-
-  // Modals Openers
-  const openProductModal = (p?: Product) => {
-    setFormError(null);
-    if (p) {
-      setEditingProductId(p.id);
-      setProdName(p.name);
-      setProdSku(p.sku);
-      setProdPrice(String(p.selling_price));
-      setProdDesc(p.description || '');
-      setProdImage(p.image_url || '');
-      setProdStatus(p.status);
-    } else {
-      setEditingProductId(null);
-      setProdName('');
-      setProdSku(`PRD-${String(products.length + 1).padStart(3, '0')}`);
-      setProdPrice('');
-      setProdDesc('');
-      setProdImage('');
-      setProdStatus('ACTIVE');
-    }
-    setModalOpen(true);
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const openIngredientModal = (ing?: Ingredient) => {
-    setFormError(null);
-    if (ing) {
-      setEditingIngId(ing.id);
-      setIngName(ing.name);
-      setIngSku(ing.sku);
-      setIngUnitId(ing.unit_id);
-    } else {
-      setEditingIngId(null);
-      setIngName('');
-      setIngSku(`ING-${String(ingredients.length + 1).padStart(3, '0')}`);
-      setIngUnitId(units[0]?.id || '');
-    }
-    setModalOpen(true);
-  };
+  // Filtered menu list
+  const filteredMenuItems = useMemo(() => {
+    if (demoMode === 'empty') return [];
 
-  const openUnitModal = () => {
-    setFormError(null);
-    setUnitName('');
-    setUnitCode('');
-    setUnitType('WEIGHT');
-    setModalOpen(true);
-  };
-
-  const openSupplierModal = (sup?: Supplier) => {
-    setFormError(null);
-    if (sup) {
-      setEditingSupId(sup.id);
-      setSupName(sup.name);
-      setSupContact(sup.contact_name || '');
-      setSupPhone(sup.phone || '');
-      setSupEmail(sup.email || '');
-      setSupAddress(sup.address || '');
-    } else {
-      setEditingSupId(null);
-      setSupName('');
-      setSupContact('');
-      setSupPhone('');
-      setSupEmail('');
-      setSupAddress('');
-    }
-    setModalOpen(true);
-  };
-
-  // Form Submissions
-  const handleSaveProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setFormError(null);
-    try {
-      const payload = {
-        name: prodName,
-        sku: prodSku,
-        selling_price: parseFloat(prodPrice) || 0,
-        description: prodDesc || null,
-        image_url: prodImage.trim() || null,
-        status: prodStatus,
-      };
-
-      if (editingProductId) {
-        await catalogService.updateProduct(editingProductId, payload);
-      } else {
-        await catalogService.createProduct(payload);
+    return menuItems.filter((item) => {
+      if (selectedType !== 'all' && item.type !== selectedType) return false;
+      if (selectedStatus !== 'all' && item.status !== selectedStatus) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchName = item.name.toLowerCase().includes(q);
+        const matchSku = item.sku.toLowerCase().includes(q);
+        const matchCat = item.category.toLowerCase().includes(q);
+        if (!matchName && !matchSku && !matchCat) return false;
       }
-      setModalOpen(false);
-      loadCatalogData();
-    } catch (err: unknown) {
-      if (err instanceof ApiError) setFormError(err.message);
-      else setFormError((err as Error).message);
-    } finally {
-      setSaving(false);
+      return true;
+    });
+  }, [demoMode, menuItems, selectedType, selectedStatus, searchQuery]);
+
+  // Bulk selection
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredMenuItems.length && filteredMenuItems.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredMenuItems.map((m) => m.id));
     }
   };
 
-  const handleSaveIngredient = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setFormError(null);
-    try {
-      const payload = {
-        name: ingName,
-        sku: ingSku,
-        unit_id: ingUnitId,
-        status: 'ACTIVE' as const,
-      };
+  const toggleSelectRow = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
 
-      if (editingIngId) {
-        await catalogService.updateIngredient(editingIngId, payload);
-      } else {
-        await catalogService.createIngredient(payload);
-      }
-      setModalOpen(false);
-      loadCatalogData();
-    } catch (err: unknown) {
-      if (err instanceof ApiError) setFormError(err.message);
-      else setFormError((err as Error).message);
-    } finally {
-      setSaving(false);
+  const handleOpenItem = (item: MenuItem) => {
+    setSelectedItem(item);
+    setIsDrawerOpen(true);
+  };
+
+  const handleSaveItem = (updated: MenuItem) => {
+    setMenuItems((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+    showToast(`Perubahan menu ${updated.name} berhasil disimpan!`);
+  };
+
+  const handleDeleteItem = (itemId: string) => {
+    setMenuItems((prev) => prev.filter((m) => m.id !== itemId));
+    showToast('Menu berhasil dihapus!');
+  };
+
+  const handleCreateNew = () => {
+    const newItem: MenuItem = {
+      id: `m-${Date.now()}`,
+      name: 'Menu Baru',
+      sku: `DRK-0${menuItems.length + 1}`,
+      category: 'Kopi',
+      type: 'Minuman',
+      price: 25000,
+      cost: 7000,
+      margin: 72.0,
+      status: 'Aktif',
+      description: '',
+    };
+    setSelectedItem(newItem);
+    setIsDrawerOpen(true);
+  };
+
+  // Category Badge Helper matching Figma
+  const getCategoryBadge = (category: string) => {
+    switch (category) {
+      case 'Kopi':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#FFF8E1] text-[#A76D04] border border-[#FFE082]/60">
+            Kopi
+          </span>
+        );
+      case 'Pastry':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#FCE4EC] text-[#C2185B] border border-[#F8BBD0]/60">
+            Pastry
+          </span>
+        );
+      case 'Makanan Berat':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#E3F2FD] text-[#1565C0] border border-[#BBDEFB]/60">
+            Makanan Berat
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 text-neutral-700 border border-neutral-200">
+            {category}
+          </span>
+        );
     }
   };
 
-  const handleSaveUnit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setFormError(null);
-    try {
-      await catalogService.createUnit({
-        name: unitName,
-        code: unitCode.toUpperCase(),
-        type: unitType,
-      });
-      setModalOpen(false);
-      loadCatalogData();
-    } catch (err: unknown) {
-      if (err instanceof ApiError) setFormError(err.message);
-      else setFormError((err as Error).message);
-    } finally {
-      setSaving(false);
+  // Type Badge Helper matching Figma
+  const getTypeBadge = (type: MenuItem['type']) => {
+    switch (type) {
+      case 'Minuman':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#FFEBEE] text-[#D32F2F] border border-[#FFCDD2]/60">
+            Minuman
+          </span>
+        );
+      case 'Makanan':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#E3F2FD] text-[#1976D2] border border-[#BBDEFB]/60">
+            Makanan
+          </span>
+        );
+      case 'Cemilan':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#FFF3E0] text-[#E65100] border border-[#FFE0B2]/60">
+            Cemilan
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 text-neutral-700">
+            {type}
+          </span>
+        );
     }
   };
 
-  const handleSaveSupplier = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setFormError(null);
-    try {
-      const payload = {
-        name: supName,
-        contact_name: supContact || null,
-        phone: supPhone || null,
-        email: supEmail || null,
-        address: supAddress || null,
-      };
+  // Global DataTable Columns Definition matching Screenshot 1
+  const columns: ColumnDef<MenuItem>[] = [
+    {
+      key: 'menu',
+      header: 'Menu',
+      render: (item) => (
+        <div className="flex items-center gap-3">
+          {/* Thumbnail */}
+          <div className="size-10 rounded-lg bg-gradient-to-br from-amber-100 to-amber-200 border border-amber-300 flex items-center justify-center text-amber-900 shrink-0 shadow-2xs">
+            {item.category === 'Pastry' ? (
+              <Cookie className="size-5 text-amber-800" />
+            ) : item.category === 'Makanan Berat' ? (
+              <Utensils className="size-5 text-blue-700" />
+            ) : (
+              <Coffee className="size-5 text-amber-800" />
+            )}
+          </div>
 
-      if (editingSupId) {
-        await catalogService.createSupplier(payload); // or update
-      } else {
-        await catalogService.createSupplier(payload);
-      }
-      setModalOpen(false);
-      loadCatalogData();
-    } catch (err: unknown) {
-      if (err instanceof ApiError) setFormError(err.message);
-      else setFormError((err as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Delete Handlers
-  const handleDeleteProduct = async (id: string) => {
-    if (!confirm('Yakin ingin menghapus produk ini?')) return;
-    try {
-      await catalogService.deleteProduct(id);
-      loadCatalogData();
-    } catch (err) {
-      alert((err as Error).message);
-    }
-  };
-
-  const handleDeleteIngredient = async (id: string) => {
-    if (!confirm('Yakin ingin menghapus bahan baku ini?')) return;
-    try {
-      await catalogService.deleteIngredient(id);
-      loadCatalogData();
-    } catch (err) {
-      alert((err as Error).message);
-    }
-  };
-
-  // Filtered Lists
-  const filteredProducts = useMemo(
-    () =>
-      products.filter(
-        (p) =>
-          p.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-          p.sku.toLowerCase().includes(debouncedSearch.toLowerCase())
+          <div>
+            <p className="font-semibold text-neutral-900 text-xs tracking-tight">{item.name}</p>
+            <p className="text-[11px] text-neutral-400 mt-0.5">SKU: {item.sku}</p>
+          </div>
+        </div>
       ),
-    [products, debouncedSearch]
-  );
-
-  const filteredIngredients = useMemo(
-    () =>
-      ingredients.filter(
-        (i) =>
-          i.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-          i.sku.toLowerCase().includes(debouncedSearch.toLowerCase())
+    },
+    {
+      key: 'kategori',
+      header: 'Kategori',
+      render: (item) => getCategoryBadge(item.category),
+    },
+    {
+      key: 'tipe',
+      header: 'Tipe',
+      render: (item) => getTypeBadge(item.type),
+    },
+    {
+      key: 'hargaJual',
+      header: 'Harga Jual',
+      render: (item) => (
+        <span className="text-xs text-neutral-800 font-medium">{formatRupiah(item.price)}</span>
       ),
-    [ingredients, debouncedSearch]
-  );
-
-  const filteredSuppliers = useMemo(
-    () =>
-      suppliers.filter((s) =>
-        s.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+    },
+    {
+      key: 'hpp',
+      header: 'HPP',
+      render: (item) => (
+        <span className="text-xs text-neutral-800 font-medium">{formatRupiah(item.cost)}</span>
       ),
-    [suppliers, debouncedSearch]
-  );
+    },
+    {
+      key: 'margin',
+      header: 'Margin',
+      render: (item) => (
+        <div className="flex items-center gap-1.5 text-xs font-medium text-neutral-800">
+          <span className="size-1.5 rounded-full bg-emerald-500" />
+          <span>{item.margin}%</span>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (item) => (
+        <StatusBadge variant="success" icon={<Check className="size-3" />}>
+          Aktif
+        </StatusBadge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      render: (item) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleOpenItem(item);
+          }}
+          className="p-1 rounded-md text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+        >
+          <MoreVertical className="size-4" />
+        </button>
+      ),
+    },
+  ];
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <PageHeader
-        title="Katalog & Bahan Baku"
-        description="Kelola produk penjualan, bahan baku resep, satuan ukur master, dan data supplier outlet"
-      >
-        <Button variant="outline" size="sm" onClick={loadCatalogData} disabled={loading}>
-          <RefreshCw className={`size-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
-        </Button>
-        {activeTab === 'products' && (
-          <Button onClick={() => openProductModal()} className="bg-primary hover:bg-primary/90 text-primary-foreground" size="sm">
-            <Plus className="size-4 mr-1.5" /> Tambah Produk
-          </Button>
-        )}
-        {activeTab === 'ingredients' && (
-          <Button onClick={() => openIngredientModal()} className="bg-primary hover:bg-primary/90 text-primary-foreground" size="sm">
-            <Plus className="size-4 mr-1.5" /> Tambah Bahan Baku
-          </Button>
-        )}
-        {activeTab === 'units' && (
-          <Button onClick={openUnitModal} className="bg-primary hover:bg-primary/90 text-primary-foreground" size="sm">
-            <Plus className="size-4 mr-1.5" /> Tambah Satuan
-          </Button>
-        )}
-        {activeTab === 'suppliers' && (
-          <Button onClick={() => openSupplierModal()} className="bg-primary hover:bg-primary/90 text-primary-foreground" size="sm">
-            <Plus className="size-4 mr-1.5" /> Tambah Supplier
-          </Button>
-        )}
-      </PageHeader>
-
-      {/* Navigation Tabs Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto">
-          {[
-            { id: 'products', label: 'Produk Jual', count: products.length, icon: Coffee },
-            { id: 'ingredients', label: 'Bahan Baku', count: ingredients.length, icon: Layers },
-            { id: 'units', label: 'Satuan Ukur', count: units.length, icon: Scale },
-            { id: 'suppliers', label: 'Pemasok (Suppliers)', count: suppliers.length, icon: Truck },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isCurrent = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id as CatalogTab);
-                  setSearch('');
-                }}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
-                  isCurrent
-                    ? 'bg-primary text-primary-foreground shadow-xs'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
-              >
-                <Icon className="size-3.5" />
-                <span>{tab.label}</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                    isCurrent ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
+    <div className="p-6 lg:p-8 space-y-4 max-w-[1600px] mx-auto">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-20 right-6 z-50 bg-neutral-900 text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 border border-neutral-700 animate-in fade-in slide-in-from-top-2">
+          <Check className="size-4 text-emerald-400" />
+          <span>{toastMessage}</span>
         </div>
-
-        {/* Search input for tabs with filter capability */}
-        {activeTab !== 'units' && (
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
-            <Input
-              placeholder={`Cari ${activeTab}...`}
-              className="pl-8 h-8 text-xs"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Main Content Area per Tab */}
-      {loading ? (
-        <LoadingScreen message="Memuat master data katalog..." />
-      ) : (
-        <>
-          {/* TAB 1: PRODUCTS */}
-          {activeTab === 'products' && (
-            <Card className="overflow-hidden">
-              {filteredProducts.length === 0 ? (
-                <EmptyState
-                  icon={Coffee}
-                  title="Belum ada produk"
-                  description="Tambahkan item minuman atau makanan yang akan dijual pada kasir POS outlet."
-                  actionLabel="Tambah Produk Baru"
-                  onAction={() => openProductModal()}
-                />
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>SKU</TableHead>
-                      <TableHead>Nama Produk</TableHead>
-                      <TableHead>Harga Jual</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredProducts.map((p) => (
-                      <TableRow key={p.id}>
-                        <TableCell className="font-mono font-bold text-muted-foreground">
-                          {p.sku}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="size-10 rounded-lg overflow-hidden bg-muted shrink-0 border border-border/50">
-                              {p.image_url ? (
-                                <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                                  <Coffee className="size-4 opacity-50" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                              <span className="font-semibold text-foreground truncate">{p.name}</span>
-                              {p.description && (
-                                <span className="text-[11px] text-muted-foreground line-clamp-1">
-                                  {p.description}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-bold text-foreground">
-                          {formatRupiah(p.selling_price)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={p.status === 'ACTIVE' ? 'success' : 'secondary'}>
-                            {p.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => openProductModal(p)}
-                              className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                              title="Edit Produk"
-                            >
-                              <Edit2 className="size-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteProduct(p.id)}
-                              className="p-1.5 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                              title="Hapus Produk"
-                            >
-                              <Trash2 className="size-3.5" />
-                            </button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </Card>
-          )}
-
-          {/* TAB 2: INGREDIENTS */}
-          {activeTab === 'ingredients' && (
-            <Card className="overflow-hidden">
-              {filteredIngredients.length === 0 ? (
-                <EmptyState
-                  icon={Layers}
-                  title="Belum ada bahan baku"
-                  description="Daftarkan bahan mentah seperti biji kopi, susu, sirup untuk perakitan formula resep & deduksi stok."
-                  actionLabel="Tambah Bahan Baku"
-                  onAction={() => openIngredientModal()}
-                />
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>SKU</TableHead>
-                      <TableHead>Nama Bahan Baku</TableHead>
-                      <TableHead>Satuan</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredIngredients.map((ing) => (
-                      <TableRow key={ing.id}>
-                        <TableCell className="font-mono font-bold text-muted-foreground">
-                          {ing.sku}
-                        </TableCell>
-                        <TableCell className="font-semibold text-foreground">{ing.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="font-mono uppercase">
-                            {ing.unit?.code || 'UNIT'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={ing.status === 'ACTIVE' ? 'success' : 'secondary'}>
-                            {ing.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => openIngredientModal(ing)}
-                              className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                              title="Edit Bahan"
-                            >
-                              <Edit2 className="size-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteIngredient(ing.id)}
-                              className="p-1.5 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                              title="Hapus Bahan"
-                            >
-                              <Trash2 className="size-3.5" />
-                            </button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </Card>
-          )}
-
-          {/* TAB 3: UNITS */}
-          {activeTab === 'units' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {units.map((unit) => (
-                <Card key={unit.id} className="p-4 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-mono text-sm font-extrabold text-foreground">
-                        {unit.code}
-                      </span>
-                      <Badge variant="outline" className="text-[10px]">
-                        {unit.type}
-                      </Badge>
-                    </div>
-                    <h4 className="text-sm font-bold text-foreground">{unit.name}</h4>
-                  </div>
-                  <div className="mt-3 pt-2 border-t border-border/50 text-[10px] text-muted-foreground">
-                    Standar Pengukuran Resep & Gudang
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-
-          {/* TAB 4: SUPPLIERS */}
-          {activeTab === 'suppliers' && (
-            <Card className="overflow-hidden">
-              {filteredSuppliers.length === 0 ? (
-                <EmptyState
-                  icon={Truck}
-                  title="Belum ada data supplier"
-                  description="Catat vendor atau pemasok biji kopi dan bahan baku untuk purchase order (PO) gudang."
-                  actionLabel="Tambah Supplier Baru"
-                  onAction={() => openSupplierModal()}
-                />
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nama Supplier</TableHead>
-                      <TableHead>Kontak Person</TableHead>
-                      <TableHead>Telepon</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead className="text-right">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredSuppliers.map((sup) => (
-                      <TableRow key={sup.id}>
-                        <TableCell className="font-semibold text-foreground">{sup.name}</TableCell>
-                        <TableCell>{sup.contact_name || '-'}</TableCell>
-                        <TableCell className="font-mono text-xs">{sup.phone || '-'}</TableCell>
-                        <TableCell className="text-xs">{sup.email || '-'}</TableCell>
-                        <TableCell className="text-right">
-                          <button
-                            onClick={() => openSupplierModal(sup)}
-                            className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                            title="Edit Supplier"
-                          >
-                            <Edit2 className="size-3.5" />
-                          </button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </Card>
-          )}
-        </>
       )}
 
-      {/* Dynamic Modal Dialog depending on active tab */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent onClose={() => setModalOpen(false)}>
-          <DialogHeader>
-            <DialogTitle>
-              {activeTab === 'products' && (editingProductId ? 'Edit Produk' : 'Tambah Produk Baru')}
-              {activeTab === 'ingredients' && (editingIngId ? 'Edit Bahan Baku' : 'Tambah Bahan Baku')}
-              {activeTab === 'units' && 'Tambah Satuan Ukur Baru'}
-              {activeTab === 'suppliers' && (editingSupId ? 'Edit Supplier' : 'Tambah Supplier Baru')}
-            </DialogTitle>
-            <DialogDescription>
-              Lengkapi formulir di bawah ini untuk menyimpan master data ke sistem outlet
-            </DialogDescription>
-          </DialogHeader>
+      {/* Top Page Header matching Screenshot 1 */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Menu</h1>
+          <p className="text-xs text-neutral-500 mt-1">
+            Kelola semua menu, harga, kategori, dan informasi bahan.
+          </p>
+        </div>
 
-          {formError && (
-            <div className="mb-4 flex items-center gap-2 p-3 text-xs rounded-lg bg-destructive/10 text-destructive border border-destructive/20">
-              <AlertCircle className="size-4 shrink-0" />
-              <span>{formError}</span>
-            </div>
-          )}
+        {/* Right Header: Discrete Switcher & + Tambah Menu */}
+        <div className="flex items-center gap-3">
+          {/* Demo Switcher */}
+          <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-lg border border-neutral-200 text-xs">
+            <button
+              onClick={() => setDemoMode('populated')}
+              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
+                demoMode === 'populated'
+                  ? 'bg-white text-neutral-800 shadow-2xs font-semibold'
+                  : 'text-neutral-500 hover:text-neutral-800'
+              }`}
+            >
+              Data Terisi
+            </button>
+            <button
+              onClick={() => setDemoMode('empty')}
+              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
+                demoMode === 'empty'
+                  ? 'bg-white text-neutral-800 shadow-2xs font-semibold'
+                  : 'text-neutral-500 hover:text-neutral-800'
+              }`}
+            >
+              Belum Ada Menu
+            </button>
+          </div>
 
-          {/* Form Products */}
-          {activeTab === 'products' && (
-            <form onSubmit={handleSaveProduct} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground uppercase">Nama Produk</label>
-                <Input
-                  placeholder="Mis: Iced Caffe Latte"
-                  value={prodName}
-                  onChange={(e) => setProdName(e.target.value)}
-                  required
-                />
-              </div>
+          {/* + Tambah Menu button matching Screenshot 1 */}
+          <button
+            onClick={handleCreateNew}
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-[#FF4D4D] hover:bg-[#E53939] text-white text-xs font-semibold transition-colors shadow-2xs"
+          >
+            <Plus className="size-4 stroke-[2.5]" />
+            <span>Tambah Menu</span>
+          </button>
+        </div>
+      </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">SKU Produk</label>
-                  <Input
-                    placeholder="LAT-01"
-                    value={prodSku}
-                    onChange={(e) => setProdSku(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Harga Jual (Rp)</label>
-                  <Input
-                    type="number"
-                    placeholder="35000"
-                    value={prodPrice}
-                    onChange={(e) => setProdPrice(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
+      {/* Navigation Tabs matching Screenshot 1: Menu, Kategori, Tipe, Section */}
+      <div className="flex items-center border-b border-neutral-200 text-xs gap-1">
+        <button
+          onClick={() => setActiveTab('menu')}
+          className={`flex items-center gap-2 px-5 py-3 font-semibold border-b-2 transition-all relative ${
+            activeTab === 'menu'
+              ? 'border-[#FF5C38] text-[#FF5C38]'
+              : 'border-transparent text-neutral-500 hover:text-neutral-800'
+          }`}
+        >
+          <Coffee className="size-4" />
+          <span>Menu</span>
+        </button>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground uppercase">Deskripsi</label>
-                <Input
-                  placeholder="Espresso dengan susu segar dan es batu..."
-                  value={prodDesc}
-                  onChange={(e) => setProdDesc(e.target.value)}
-                />
-              </div>
+        <button
+          onClick={() => setActiveTab('category')}
+          className={`flex items-center gap-2 px-5 py-3 font-semibold border-b-2 transition-all relative ${
+            activeTab === 'category'
+              ? 'border-[#FF5C38] text-[#FF5C38]'
+              : 'border-transparent text-neutral-500 hover:text-neutral-800'
+          }`}
+        >
+          <Tag className="size-4" />
+          <span>Kategori</span>
+        </button>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground uppercase">URL Foto Menu Produk</label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="https://images.unsplash.com/... atau tautan gambar"
-                    value={prodImage}
-                    onChange={(e) => setProdImage(e.target.value)}
-                  />
-                  {prodImage && (
-                    <div className="size-9 rounded-lg overflow-hidden border border-border shrink-0 bg-muted">
-                      <img src={prodImage} alt="Preview" className="w-full h-full object-cover" />
-                    </div>
-                  )}
-                </div>
-                <p className="text-[10px] text-muted-foreground">
-                  Foto ini akan ditampilkan kepada pelanggan saat scan QR meja dan di layar kasir.
-                </p>
-              </div>
+        <button
+          onClick={() => setActiveTab('type')}
+          className={`flex items-center gap-2 px-5 py-3 font-semibold border-b-2 transition-all relative ${
+            activeTab === 'type'
+              ? 'border-[#FF5C38] text-[#FF5C38]'
+              : 'border-transparent text-neutral-500 hover:text-neutral-800'
+          }`}
+        >
+          <LayoutGrid className="size-4" />
+          <span>Tipe</span>
+        </button>
 
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
-                  Batal
-                </Button>
-                <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={saving}>
-                  {saving ? 'Menyimpan...' : 'Simpan Produk'}
-                </Button>
-              </DialogFooter>
-            </form>
-          )}
+        <button
+          onClick={() => setActiveTab('section')}
+          className={`flex items-center gap-2 px-5 py-3 font-semibold border-b-2 transition-all relative ${
+            activeTab === 'section'
+              ? 'border-[#FF5C38] text-[#FF5C38]'
+              : 'border-transparent text-neutral-500 hover:text-neutral-800'
+          }`}
+        >
+          <Columns className="size-4" />
+          <span>Section</span>
+        </button>
+      </div>
 
-          {/* Form Ingredients */}
-          {activeTab === 'ingredients' && (
-            <form onSubmit={handleSaveIngredient} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground uppercase">Nama Bahan Baku</label>
-                <Input
-                  placeholder="Mis: Biji Kopi Arabica Gayo"
-                  value={ingName}
-                  onChange={(e) => setIngName(e.target.value)}
-                  required
-                />
-              </div>
+      {/* Filters Bar: Clean individual pills directly on background */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Channel Filter */}
+        <div className="relative">
+          <select
+            value={selectedChannel}
+            onChange={(e) => setSelectedChannel(e.target.value)}
+            className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
+          >
+            <option value="all">Semua channel</option>
+            <option value="Kasir">Kasir</option>
+            <option value="QR Order">QR Order</option>
+            <option value="GrabFood">GrabFood</option>
+            <option value="ShopeeFood">ShopeeFood</option>
+            <option value="GoFood">GoFood</option>
+          </select>
+          <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
+        </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">SKU Bahan</label>
-                  <Input
-                    placeholder="ING-GY-01"
-                    value={ingSku}
-                    onChange={(e) => setIngSku(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Satuan Ukur</label>
-                  <select
-                    value={ingUnitId}
-                    onChange={(e) => setIngUnitId(e.target.value)}
-                    className="w-full h-9 rounded-lg border border-input bg-background px-3 text-xs"
-                    required
-                  >
-                    <option value="">Pilih Satuan...</option>
-                    {units.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name} ({u.code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+        {/* Type Filter */}
+        <div className="relative">
+          <select
+            value={selectedType}
+            onChange={(e) => setSelectedType(e.target.value)}
+            className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
+          >
+            <option value="all">Semua tipe</option>
+            <option value="Minuman">Minuman</option>
+            <option value="Makanan">Makanan</option>
+            <option value="Cemilan">Cemilan</option>
+          </select>
+          <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
+        </div>
 
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
-                  Batal
-                </Button>
-                <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={saving}>
-                  {saving ? 'Menyimpan...' : 'Simpan Bahan'}
-                </Button>
-              </DialogFooter>
-            </form>
-          )}
+        {/* Status / Pembayaran Filter */}
+        <div className="relative">
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
+          >
+            <option value="all">Semua status</option>
+            <option value="Aktif">Aktif</option>
+            <option value="Nonaktif">Nonaktif</option>
+          </select>
+          <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
+        </div>
 
-          {/* Form Units */}
-          {activeTab === 'units' && (
-            <form onSubmit={handleSaveUnit} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground uppercase">Nama Satuan</label>
-                <Input
-                  placeholder="Mis: Kilogram atau Mililiter"
-                  value={unitName}
-                  onChange={(e) => setUnitName(e.target.value)}
-                  required
-                />
-              </div>
+        {/* Search Input */}
+        <div className="relative flex-1 min-w-[280px]">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Cari nama menu, kategori, atau SKU"
+            className="w-full h-9 pl-3.5 pr-9 rounded-lg border border-neutral-200 bg-white text-xs text-neutral-900 placeholder:text-neutral-400 shadow-2xs focus:outline-none focus:border-neutral-400"
+          />
+          <div className="absolute right-2.5 top-2 size-5 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-400">
+            <Search className="size-3" />
+          </div>
+        </div>
+      </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Kode Singkat</label>
-                  <Input
-                    placeholder="KG / ML / GR"
-                    value={unitCode}
-                    onChange={(e) => setUnitCode(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Tipe Dimensi</label>
-                  <select
-                    value={unitType}
-                    onChange={(e) => setUnitType(e.target.value as UnitType)}
+      {/* Global DataTable matching Screenshot 1 & 3 */}
+      <DataTable
+        columns={columns}
+        data={filteredMenuItems}
+        keyExtractor={(item) => item.id}
+        selectable
+        selectedIds={selectedIds}
+        onToggleSelect={toggleSelectRow}
+        onToggleSelectAll={toggleSelectAll}
+        onRowClick={handleOpenItem}
+        emptyTitle="BELUM ADA MENU"
+        emptyDescription="Tambahkan menu untuk mulai mengelola harga jual, bahan, dan HPP produk outletmu."
+        entityName="menu"
+      />
 
-                    className="w-full h-9 rounded-lg border border-input bg-background px-3 text-xs"
-                  >
-                    <option value="WEIGHT">WEIGHT (Berat)</option>
-                    <option value="VOLUME">VOLUME (Cairan)</option>
-                    <option value="PIECE">PIECE (Jumlah/Pcs)</option>
-                    <option value="LENGTH">LENGTH (Panjang)</option>
-                  </select>
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
-                  Batal
-                </Button>
-                <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={saving}>
-                  {saving ? 'Menyimpan...' : 'Simpan Satuan'}
-                </Button>
-              </DialogFooter>
-            </form>
-          )}
-
-          {/* Form Suppliers */}
-          {activeTab === 'suppliers' && (
-            <form onSubmit={handleSaveSupplier} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground uppercase">Nama Supplier</label>
-                <Input
-                  placeholder="Mis: PT Roaster Jaya Abadi"
-                  value={supName}
-                  onChange={(e) => setSupName(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Kontak Person</label>
-                  <Input
-                    placeholder="Pak Hendra"
-                    value={supContact}
-                    onChange={(e) => setSupContact(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Nomor Telepon</label>
-                  <Input
-                    placeholder="081122334455"
-                    value={supPhone}
-                    onChange={(e) => setSupPhone(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground uppercase">Email</label>
-                <Input
-                  type="email"
-                  placeholder="hendra@roasterjaya.com"
-                  value={supEmail}
-                  onChange={(e) => setSupEmail(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground uppercase">Alamat</label>
-                <Input
-                  placeholder="Bandung, Jawa Barat"
-                  value={supAddress}
-                  onChange={(e) => setSupAddress(e.target.value)}
-                />
-              </div>
-
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
-                  Batal
-                </Button>
-                <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={saving}>
-                  {saving ? 'Menyimpan...' : 'Simpan Supplier'}
-                </Button>
-              </DialogFooter>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Slide-over Menu Edit/Detail Drawer matching Screenshot 2 */}
+      <MenuDetailsDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        item={selectedItem}
+        onSave={handleSaveItem}
+        onDelete={handleDeleteItem}
+      />
     </div>
   );
 }
