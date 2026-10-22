@@ -1,924 +1,732 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
+import Image from 'next/image';
 import {
   Package,
   Plus,
-  RefreshCw,
-  ShoppingCart,
-  AlertTriangle,
+  Search,
+  ChevronDown,
+  MoreVertical,
+  Check,
+  Bell,
   FileText,
-  Truck,
-  DollarSign,
+  Tag,
+  Scale,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Sliders,
   AlertCircle,
+  Inbox,
+  Filter,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import { useStore } from '@/context/StoreContext';
-import { inventoryService, catalogService } from '@/services';
 import {
-  StockBalance,
-  Purchase,
-  Wastage,
-  StockMovement,
-  Supplier,
-  Ingredient,
-  Unit,
-} from '@/types';
-import { ApiError } from '@/lib/api';
-import { formatRupiah, formatDate, formatDateTime } from '@/utils';
-import { PageHeader, EmptyState, LoadingScreen, StatCard } from '@/components/common';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+  DataTable,
+  ColumnDef,
+  Button,
+  Select,
+  SearchInput,
+  Pagination,
+  StatusBadge,
+} from '@/components/common';
 import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  IngredientDetailDrawer,
+  AddIngredientDrawer,
+  InventoryIngredient,
+} from '@/components/inventory';
+import { formatRupiah } from '@/utils';
 
-type InventoryTab = 'stocks' | 'purchases' | 'wastages' | 'movements';
+// 9 Items matching Screenshot 2 exactly
+const INITIAL_INGREDIENTS: InventoryIngredient[] = [
+  {
+    id: 'ing-1',
+    name: 'Biji Kopi Arabica',
+    sku: 'ING-001',
+    category: 'Kopi',
+    unit: 'kg',
+    currentStock: 5.2,
+    minStock: 2,
+    costPrice: 120000,
+    status: 'Aman',
+    description: 'Biji kopi arabica premium untuk menu kopi.',
+    image: '/img/ingredients/biji_kopi_arabica.jpg',
+    supplier: 'PT Kopi Nusantara',
+    storageLocation: 'Gudang Bahan Kering',
+    shelfLifeValue: 12,
+    shelfLifeUnit: 'Bulan',
+    expiryDate: '31 Des 2026',
+  },
+  {
+    id: 'ing-2',
+    name: 'Biji Kopi Arabica',
+    sku: 'ING-002',
+    category: 'Kopi',
+    unit: 'kg',
+    currentStock: 3.1,
+    minStock: 2,
+    costPrice: 90000,
+    status: 'Aman',
+    description: 'Biji kopi arabica grade 2 untuk blend.',
+    image: '/img/ingredients/biji_kopi_arabica.jpg',
+    supplier: 'PT Kopi Nusantara',
+    storageLocation: 'Gudang Bahan Kering',
+    shelfLifeValue: 12,
+    shelfLifeUnit: 'Bulan',
+    expiryDate: '31 Des 2026',
+  },
+  {
+    id: 'ing-3',
+    name: 'Susu UHT Full Cream',
+    sku: 'ING-003',
+    category: 'Susu',
+    unit: 'liter',
+    currentStock: 12,
+    minStock: 5,
+    costPrice: 18000,
+    status: 'Aman',
+    description: 'Susu cair segar kemasan karton 1L.',
+    image: '/img/ingredients/biji_kopi_arabica.jpg',
+    supplier: 'PT Sumber Susu Murni',
+    storageLocation: 'Chiller Bar Depan',
+    shelfLifeValue: 6,
+    shelfLifeUnit: 'Bulan',
+    expiryDate: '15 Jan 2027',
+  },
+  {
+    id: 'ing-4',
+    name: 'Susu Oat',
+    sku: 'ING-004',
+    category: 'Susu',
+    unit: 'liter',
+    currentStock: 2,
+    minStock: 5,
+    costPrice: 28000,
+    status: 'Menipis',
+    description: 'Plant-based oat milk ramah vegan & lactose-free.',
+    image: '/img/ingredients/biji_kopi_arabica.jpg',
+    supplier: 'PT Sumber Susu Murni',
+    storageLocation: 'Chiller Bar Depan',
+    shelfLifeValue: 6,
+    shelfLifeUnit: 'Bulan',
+    expiryDate: '20 Des 2026',
+  },
+  {
+    id: 'ing-5',
+    name: 'Matcha Powder',
+    sku: 'ING-005',
+    category: 'Bubuk',
+    unit: 'kg',
+    currentStock: 0.8,
+    minStock: 1,
+    costPrice: 350000,
+    status: 'Menipis',
+    description: 'Bubuk matcha murni impor dari Uji, Kyoto.',
+    image: '/img/ingredients/biji_kopi_arabica.jpg',
+    supplier: 'Distributor Bubuk Java',
+    storageLocation: 'Gudang Bahan Kering',
+    shelfLifeValue: 12,
+    shelfLifeUnit: 'Bulan',
+    expiryDate: '31 Des 2026',
+  },
+  {
+    id: 'ing-6',
+    name: 'Coklat Powder',
+    sku: 'ING-006',
+    category: 'Bubuk',
+    unit: 'kg',
+    currentStock: 1.5,
+    minStock: 1,
+    costPrice: 120000,
+    status: 'Aman',
+    description: 'Dark cocoa powder 100% tanpa pemanis buatan.',
+    image: '/img/ingredients/biji_kopi_arabica.jpg',
+    supplier: 'Distributor Bubuk Java',
+    storageLocation: 'Gudang Bahan Kering',
+    shelfLifeValue: 18,
+    shelfLifeUnit: 'Bulan',
+    expiryDate: '10 Feb 2027',
+  },
+  {
+    id: 'ing-7',
+    name: 'Sirup Gula Aren',
+    sku: 'ING-007',
+    category: 'Sirup',
+    unit: 'liter',
+    currentStock: 1,
+    minStock: 2,
+    costPrice: 45000,
+    status: 'Menipis',
+    description: 'Liquid palm sugar kental dengan aroma karamel alami.',
+    image: '/img/ingredients/biji_kopi_arabica.jpg',
+    supplier: 'Mitra Sirup Barista',
+    storageLocation: 'Rak Sirup & Topping',
+    shelfLifeValue: 12,
+    shelfLifeUnit: 'Bulan',
+    expiryDate: '31 Des 2026',
+  },
+  {
+    id: 'ing-8',
+    name: 'Sirup Vanilla',
+    sku: 'ING-008',
+    category: 'Sirup',
+    unit: 'liter',
+    currentStock: 4,
+    minStock: 2,
+    costPrice: 60000,
+    status: 'Aktif',
+    description: 'Sirup rasa vanilla premium untuk varian latte.',
+    image: '/img/ingredients/biji_kopi_arabica.jpg',
+    supplier: 'Mitra Sirup Barista',
+    storageLocation: 'Rak Sirup & Topping',
+    shelfLifeValue: 12,
+    shelfLifeUnit: 'Bulan',
+    expiryDate: '31 Des 2026',
+  },
+  {
+    id: 'ing-9',
+    name: 'Air Mineral',
+    sku: 'ING-009',
+    category: 'Minuman',
+    unit: 'pcs',
+    currentStock: 10,
+    minStock: 10,
+    costPrice: 5000,
+    status: 'Menipis',
+    description: 'Air mineral kemasan galon/botol 600ml.',
+    image: '/img/ingredients/biji_kopi_arabica.jpg',
+    supplier: 'Distributor Sumber Air',
+    storageLocation: 'Gudang Bahan Kering',
+    shelfLifeValue: 24,
+    shelfLifeUnit: 'Bulan',
+    expiryDate: '31 Des 2027',
+  },
+];
+
+type InventoryTabKey =
+  | 'bahan'
+  | 'po'
+  | 'category'
+  | 'unit'
+  | 'stock-in'
+  | 'stock-out'
+  | 'adjustment';
 
 export default function InventoryPage() {
-  const router = useRouter();
-  const { user, activeTenant, isLoading } = useAuth();
-  const { activeStore } = useStore();
+  const [activeTab, setActiveTab] = useState<InventoryTabKey>('bahan');
+  const [ingredients, setIngredients] = useState<InventoryIngredient[]>(INITIAL_INGREDIENTS);
+  const [demoMode, setDemoMode] = useState<'populated' | 'empty'>('populated');
 
-  const roleName = user?.is_internal ? 'SUPER_ADMIN' : activeTenant?.role?.toUpperCase();
+  // Filter States
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (isLoading) return;
-    if (roleName === 'CASHIER') {
-      router.replace('/dashboard/pos');
-    }
-  }, [roleName, isLoading, router]);
+  // Drawer States
+  const [selectedIngredient, setSelectedIngredient] = useState<InventoryIngredient | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<InventoryTab>('stocks');
-  const [loading, setLoading] = useState(true);
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Datasets
-  const [stocks, setStocks] = useState<StockBalance[]>([]);
-  const [purchases, setPurchases] = useState<Purchase[]>([]);
-  const [wastages, setWastages] = useState<Wastage[]>([]);
-  const [movements, setMovements] = useState<StockMovement[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
-
-  // Dialog States
-  const [modalType, setModalType] = useState<'purchase' | 'opname' | 'wastage' | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-
-  // PO Form State
-  const [poSupplierId, setPoSupplierId] = useState('');
-  const [poDate, setPoDate] = useState('');
-  const [poNotes, setPoNotes] = useState('');
-  const [poItems, setPoItems] = useState([
-    { ingredient_id: '', unit_id: '', quantity: '10', unit_cost: '50000' },
-  ]);
-
-  // Opname Adjustment Form State
-  const [opnameIngredientId, setOpnameIngredientId] = useState('');
-  const [opnameQuantity, setOpnameQuantity] = useState('');
-  const [opnameNotes, setOpnameNotes] = useState('Stock opname fisik gudang');
-
-  // Wastage Form State
-  const [wasteDate, setWasteDate] = useState('');
-  const [wasteReason, setWasteReason] = useState('Bahan kadaluarsa / rusak');
-  const [wasteItems, setWasteItems] = useState([
-    { ingredient_id: '', unit_id: '', quantity: '1' },
-  ]);
-
-  const loadData = useCallback(async () => {
-    if (!activeStore) return;
-    setLoading(true);
-    try {
-      const [stockRes, poRes, wasteRes, movRes, supRes, ingRes, unitRes] = await Promise.all([
-        inventoryService.getStocks(),
-        inventoryService.getPurchases(),
-        inventoryService.getWastages(),
-        inventoryService.getMovements(),
-        catalogService.getSuppliers(),
-        catalogService.getIngredients(),
-        catalogService.getUnits(),
-      ]);
-
-      setStocks(stockRes.data || []);
-      setPurchases(poRes.data || []);
-      setWastages(wasteRes.data || []);
-      setMovements(movRes.data || []);
-      setSuppliers(supRes.data || []);
-      setIngredients(ingRes.data || []);
-      setUnits(unitRes.data || []);
-    } catch (err) {
-      console.error('Failed to load inventory data:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [activeStore]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  // Openers
-  const openPurchaseModal = () => {
-    setFormError(null);
-    setPoSupplierId(suppliers[0]?.id || '');
-    setPoDate(new Date().toISOString().split('T')[0]);
-    setPoNotes('');
-    setPoItems([
-      {
-        ingredient_id: ingredients[0]?.id || '',
-        unit_id: ingredients[0]?.unit_id || units[0]?.id || '',
-        quantity: '5000',
-        unit_cost: '200',
-      },
-    ]);
-    setModalType('purchase');
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const openOpnameModal = (stock?: StockBalance) => {
-    setFormError(null);
-    const targetIngId = stock?.ingredient_id || ingredients[0]?.id || '';
-    setOpnameIngredientId(targetIngId);
-    setOpnameQuantity(stock ? String(stock.quantity) : '0');
-    setOpnameNotes('Hasil stock opname fisik gudang');
-    setModalType('opname');
+  // Filtered ingredients
+  const filteredIngredients = useMemo(() => {
+    if (demoMode === 'empty') return [];
+
+    return ingredients.filter((item) => {
+      if (selectedCategory !== 'all' && item.category !== selectedCategory) return false;
+      if (selectedStatus !== 'all' && item.status !== selectedStatus) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchName = item.name.toLowerCase().includes(q);
+        const matchSku = item.sku.toLowerCase().includes(q);
+        const matchCat = item.category.toLowerCase().includes(q);
+        if (!matchName && !matchSku && !matchCat) return false;
+      }
+      return true;
+    });
+  }, [ingredients, demoMode, selectedCategory, selectedStatus, searchQuery]);
+
+  const toggleSelectRow = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
   };
 
-  const openWastageModal = () => {
-    setFormError(null);
-    setWasteDate(new Date().toISOString().split('T')[0]);
-    setWasteReason('Susu basi terkena mati listrik');
-    setWasteItems([
-      {
-        ingredient_id: ingredients[0]?.id || '',
-        unit_id: ingredients[0]?.unit_id || units[0]?.id || '',
-        quantity: '1000',
-      },
-    ]);
-    setModalType('wastage');
-  };
-
-  // Submissions
-  const handleSavePurchase = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setFormError(null);
-    try {
-      await inventoryService.createPurchase({
-        supplier_id: poSupplierId,
-        purchase_date: poDate,
-        notes: poNotes || null,
-        items: poItems.map((i) => ({
-          ingredient_id: i.ingredient_id,
-          unit_id: i.unit_id,
-          quantity: parseFloat(i.quantity) || 1,
-          unit_cost: parseFloat(i.unit_cost) || 0,
-        })),
-      });
-      setModalType(null);
-      loadData();
-    } catch (err: unknown) {
-      if (err instanceof ApiError) setFormError(err.message);
-      else setFormError((err as Error).message);
-    } finally {
-      setSaving(false);
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredIngredients.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredIngredients.map((item) => item.id));
     }
   };
 
-  const handleReceivePurchase = async (id: string) => {
-    if (!confirm('Terima PO ini ke gudang? Stok bahan akan bertambah dan HPP moving average akan dikalkulasi otomatis.')) {
-      return;
-    }
-    try {
-      await inventoryService.receivePurchase(id);
-      loadData();
-    } catch (err) {
-      alert((err as Error).message);
+  // Handlers
+  const handleOpenDetail = (item: InventoryIngredient) => {
+    setSelectedIngredient(item);
+    setIsDetailOpen(true);
+  };
+
+  const handleSaveIngredient = (updated: InventoryIngredient) => {
+    setIngredients((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+    showToast(`Bahan "${updated.name}" berhasil diperbarui.`);
+  };
+
+  const handleDeleteIngredient = (id: string) => {
+    setIngredients((prev) => prev.filter((item) => item.id !== id));
+    showToast('Bahan berhasil dihapus dari inventori.');
+  };
+
+  const handleAddIngredient = (newItem: InventoryIngredient) => {
+    setIngredients((prev) => [newItem, ...prev]);
+    showToast(`Bahan baru "${newItem.name}" berhasil ditambahkan.`);
+  };
+
+  // Helper for Category Pill
+  const renderCategoryBadge = (category: InventoryIngredient['category']) => {
+    switch (category) {
+      case 'Kopi':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#FFF8E1] text-[#8D6E63] border border-[#FFE082]/40">
+            Kopi
+          </span>
+        );
+      case 'Susu':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#E3F2FD] text-[#1976D2] border border-[#BBDEFB]/50">
+            Susu
+          </span>
+        );
+      case 'Bubuk':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#ECEFF1] text-[#546E7A] border border-[#CFD8DC]/50">
+            Bubuk
+          </span>
+        );
+      case 'Sirup':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#FFEBEE] text-[#D32F2F] border border-[#FFCDD2]/50">
+            Sirup
+          </span>
+        );
+      case 'Minuman':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#E0F7FA] text-[#00838F] border border-[#B2EBF2]/50">
+            Minuman
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 text-neutral-700">
+            {category}
+          </span>
+        );
     }
   };
 
-  const handleSaveOpname = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setFormError(null);
-    try {
-      await inventoryService.adjustStock({
-        ingredient_id: opnameIngredientId,
-        quantity: parseFloat(opnameQuantity) || 0,
-        notes: opnameNotes,
-      });
-      setModalType(null);
-      loadData();
-    } catch (err: unknown) {
-      if (err instanceof ApiError) setFormError(err.message);
-      else setFormError((err as Error).message);
-    } finally {
-      setSaving(false);
+  // Helper for Status Badge
+  const renderStatusBadge = (status: InventoryIngredient['status']) => {
+    switch (status) {
+      case 'Aman':
+      case 'Aktif':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#E8F5E9] text-[#2E7D32]">
+            <span className="size-3.5 rounded-full bg-[#2E7D32] text-white flex items-center justify-center text-[8px] font-bold">
+              <Check className="size-2.5 stroke-[3]" />
+            </span>
+            <span>{status}</span>
+          </span>
+        );
+      case 'Menipis':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#FFF8E1] text-[#B78103]">
+            <span className="size-3.5 rounded-full bg-[#F59E0B] text-white flex items-center justify-center text-[8px] font-bold">
+              <Bell className="size-2.5 stroke-[2.5]" />
+            </span>
+            <span>Menipis</span>
+          </span>
+        );
+      case 'Habis':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#FFEBEE] text-[#C62828]">
+            <span className="size-3.5 rounded-full bg-[#E53935] text-white flex items-center justify-center text-[8px] font-bold">
+              !
+            </span>
+            <span>Habis</span>
+          </span>
+        );
     }
   };
 
-  const handleSaveWastage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setFormError(null);
-    try {
-      await inventoryService.createWastage({
-        wastage_date: wasteDate,
-        reason: wasteReason,
-        items: wasteItems.map((i) => ({
-          ingredient_id: i.ingredient_id,
-          unit_id: i.unit_id,
-          quantity: parseFloat(i.quantity) || 1,
-        })),
-      });
-      setModalType(null);
-      loadData();
-    } catch (err: unknown) {
-      if (err instanceof ApiError) setFormError(err.message);
-      else setFormError((err as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  };
+  // DataTable Columns definition
+  const columns: ColumnDef<InventoryIngredient>[] = [
+    {
+      key: 'name',
+      header: 'Nama Bahan',
+      render: (item) => (
+        <div className="flex items-center gap-3">
+          {/* Thumbnail */}
+          <div className="size-10 rounded-lg overflow-hidden border border-neutral-200 shrink-0 relative bg-neutral-100 shadow-2xs">
+            <Image
+              src={item.image || '/img/ingredients/biji_kopi_arabica.jpg'}
+              alt={item.name}
+              fill
+              className="object-cover"
+            />
+          </div>
 
-  // KPI Calculations
-  const totalStockItems = stocks.length;
-  const totalAssetValue = stocks.reduce(
-    (sum, s) => sum + Number(s.quantity) * Number(s.average_cost),
-    0
-  );
+          <div>
+            <p className="font-semibold text-neutral-900 text-xs tracking-tight">{item.name}</p>
+            <p className="text-[11px] text-neutral-400 mt-0.5 font-mono">SKU: {item.sku}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'category',
+      header: 'Kategori',
+      render: (item) => renderCategoryBadge(item.category),
+    },
+    {
+      key: 'unit',
+      header: 'Satuan',
+      render: (item) => <span className="text-neutral-600 text-xs">{item.unit}</span>,
+    },
+    {
+      key: 'currentStock',
+      header: 'Stok saat ini',
+      render: (item) => (
+        <span className="font-medium text-neutral-900 text-xs">
+          {item.currentStock.toString().replace('.', ',')} {item.unit}
+        </span>
+      ),
+    },
+    {
+      key: 'minStock',
+      header: 'Stok Minimum',
+      render: (item) => (
+        <span className="text-neutral-600 text-xs">
+          {item.minStock.toString().replace('.', ',')} {item.unit}
+        </span>
+      ),
+    },
+    {
+      key: 'costPrice',
+      header: 'Harga Modal',
+      render: (item) => (
+        <span className="font-medium text-neutral-800 text-xs">
+          {formatRupiah(item.costPrice)}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (item) => renderStatusBadge(item.status),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      render: (item) => (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleOpenDetail(item);
+          }}
+          className="p-1 rounded-md text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+          title="Opsi Bahan"
+        >
+          <MoreVertical className="size-4" />
+        </button>
+      ),
+    },
+  ];
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <PageHeader
-        title="Inventaris Stok & Bahan Baku"
-        description="Kelola saldo stok gudang, pengadaan PO bahan masuk, audit stock opname, dan buku besar mutasi"
-      >
-        <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
-          <RefreshCw className={`size-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
-        </Button>
-        <Button onClick={openPurchaseModal} className="bg-primary hover:bg-primary/90 text-primary-foreground" size="sm">
-          <Plus className="size-4 mr-1.5" /> Pembelian (PO Baru)
-        </Button>
-      </PageHeader>
-
-      {/* KPI Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard
-          title="Total Bahan Baku Terdaftar"
-          value={totalStockItems}
-          subtitle="Item bahan dalam gudang toko"
-          icon={Package}
-          iconClassName="bg-accent text-foreground"
-        />
-        <StatCard
-          title="Estimasi Nilai Aset Stok"
-          value={formatRupiah(totalAssetValue)}
-          subtitle="Dihitung berbasis Moving Average Cost"
-          icon={DollarSign}
-          iconClassName="bg-emerald-500/10 text-emerald-600"
-        />
-        <StatCard
-          title="Pembelian Masuk (PO)"
-          value={purchases.length}
-          subtitle={`${purchases.filter((p) => p.status === 'RECEIVED').length} PO telah diterima di gudang`}
-          icon={Truck}
-          iconClassName="bg-blue-500/10 text-blue-600"
-        />
-      </div>
-
-      {/* Navigation Tabs Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto">
-          {[
-            { id: 'stocks', label: 'Saldo Stok Bahan', count: stocks.length, icon: Package },
-            { id: 'purchases', label: 'Pembelian (PO)', count: purchases.length, icon: ShoppingCart },
-            { id: 'wastages', label: 'Bahan Rusak / Basi', count: wastages.length, icon: AlertTriangle },
-            { id: 'movements', label: 'Buku Besar Mutasi', count: movements.length, icon: FileText },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isCurrent = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id as InventoryTab);
-                }}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
-                  isCurrent
-                    ? 'bg-primary text-primary-foreground shadow-xs'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
-              >
-                <Icon className="size-3.5" />
-                <span>{tab.label}</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                    isCurrent ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
+    <div className="p-6 lg:p-8 space-y-4 max-w-[1600px] mx-auto">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-20 right-6 z-50 bg-neutral-900 text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 border border-neutral-700 animate-in fade-in slide-in-from-top-2">
+          <Check className="size-4 text-emerald-400" />
+          <span>{toastMessage}</span>
         </div>
-
-        {/* Action Buttons for active tabs */}
-        <div className="flex items-center gap-2">
-          {activeTab === 'stocks' && (
-            <Button variant="outline" size="sm" onClick={() => openOpnameModal()}>
-              Stock Opname Fisik
-            </Button>
-          )}
-          {activeTab === 'wastages' && (
-            <Button variant="outline" size="sm" onClick={openWastageModal}>
-              Catat Bahan Rusak
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Tab Contents */}
-      {loading ? (
-        <LoadingScreen message="Memuat data persediaan gudang..." />
-      ) : (
-        <>
-          {/* TAB 1: STOCK BALANCES */}
-          {activeTab === 'stocks' && (
-            <Card className="overflow-hidden">
-              {stocks.length === 0 ? (
-                <EmptyState
-                  icon={Package}
-                  title="Belum ada saldo stok bahan"
-                  description="Saldo stok bahan akan muncul setelah penerimaan barang masuk (PO) atau input opname awal."
-                  actionLabel="Buat Pembelian Bahan (PO)"
-                  onAction={openPurchaseModal}
-                />
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nama Bahan Baku</TableHead>
-                      <TableHead>Saldo Stok</TableHead>
-                      <TableHead>Moving Average Cost</TableHead>
-                      <TableHead>Estimasi Nilai Total</TableHead>
-                      <TableHead className="text-right">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {stocks.map((s) => {
-                      const ing = ingredients.find((i) => i.id === s.ingredient_id);
-                      const unit = units.find((u) => u.id === ing?.unit_id);
-                      const subTotalVal = Number(s.quantity) * Number(s.average_cost);
-
-                      return (
-                        <TableRow key={s.id}>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-semibold text-foreground">
-                                {ing?.name || 'Bahan Baku'}
-                              </span>
-                              <span className="text-[10px] font-mono text-muted-foreground">
-                                {ing?.sku}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-mono font-bold text-foreground text-sm">
-                              {Number(s.quantity).toLocaleString('id-ID')}
-                            </span>{' '}
-                            <span className="text-[10px] uppercase font-semibold text-muted-foreground">
-                              {unit?.code || 'UNIT'}
-                            </span>
-                          </TableCell>
-                          <TableCell className="font-mono text-xs font-semibold">
-                            {formatRupiah(s.average_cost)} / {unit?.code || 'UNIT'}
-                          </TableCell>
-                          <TableCell className="font-bold text-foreground">
-                            {formatRupiah(subTotalVal)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="outline"
-                              size="xs"
-                              onClick={() => openOpnameModal(s)}
-                              className="text-xs"
-                            >
-                              Opname
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-            </Card>
-          )}
-
-          {/* TAB 2: PURCHASES (PO) */}
-          {activeTab === 'purchases' && (
-            <Card className="overflow-hidden">
-              {purchases.length === 0 ? (
-                <EmptyState
-                  icon={ShoppingCart}
-                  title="Belum ada transaksi pembelian"
-                  description="Catat pembelian biji kopi atau bahan makanan dari supplier untuk menambah stok gudang."
-                  actionLabel="Buat PO Pertama"
-                  onAction={openPurchaseModal}
-                />
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Tanggal PO</TableHead>
-                      <TableHead>Supplier</TableHead>
-                      <TableHead>Total Pembelian</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {purchases.map((po) => {
-                      const sup = suppliers.find((s) => s.id === po.supplier_id);
-                      return (
-                        <TableRow key={po.id}>
-                          <TableCell className="font-mono text-xs">
-                            {formatDate(po.purchase_date)}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-semibold text-foreground">
-                                {sup?.name || 'Pemasok'}
-                              </span>
-                              {po.notes && (
-                                <span className="text-[11px] text-muted-foreground line-clamp-1">
-                                  {po.notes}
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-bold text-foreground">
-                            {formatRupiah(po.total_amount)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                po.status === 'RECEIVED'
-                                  ? 'success'
-                                  : po.status === 'CANCELLED'
-                                  ? 'destructive'
-                                  : 'warning'
-                              }
-                            >
-                              {po.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {po.status !== 'RECEIVED' && po.status !== 'CANCELLED' && (
-                              <Button
-                                size="xs"
-                                onClick={() => handleReceivePurchase(po.id)}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
-                              >
-                                Terima Barang
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-            </Card>
-          )}
-
-          {/* TAB 3: WASTAGES */}
-          {activeTab === 'wastages' && (
-            <Card className="overflow-hidden">
-              {wastages.length === 0 ? (
-                <EmptyState
-                  icon={AlertTriangle}
-                  title="Belum ada catatan bahan rusak"
-                  description="Pencatatan bahan rusak atau terbuang (wastage) membantu menjaga akurasi HPP riil."
-                  actionLabel="Catat Wastage"
-                  onAction={openWastageModal}
-                />
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Tanggal</TableHead>
-                      <TableHead>Alasan Kerusakan</TableHead>
-                      <TableHead>Rincian Item</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {wastages.map((w) => (
-                      <TableRow key={w.id}>
-                        <TableCell className="font-mono text-xs">
-                          {formatDate(w.wastage_date)}
-                        </TableCell>
-                        <TableCell className="font-semibold text-foreground">
-                          {w.reason}
-                        </TableCell>
-                        <TableCell>
-                          {w.items?.map((item, idx) => {
-                            const ing = ingredients.find((i) => i.id === item.ingredient_id);
-                            const unit = units.find((u) => u.id === item.unit_id);
-                            return (
-                              <span
-                                key={idx}
-                                className="inline-block mr-2 px-2 py-0.5 rounded-md bg-muted text-[11px] font-mono"
-                              >
-                                {ing?.name}: {item.quantity} {unit?.code || 'UNIT'}
-                              </span>
-                            );
-                          })}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </Card>
-          )}
-
-          {/* TAB 4: MOVEMENTS LEDGER */}
-          {activeTab === 'movements' && (
-            <Card className="overflow-hidden">
-              {movements.length === 0 ? (
-                <EmptyState
-                  icon={FileText}
-                  title="Belum ada riwayat mutasi buku besar"
-                  description="Buku besar mencatat seluruh alur mutasi persediaan secara kronologis imutabel."
-                />
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Waktu</TableHead>
-                      <TableHead>Tipe Mutasi</TableHead>
-                      <TableHead>Bahan Baku</TableHead>
-                      <TableHead>Kuantitas</TableHead>
-                      <TableHead>Harga Satuan</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {movements.map((mov) => {
-                      const ing = ingredients.find((i) => i.id === mov.ingredient_id);
-                      const isPositive = Number(mov.quantity) > 0;
-                      return (
-                        <TableRow key={mov.id}>
-                          <TableCell className="font-mono text-xs text-muted-foreground">
-                            {formatDateTime(mov.created_at)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                mov.type === 'PURCHASE'
-                                  ? 'success'
-                                  : mov.type === 'SALE'
-                                  ? 'info'
-                                  : mov.type === 'WASTAGE'
-                                  ? 'destructive'
-                                  : 'secondary'
-                              }
-                            >
-                              {mov.type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="font-semibold text-foreground">
-                            {ing?.name || 'Bahan Baku'}
-                          </TableCell>
-                          <TableCell
-                            className={`font-mono font-bold ${
-                              isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                            }`}
-                          >
-                            {isPositive ? `+${mov.quantity}` : mov.quantity}
-                          </TableCell>
-                          <TableCell className="font-mono text-xs">
-                            {formatRupiah(mov.unit_cost)}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-            </Card>
-          )}
-        </>
       )}
 
-      {/* Purchase Order Modal Dialog */}
-      <Dialog open={modalType === 'purchase'} onOpenChange={(open) => !open && setModalType(null)}>
-        <DialogContent className="max-w-xl" onClose={() => setModalType(null)}>
-          <DialogHeader>
-            <DialogTitle>Buat Pembelian Bahan Baru (PO)</DialogTitle>
-            <DialogDescription>
-              Catat pengadaan bahan baku dari supplier untuk meningkatkan stok outlet
-            </DialogDescription>
-          </DialogHeader>
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Inventori & Stok</h1>
+          <p className="text-xs text-neutral-500 mt-1">
+            Kelola bahan, stok, pergerakan inventori dan purchase order untuk mendukung operasional
+            outlet
+          </p>
+        </div>
 
-          {formError && (
-            <div className="mb-4 flex items-center gap-2 p-3 text-xs rounded-lg bg-destructive/10 text-destructive border border-destructive/20">
-              <AlertCircle className="size-4 shrink-0" />
-              <span>{formError}</span>
+        <div className="flex items-center gap-3">
+          {/* Subtle switcher for testing empty state per screenshot 3 */}
+          <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-lg border border-neutral-200 text-xs">
+            <Button
+              size="xs"
+              variant={demoMode === 'populated' ? 'secondary' : 'ghost'}
+              onClick={() => setDemoMode('populated')}
+              className={demoMode === 'populated' ? 'bg-white shadow-2xs text-neutral-900' : 'text-neutral-500'}
+            >
+              Data Terisi
+            </Button>
+            <Button
+              size="xs"
+              variant={demoMode === 'empty' ? 'secondary' : 'ghost'}
+              onClick={() => setDemoMode('empty')}
+              className={demoMode === 'empty' ? 'bg-white shadow-2xs text-neutral-900' : 'text-neutral-500'}
+            >
+              Data Kosong
+            </Button>
+          </div>
+
+          {/* "+ Tambah Bahan" Primary Button */}
+          <Button
+            variant="primary"
+            onClick={() => setIsAddOpen(true)}
+            className="bg-[#FF5C38] hover:bg-[#EE4E2A] text-white text-xs font-semibold h-9 px-4 rounded-xl shadow-2xs"
+            leftIcon={<Plus className="size-4 stroke-[2.5]" />}
+          >
+            Tambah Bahan
+          </Button>
+        </div>
+      </div>
+
+      {/* Horizontal Tabs matching Screenshot 2 */}
+      <div className="border-b border-neutral-200 flex items-center gap-2 overflow-x-auto no-scrollbar pt-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab('bahan')}
+          className={`pb-3 px-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-all shrink-0 ${
+            activeTab === 'bahan'
+              ? 'border-[#E5484D] text-[#E5484D]'
+              : 'border-transparent text-neutral-500 hover:text-neutral-800'
+          }`}
+        >
+          <Package className="size-4" />
+          <span>Bahan</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('po')}
+          className={`pb-3 px-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-all shrink-0 ${
+            activeTab === 'po'
+              ? 'border-[#E5484D] text-[#E5484D]'
+              : 'border-transparent text-neutral-500 hover:text-neutral-800'
+          }`}
+        >
+          <FileText className="size-4" />
+          <span>Purchase Order</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('category')}
+          className={`pb-3 px-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-all shrink-0 ${
+            activeTab === 'category'
+              ? 'border-[#E5484D] text-[#E5484D]'
+              : 'border-transparent text-neutral-500 hover:text-neutral-800'
+          }`}
+        >
+          <Tag className="size-4" />
+          <span>Kategori</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('unit')}
+          className={`pb-3 px-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-all shrink-0 ${
+            activeTab === 'unit'
+              ? 'border-[#E5484D] text-[#E5484D]'
+              : 'border-transparent text-neutral-500 hover:text-neutral-800'
+          }`}
+        >
+          <Scale className="size-4" />
+          <span>Satuan</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('stock-in')}
+          className={`pb-3 px-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-all shrink-0 ${
+            activeTab === 'stock-in'
+              ? 'border-[#E5484D] text-[#E5484D]'
+              : 'border-transparent text-neutral-500 hover:text-neutral-800'
+          }`}
+        >
+          <ArrowDownLeft className="size-4" />
+          <span>Stok Masuk</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('stock-out')}
+          className={`pb-3 px-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-all shrink-0 ${
+            activeTab === 'stock-out'
+              ? 'border-[#E5484D] text-[#E5484D]'
+              : 'border-transparent text-neutral-500 hover:text-neutral-800'
+          }`}
+        >
+          <ArrowUpRight className="size-4" />
+          <span>Stok Keluar</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('adjustment')}
+          className={`pb-3 px-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-all shrink-0 ${
+            activeTab === 'adjustment'
+              ? 'border-[#E5484D] text-[#E5484D]'
+              : 'border-transparent text-neutral-500 hover:text-neutral-800'
+          }`}
+        >
+          <Sliders className="size-4" />
+          <span>Penyesuaian Stok</span>
+        </button>
+      </div>
+
+      {activeTab === 'bahan' ? (
+        <div className="space-y-4">
+          {/* Filters Bar matching Screenshot 2 */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Category Filter */}
+              <Select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                options={[
+                  { value: 'all', label: 'Semua kategori' },
+                  { value: 'Kopi', label: 'Kopi' },
+                  { value: 'Susu', label: 'Susu' },
+                  { value: 'Bubuk', label: 'Bubuk' },
+                  { value: 'Sirup', label: 'Sirup' },
+                  { value: 'Minuman', label: 'Minuman' },
+                ]}
+                className="w-44 h-9 text-xs"
+              />
+
+              {/* Status Filter */}
+              <Select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                options={[
+                  { value: 'all', label: 'Semua status' },
+                  { value: 'Aman', label: 'Aman' },
+                  { value: 'Menipis', label: 'Menipis' },
+                  { value: 'Habis', label: 'Habis' },
+                ]}
+                className="w-44 h-9 text-xs"
+              />
+            </div>
+
+            {/* Right Search Input */}
+            <div className="w-full md:w-80">
+              <SearchInput
+                placeholder="Cari nama bahan, SKU, atau kategori"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onClear={() => setSearchQuery('')}
+                className="h-9 text-xs"
+              />
+            </div>
+          </div>
+
+          {/* Main Table or Empty State */}
+          {filteredIngredients.length === 0 ? (
+            /* Empty State matching Screenshot 3 */
+            <div className="min-h-[460px] bg-white rounded-2xl border border-neutral-200 p-8 flex flex-col items-center justify-center text-center">
+              <div className="size-20 rounded-2xl bg-neutral-100 flex items-center justify-center mb-4 text-neutral-400">
+                <Inbox className="size-10 stroke-[1.5]" />
+              </div>
+              <h3 className="text-sm font-bold text-neutral-800 tracking-wider uppercase mb-1">
+                BELUM ADA DATA INVENTORI
+              </h3>
+              <p className="text-xs text-neutral-500 max-w-md mb-6 leading-relaxed">
+                Tambahkan bahan baku atau barang inventori untuk mulai memantau stok dan pemakaian
+                di outletmu.
+              </p>
+              <Button
+                variant="primary"
+                onClick={() => setIsAddOpen(true)}
+                className="bg-[#2196F3] hover:bg-[#1E88E5] text-white text-xs font-semibold h-10 px-6 rounded-xl"
+              >
+                Tambah Bahan
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <DataTable<InventoryIngredient>
+                columns={columns}
+                data={filteredIngredients}
+                keyExtractor={(item) => item.id}
+                selectable={true}
+                selectedIds={selectedIds}
+                onToggleSelect={toggleSelectRow}
+                onToggleSelectAll={toggleSelectAll}
+                onRowClick={(item) => handleOpenDetail(item)}
+                emptyTitle="BELUM ADA DATA INVENTORI"
+                emptyDescription="Tambahkan bahan baku atau barang inventori untuk mulai memantau stok dan pemakaian di outletmu."
+                entityName="bahan"
+              />
+
+              {/* Bottom Pagination matching Screenshot 2 */}
+              <Pagination
+                totalItems={filteredIngredients.length}
+                totalPages={Math.ceil(filteredIngredients.length / itemsPerPage) || 1}
+                currentPage={currentPage}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                itemName="bahan"
+              />
             </div>
           )}
+        </div>
+      ) : (
+        /* Sub-tab placeholders */
+        <div className="min-h-[360px] bg-white rounded-2xl border border-neutral-200 p-8 flex flex-col items-center justify-center text-center">
+          <div className="size-14 rounded-2xl bg-neutral-100 flex items-center justify-center mb-3 text-neutral-400">
+            <Package className="size-7" />
+          </div>
+          <h3 className="text-sm font-semibold text-neutral-800 capitalize mb-1">
+            Modul {activeTab.replace('-', ' ')}
+          </h3>
+          <p className="text-xs text-neutral-500 max-w-sm">
+            Manajemen operasional untuk {activeTab.replace('-', ' ')} telah terintegrasi dengan data
+            bahan baku.
+          </p>
+        </div>
+      )}
 
-          <form onSubmit={handleSavePurchase} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground uppercase">Supplier</label>
-                <select
-                  value={poSupplierId}
-                  onChange={(e) => setPoSupplierId(e.target.value)}
-                  className="w-full h-9 rounded-lg border border-input bg-background px-3 text-xs"
-                  required
-                >
-                  <option value="">Pilih Supplier...</option>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+      {/* Ingredient Detail & Edit Drawer (Screenshot 1) */}
+      <IngredientDetailDrawer
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        item={selectedIngredient}
+        onSave={handleSaveIngredient}
+        onDelete={handleDeleteIngredient}
+      />
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground uppercase">Tanggal PO</label>
-                <Input
-                  type="date"
-                  value={poDate}
-                  onChange={(e) => setPoDate(e.target.value)}
-                  className="h-9 text-xs"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground uppercase">Catatan PO</label>
-              <Input
-                placeholder="Mis: Pengadaan biji kopi mingguan..."
-                value={poNotes}
-                onChange={(e) => setPoNotes(e.target.value)}
-                className="h-9 text-xs"
-              />
-            </div>
-
-            {/* PO Items */}
-            <div className="space-y-2 pt-2 border-t border-border/60">
-              <span className="text-xs font-semibold text-muted-foreground uppercase">Item Pembelian</span>
-              {poItems.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-2 p-2 rounded-xl bg-muted/40 border border-border/60">
-                  <div className="flex-1 min-w-0">
-                    <select
-                      value={item.ingredient_id}
-                      onChange={(e) => {
-                        const updated = [...poItems];
-                        updated[idx].ingredient_id = e.target.value;
-                        const matched = ingredients.find((i) => i.id === e.target.value);
-                        if (matched?.unit_id) updated[idx].unit_id = matched.unit_id;
-                        setPoItems(updated);
-                      }}
-                      className="w-full h-8 rounded-lg border border-input bg-background px-2 text-xs"
-                      required
-                    >
-                      <option value="">Pilih Bahan...</option>
-                      {ingredients.map((ing) => (
-                        <option key={ing.id} value={ing.id}>
-                          {ing.name} ({ing.sku})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="w-24">
-                    <Input
-                      type="number"
-                      step="any"
-                      placeholder="Qty"
-                      value={item.quantity}
-                      onChange={(e) => {
-                        const updated = [...poItems];
-                        updated[idx].quantity = e.target.value;
-                        setPoItems(updated);
-                      }}
-                      className="h-8 text-xs font-bold"
-                      required
-                    />
-                  </div>
-
-                  <div className="w-28">
-                    <Input
-                      type="number"
-                      placeholder="Biaya/unit"
-                      value={item.unit_cost}
-                      onChange={(e) => {
-                        const updated = [...poItems];
-                        updated[idx].unit_cost = e.target.value;
-                        setPoItems(updated);
-                      }}
-                      className="h-8 text-xs font-bold"
-                      required
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setModalType(null)}>
-                Batal
-              </Button>
-              <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={saving}>
-                {saving ? 'Menyimpan...' : 'Simpan PO'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Stock Opname Modal Dialog */}
-      <Dialog open={modalType === 'opname'} onOpenChange={(open) => !open && setModalType(null)}>
-        <DialogContent onClose={() => setModalType(null)}>
-          <DialogHeader>
-            <DialogTitle>Penyesuaian Fisik (Stock Opname)</DialogTitle>
-            <DialogDescription>
-              Sesuaikan saldo fisik stok bahan baku di gudang sesuai hasil audit
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSaveOpname} className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground uppercase">Bahan Baku</label>
-              <select
-                value={opnameIngredientId}
-                onChange={(e) => setOpnameIngredientId(e.target.value)}
-                className="w-full h-9 rounded-lg border border-input bg-background px-3 text-xs"
-                required
-              >
-                <option value="">Pilih Bahan...</option>
-                {ingredients.map((ing) => (
-                  <option key={ing.id} value={ing.id}>
-                    {ing.name} ({ing.sku})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground uppercase">
-                Saldo Stok Fisik Sebenarnya
-              </label>
-              <Input
-                type="number"
-                step="any"
-                value={opnameQuantity}
-                onChange={(e) => setOpnameQuantity(e.target.value)}
-                placeholder="4850"
-                className="h-9 text-xs font-bold"
-                required
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground uppercase">
-                Catatan / Alasan Penyesuaian
-              </label>
-              <Input
-                value={opnameNotes}
-                onChange={(e) => setOpnameNotes(e.target.value)}
-                placeholder="Hasil hitung fisik mingguan"
-                className="h-9 text-xs"
-                required
-              />
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setModalType(null)}>
-                Batal
-              </Button>
-              <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={saving}>
-                {saving ? 'Menyimpan...' : 'Simpan Penyesuaian'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Wastage Modal Dialog */}
-      <Dialog open={modalType === 'wastage'} onOpenChange={(open) => !open && setModalType(null)}>
-        <DialogContent onClose={() => setModalType(null)}>
-          <DialogHeader>
-            <DialogTitle>Catat Bahan Rusak / Terbuang (Wastage)</DialogTitle>
-            <DialogDescription>
-              Catat bahan yang basi, tumpah, atau rusak untuk audit pengeluaran non-penjualan
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSaveWastage} className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground uppercase">Tanggal Kejadian</label>
-              <Input
-                type="date"
-                value={wasteDate}
-                onChange={(e) => setWasteDate(e.target.value)}
-                className="h-9 text-xs"
-                required
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground uppercase">Alasan Kerusakan</label>
-              <Input
-                value={wasteReason}
-                onChange={(e) => setWasteReason(e.target.value)}
-                placeholder="Mis: Susu basi akibat kulkas mati..."
-                className="h-9 text-xs"
-                required
-              />
-            </div>
-
-            <div className="space-y-2 pt-2 border-t border-border/60">
-              <span className="text-xs font-semibold text-muted-foreground uppercase">Bahan & Kuantitas</span>
-              {wasteItems.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-2 p-2 rounded-xl bg-muted/40 border border-border/60">
-                  <div className="flex-1 min-w-0">
-                    <select
-                      value={item.ingredient_id}
-                      onChange={(e) => {
-                        const updated = [...wasteItems];
-                        updated[idx].ingredient_id = e.target.value;
-                        const matched = ingredients.find((i) => i.id === e.target.value);
-                        if (matched?.unit_id) updated[idx].unit_id = matched.unit_id;
-                        setWasteItems(updated);
-                      }}
-                      className="w-full h-8 rounded-lg border border-input bg-background px-2 text-xs"
-                      required
-                    >
-                      <option value="">Pilih Bahan...</option>
-                      {ingredients.map((ing) => (
-                        <option key={ing.id} value={ing.id}>
-                          {ing.name} ({ing.sku})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="w-24">
-                    <Input
-                      type="number"
-                      step="any"
-                      placeholder="Qty"
-                      value={item.quantity}
-                      onChange={(e) => {
-                        const updated = [...wasteItems];
-                        updated[idx].quantity = e.target.value;
-                        setWasteItems(updated);
-                      }}
-                      className="h-8 text-xs font-bold"
-                      required
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setModalType(null)}>
-                Batal
-              </Button>
-              <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={saving}>
-                {saving ? 'Menyimpan...' : 'Simpan Wastage'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Add Ingredient Drawer */}
+      <AddIngredientDrawer
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        onAdd={handleAddIngredient}
+      />
     </div>
   );
 }
