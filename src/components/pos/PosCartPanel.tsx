@@ -13,6 +13,9 @@ import {
   Receipt,
   CreditCard,
   Trash2,
+  ShoppingBag,
+  Bike,
+  QrCode,
 } from 'lucide-react';
 import { PosProduct } from './PosProductGrid';
 import { formatRupiah } from '@/utils';
@@ -36,11 +39,20 @@ interface PosCartPanelProps {
   selectedTable: string;
   orderNotes: string;
   discountAmount: number;
+  orderType?: 'DINE_IN' | 'TAKEAWAY' | 'DELIVERY' | 'QR_ORDER';
+  deliveryFee?: number;
+  packagingFee?: number;
+  courierName?: string;
+  takeawayQueue?: string;
   onUpdateQuantity: (productId: string, delta: number) => void;
   onUpdateItemNote: (productId: string, notes: string) => void;
   onUpdateOrderNotes: (notes: string) => void;
   onSelectCustomer: (name: string, phone: string) => void;
   onSelectTable: (table: string) => void;
+  onOpenTablePicker?: () => void;
+  onOpenDeliveryModal?: () => void;
+  onOpenTakeawayModal?: () => void;
+  onOpenQrIncomingModal?: () => void;
   onOpenDiscountModal: () => void;
   onOpenBillPrint: () => void;
   onOpenPayment: () => void;
@@ -54,11 +66,20 @@ export function PosCartPanel({
   selectedTable,
   orderNotes,
   discountAmount,
+  orderType = 'DINE_IN',
+  deliveryFee = 0,
+  packagingFee = 0,
+  courierName = 'GoSend',
+  takeawayQueue = 'TA-014',
   onUpdateQuantity,
   onUpdateItemNote,
   onUpdateOrderNotes,
   onSelectCustomer,
   onSelectTable,
+  onOpenTablePicker,
+  onOpenDeliveryModal,
+  onOpenTakeawayModal,
+  onOpenQrIncomingModal,
   onOpenDiscountModal,
   onOpenBillPrint,
   onOpenPayment,
@@ -83,7 +104,12 @@ export function PosCartPanel({
   );
   const tax = Math.round(subtotal * 0.1); // 10%
   const nesosFee = cart.length > 0 ? 1910 : 0; // Platform / POS fee
-  const total = Math.max(0, subtotal + tax + nesosFee - discountAmount);
+  const deliveryCost = orderType === 'DELIVERY' ? deliveryFee : 0;
+  const packagingCost = orderType === 'TAKEAWAY' ? packagingFee : 0;
+  const total = Math.max(
+    0,
+    subtotal + tax + nesosFee + deliveryCost + packagingCost - discountAmount
+  );
 
   const handleOpenItemNote = (item: PosCartItem) => {
     setEditingItemId(item.product.id);
@@ -136,22 +162,48 @@ export function PosCartPanel({
             </div>
           </button>
 
-          {/* Table select dropdown */}
-          <div className="w-28 shrink-0">
-            <Select
-              size="sm"
-              value={selectedTable}
-              onChange={(e) => onSelectTable(e.target.value)}
-              className="text-xs font-semibold"
-            >
-              <option value="">Pilih Meja</option>
-              <option value="Meja 1">Meja 1</option>
-              <option value="Meja 2">Meja 2</option>
-              <option value="Meja 3">Meja 3</option>
-              <option value="Meja 4">Meja 4</option>
-              <option value="Meja 5">Meja 5</option>
-              <option value="Takeaway">Takeaway</option>
-            </Select>
+          {/* Contextual Table / Order Type Badge */}
+          <div className="shrink-0">
+            {orderType === 'DINE_IN' ? (
+              <button
+                type="button"
+                onClick={onOpenTablePicker}
+                className="h-8 px-2.5 rounded-lg border border-neutral-200 bg-white hover:border-[#FF5C38] text-xs font-semibold text-neutral-800 flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Pilih Meja Dine-in"
+              >
+                <span>{selectedTable || 'Pilih Meja'}</span>
+              </button>
+            ) : orderType === 'TAKEAWAY' ? (
+              <button
+                type="button"
+                onClick={onOpenTakeawayModal}
+                className="h-8 px-2.5 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-xs font-bold text-amber-800 flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Pengaturan Takeaway"
+              >
+                <ShoppingBag className="size-3.5 text-amber-600" />
+                <span>{takeawayQueue || 'TA-014'}</span>
+              </button>
+            ) : orderType === 'DELIVERY' ? (
+              <button
+                type="button"
+                onClick={onOpenDeliveryModal}
+                className="h-8 px-2.5 rounded-lg border border-blue-300 bg-blue-50 hover:bg-blue-100 text-xs font-bold text-blue-800 flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Pengaturan Kurir Delivery"
+              >
+                <Bike className="size-3.5 text-blue-600" />
+                <span>{courierName || 'GoSend'}</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onOpenQrIncomingModal}
+                className="h-8 px-2.5 rounded-lg border border-purple-300 bg-purple-50 hover:bg-purple-100 text-xs font-bold text-purple-800 flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Antrean QR Order Masuk"
+              >
+                <QrCode className="size-3.5 text-purple-600" />
+                <span>{selectedTable || 'QR Meja'}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -281,6 +333,24 @@ export function PosCartPanel({
             {formatRupiah(nesosFee)}
           </span>
         </div>
+
+        {deliveryCost > 0 && (
+          <div className="flex items-center justify-between text-neutral-600">
+            <span>Ongkir ({courierName})</span>
+            <span className="font-semibold text-neutral-900">
+              {formatRupiah(deliveryCost)}
+            </span>
+          </div>
+        )}
+
+        {packagingCost > 0 && (
+          <div className="flex items-center justify-between text-neutral-600">
+            <span>Biaya Kemasan</span>
+            <span className="font-semibold text-neutral-900">
+              {formatRupiah(packagingCost)}
+            </span>
+          </div>
+        )}
 
         <div className="flex items-center justify-between text-neutral-600">
           <span>Diskon</span>

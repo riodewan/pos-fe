@@ -16,6 +16,9 @@ interface BillPrintModalProps {
   selectedTable: string;
   orderNotes?: string;
   discountAmount: number;
+  deliveryCost?: number;
+  packagingCost?: number;
+  courierName?: string;
   cashierName?: string;
   onClose: () => void;
 }
@@ -29,6 +32,9 @@ export function BillPrintModal({
   selectedTable,
   orderNotes,
   discountAmount,
+  deliveryCost = 0,
+  packagingCost = 0,
+  courierName,
   cashierName = 'Andi Pratama',
   onClose,
 }: BillPrintModalProps) {
@@ -40,7 +46,10 @@ export function BillPrintModal({
   );
   const tax = Math.round(subtotal * 0.1);
   const nesosFee = cart.length > 0 ? 1910 : 0;
-  const total = Math.max(0, subtotal + tax + nesosFee - discountAmount);
+  const total = Math.max(
+    0,
+    subtotal + tax + nesosFee + deliveryCost + packagingCost - discountAmount
+  );
 
   const handlePrint = () => {
     window.print();
@@ -145,6 +154,18 @@ export function BillPrintModal({
             <span>Nesos Fee</span>
             <span>{formatRupiah(nesosFee)}</span>
           </div>
+          {deliveryCost > 0 && (
+            <div className="flex justify-between">
+              <span>Ongkir ({courierName || 'Kurir'})</span>
+              <span>{formatRupiah(deliveryCost)}</span>
+            </div>
+          )}
+          {packagingCost > 0 && (
+            <div className="flex justify-between">
+              <span>Biaya Kemasan</span>
+              <span>{formatRupiah(packagingCost)}</span>
+            </div>
+          )}
           {discountAmount > 0 && (
             <div className="flex justify-between text-rose-600">
               <span>Diskon</span>

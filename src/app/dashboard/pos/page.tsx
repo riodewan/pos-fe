@@ -28,6 +28,19 @@ import { BillPrintModal } from '@/components/pos/BillPrintModal';
 import { DiscountModal } from '@/components/pos/DiscountModal';
 import { PosOrdersDrawer } from '@/components/pos/PosOrdersDrawer';
 import { PosOrdersTab, PosOrder } from '@/components/pos/PosOrdersTab';
+import { TablePickerModal } from '@/components/pos/TablePickerModal';
+import {
+  TakeawayDetailsModal,
+  TakeawayDetails,
+} from '@/components/pos/TakeawayDetailsModal';
+import {
+  DeliveryDetailsModal,
+  DeliveryDetails,
+} from '@/components/pos/DeliveryDetailsModal';
+import {
+  QrIncomingOrdersModal,
+  QrIncomingOrder,
+} from '@/components/pos/QrIncomingOrdersModal';
 import { Button } from '@/components/common/Button';
 import { Select } from '@/components/common/Select';
 import { SearchInput } from '@/components/common/SearchInput';
@@ -90,11 +103,25 @@ function PosContent() {
   const [orderNotes, setOrderNotes] = useState('');
   const [discountAmount, setDiscountAmount] = useState(0);
 
-  // Modals & Drawers state
+  // Workflow Details for Dine-in, Takeaway, Delivery, and QR Order
+  const [guestCount, setGuestCount] = useState(2);
+  const [takeawayQueue, setTakeawayQueue] = useState('TA-014');
+  const [packagingFee, setPackagingFee] = useState(0);
+  const [packagingOption, setPackagingOption] = useState('Paper Bag Ramah Lingkungan');
+  const [courierName, setCourierName] = useState<'GoSend' | 'GrabExpress' | 'Kurir Toko'>('GoSend');
+  const [deliveryAddress, setDeliveryAddress] = useState('Jl. Melati No. 25, Menteng, Jakarta Pusat');
+  const [deliveryFee, setDeliveryFee] = useState(15000);
+  const [deliveryNotes, setDeliveryNotes] = useState('Titip ke pos satpam atau telepon saat sampai.');
+
+  // Workflow Modals & Drawers state
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isBillPrintOpen, setIsBillPrintOpen] = useState(false);
   const [isDiscountOpen, setIsDiscountOpen] = useState(false);
   const [isOrdersDrawerOpen, setIsOrdersDrawerOpen] = useState(false);
+  const [isTablePickerOpen, setIsTablePickerOpen] = useState(false);
+  const [isTakeawayModalOpen, setIsTakeawayModalOpen] = useState(false);
+  const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false);
+  const [isQrIncomingOpen, setIsQrIncomingOpen] = useState(false);
 
   // Try to load real products if available
   useEffect(() => {
@@ -130,11 +157,47 @@ function PosContent() {
       }
     } else if (type === 'TAKEAWAY') {
       setSelectedTable('Takeaway');
+      if (packagingFee === 0) setPackagingFee(2000);
     } else if (type === 'DELIVERY') {
       setSelectedTable('Delivery');
+      if (deliveryFee === 0) setDeliveryFee(15000);
     } else if (type === 'QR_ORDER') {
       setSelectedTable('Meja 5 (QR)');
     }
+  };
+
+  // Workflow Confirmation Handlers
+  const handleConfirmTable = (table: string, guests: number) => {
+    setSelectedTable(table);
+    setGuestCount(guests);
+    setIsTablePickerOpen(false);
+  };
+
+  const handleConfirmTakeaway = (details: TakeawayDetails) => {
+    setTakeawayQueue(details.queueNumber);
+    setPackagingFee(details.packagingFee);
+    setPackagingOption(details.packagingOption);
+    if (details.customerName) setCustomerName(details.customerName);
+    setIsTakeawayModalOpen(false);
+  };
+
+  const handleConfirmDelivery = (details: DeliveryDetails) => {
+    setCourierName(details.courier);
+    setDeliveryAddress(details.address);
+    setDeliveryFee(details.deliveryFee);
+    if (details.recipientName) setCustomerName(details.recipientName);
+    if (details.recipientPhone) setCustomerPhone(details.recipientPhone);
+    if (details.notes) setDeliveryNotes(details.notes);
+    setIsDeliveryModalOpen(false);
+  };
+
+  const handleLoadQrOrder = (order: QrIncomingOrder) => {
+    setCart(order.items);
+    setCustomerName(order.customerName);
+    if (order.customerPhone) setCustomerPhone(order.customerPhone);
+    setSelectedTable(order.table);
+    setOrderType('QR_ORDER');
+    setIsQrIncomingOpen(false);
   };
 
   // Filter products by category, search, and favorites
@@ -197,7 +260,12 @@ function PosContent() {
   );
   const tax = Math.round(subtotal * 0.1);
   const nesosFee = cart.length > 0 ? 1910 : 0;
-  const totalAmount = Math.max(0, subtotal + tax + nesosFee - discountAmount);
+  const deliveryCost = orderType === 'DELIVERY' ? deliveryFee : 0;
+  const packagingCost = orderType === 'TAKEAWAY' ? packagingFee : 0;
+  const totalAmount = Math.max(
+    0,
+    subtotal + tax + nesosFee + deliveryCost + packagingCost - discountAmount
+  );
 
   const handlePaymentSuccess = async (
     method: string,
@@ -421,21 +489,31 @@ function PosContent() {
 
           {/* Special Banner for QR Order mode */}
           {orderType === 'QR_ORDER' && (
-            <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl flex items-center justify-between gap-3 text-xs text-purple-900">
+            <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-purple-900">
               <div className="flex items-center gap-2.5">
                 <QrCode className="size-5 text-purple-600 shrink-0" />
                 <p>
-                  <strong>Mode QR Order Aktif:</strong> Pelanggan dapat memesan mandiri lewat QR Meja. Anda dapat meninjau antrean pesanan masuk di tab Daftar Pesanan.
+                  <strong>Mode QR Order Aktif:</strong> Pelanggan dapat memesan mandiri lewat QR Meja. Anda dapat meninjau antrean pesanan masuk dan menariknya langsung ke kasir.
                 </p>
               </div>
-              <Button
-                variant="outline"
-                size="xs"
-                onClick={() => setActiveView('orders')}
-                className="border-purple-300 text-purple-700 hover:bg-purple-100 shrink-0"
-              >
-                Lihat Antrean QR
-              </Button>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="primary"
+                  size="xs"
+                  onClick={() => setIsQrIncomingOpen(true)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-semibold"
+                >
+                  Tinjau Antrean QR
+                </Button>
+                <Button
+                  variant="outline"
+                  size="xs"
+                  onClick={() => setActiveView('orders')}
+                  className="border-purple-300 text-purple-700 hover:bg-purple-100"
+                >
+                  Buka KDS
+                </Button>
+              </div>
             </div>
           )}
 
@@ -460,6 +538,11 @@ function PosContent() {
               selectedTable={selectedTable}
               orderNotes={orderNotes}
               discountAmount={discountAmount}
+              orderType={orderType}
+              deliveryFee={deliveryFee}
+              packagingFee={packagingFee}
+              courierName={courierName}
+              takeawayQueue={takeawayQueue}
               onUpdateQuantity={handleUpdateQuantity}
               onUpdateItemNote={handleUpdateItemNote}
               onUpdateOrderNotes={setOrderNotes}
@@ -468,6 +551,10 @@ function PosContent() {
                 setCustomerPhone(phone);
               }}
               onSelectTable={setSelectedTable}
+              onOpenTablePicker={() => setIsTablePickerOpen(true)}
+              onOpenDeliveryModal={() => setIsDeliveryModalOpen(true)}
+              onOpenTakeawayModal={() => setIsTakeawayModalOpen(true)}
+              onOpenQrIncomingModal={() => setIsQrIncomingOpen(true)}
               onOpenDiscountModal={() => setIsDiscountOpen(true)}
               onOpenBillPrint={() => setIsBillPrintOpen(true)}
               onOpenPayment={() => setIsPaymentOpen(true)}
@@ -509,6 +596,9 @@ function PosContent() {
         selectedTable={selectedTable}
         orderNotes={orderNotes}
         discountAmount={discountAmount}
+        deliveryCost={deliveryCost}
+        packagingCost={packagingCost}
+        courierName={courierName}
         onClose={() => setIsBillPrintOpen(false)}
       />
 
@@ -525,6 +615,55 @@ function PosContent() {
       <PosOrdersDrawer
         isOpen={isOrdersDrawerOpen}
         onClose={() => setIsOrdersDrawerOpen(false)}
+      />
+
+      {/* Table Picker Modal for Dine-in */}
+      <TablePickerModal
+        isOpen={isTablePickerOpen}
+        selectedTable={selectedTable}
+        guestCount={guestCount}
+        onClose={() => setIsTablePickerOpen(false)}
+        onSelectTable={handleConfirmTable}
+      />
+
+      {/* Takeaway Details Modal */}
+      <TakeawayDetailsModal
+        isOpen={isTakeawayModalOpen}
+        initialDetails={{
+          queueNumber: takeawayQueue,
+          packagingOption,
+          packagingFee,
+          pickupTime: 'Segera (10-15 menit)',
+          customerName,
+        }}
+        onClose={() => setIsTakeawayModalOpen(false)}
+        onConfirm={handleConfirmTakeaway}
+      />
+
+      {/* Delivery Details Modal */}
+      <DeliveryDetailsModal
+        isOpen={isDeliveryModalOpen}
+        initialDetails={{
+          courier: courierName,
+          recipientName: customerName,
+          recipientPhone: customerPhone,
+          address: deliveryAddress,
+          deliveryFee,
+          notes: deliveryNotes,
+        }}
+        onClose={() => setIsDeliveryModalOpen(false)}
+        onConfirm={handleConfirmDelivery}
+      />
+
+      {/* QR Incoming Orders Modal */}
+      <QrIncomingOrdersModal
+        isOpen={isQrIncomingOpen}
+        onClose={() => setIsQrIncomingOpen(false)}
+        onLoadOrderToCart={handleLoadQrOrder}
+        onDirectConfirmToKitchen={(order) => {
+          setIsQrIncomingOpen(false);
+          setActiveView('orders');
+        }}
       />
     </div>
   );
