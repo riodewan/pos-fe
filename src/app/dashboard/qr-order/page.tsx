@@ -28,6 +28,8 @@ import {
   Card,
   Drawer,
   Modal,
+  Input,
+  RadioGroup,
 } from '@/components/common';
 
 interface TableQrItem {
@@ -746,58 +748,41 @@ export default function QrOrderPage() {
         }
       >
         <div className="space-y-5">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-neutral-800">
-              Nama Acara / Catatan <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={formEventName}
-              onChange={(e) => setFormEventName(e.target.value)}
-              placeholder="Contoh: Bazaar Akhir Pekan, Takeaway 12 Okt"
-              className="w-full h-10 px-3.5 rounded-xl border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:border-neutral-400 shadow-2xs"
-            />
-          </div>
+          <Input
+            label="Nama Acara / Catatan"
+            required
+            value={formEventName}
+            onChange={(e) => setFormEventName(e.target.value)}
+            placeholder="Contoh: Bazaar Akhir Pekan, Takeaway 12 Okt"
+          />
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-neutral-800">Tanggal Kadaluwarsa</label>
-            <input
-              type="text"
-              value={formExpiryDate}
-              onChange={(e) => setFormExpiryDate(e.target.value)}
-              placeholder="Contoh: 15/10/2026"
-              className="w-full h-10 px-3.5 rounded-xl border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:border-neutral-400 shadow-2xs"
-            />
-          </div>
+          <Input
+            label="Tanggal Kadaluwarsa"
+            value={formExpiryDate}
+            onChange={(e) => setFormExpiryDate(e.target.value)}
+            placeholder="Contoh: 15/10/2026"
+            hint="Tanggal batas terakhir QR dapat diakses oleh pelanggan."
+          />
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-neutral-800">Batas Penggunaan</label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setFormUsageLimit('single')}
-                className={`h-9 rounded-xl text-xs font-semibold border transition-all ${
-                  formUsageLimit === 'single'
-                    ? 'border-blue-500 bg-blue-50 text-blue-600 shadow-2xs'
-                    : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
-                }`}
-              >
-                1 Kali Pesan (Single Order)
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormUsageLimit('unlimited')}
-                className={`h-9 rounded-xl text-xs font-semibold border transition-all ${
-                  formUsageLimit === 'unlimited'
-                    ? 'border-blue-500 bg-blue-50 text-blue-600 shadow-2xs'
-                    : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
-                }`}
-              >
-                Bebas dalam Periode
-              </button>
-            </div>
-          </div>
+          <RadioGroup
+            label="Batas Penggunaan"
+            value={formUsageLimit}
+            onChange={(val) => setFormUsageLimit(val as 'single' | 'unlimited')}
+            variant="card"
+            direction="grid-2"
+            options={[
+              {
+                value: 'single',
+                label: '1 Kali Pesan',
+                description: 'Single Order',
+              },
+              {
+                value: 'unlimited',
+                label: 'Bebas Periode',
+                description: 'Multi Order',
+              },
+            ]}
+          />
 
           <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/80 flex items-start gap-2.5 text-xs text-blue-700">
             <Info className="size-4 shrink-0 text-blue-600 mt-0.5" />

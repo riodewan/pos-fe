@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Check, Bookmark, CheckCircle2, LayoutGrid, Users } from 'lucide-react';
-import { Drawer, Button, Modal } from '@/components/common';
+import { Drawer, Button, Modal, Input, FormField } from '@/components/common';
 import { TableItem } from './TableDetailDrawer';
 
 interface AddTableModalProps {
@@ -77,23 +77,18 @@ export function AddTableModal({
       >
         <div className="space-y-5">
           {/* Field: Nomor Meja */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-neutral-800">
-              Nomor Meja <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              min="1"
-              value={tableNumber}
-              onChange={(e) => setTableNumber(Number(e.target.value))}
-              placeholder="Contoh: 13"
-              className="w-full h-10 px-3.5 rounded-xl border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:border-neutral-400 shadow-2xs font-semibold"
-            />
-          </div>
+          <Input
+            type="number"
+            min="1"
+            label="Nomor Meja"
+            required
+            value={tableNumber}
+            onChange={(e) => setTableNumber(Number(e.target.value))}
+            placeholder="Contoh: 13"
+          />
 
           {/* Field: Area */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-neutral-800">Area Outlet</label>
+          <FormField label="Area Outlet">
             <div className="grid grid-cols-3 gap-2">
               {(['Indoor', 'Outdoor', 'VIP'] as const).map((a) => (
                 <button
@@ -111,11 +106,10 @@ export function AddTableModal({
                 </button>
               ))}
             </div>
-          </div>
+          </FormField>
 
           {/* Field: Kapasitas Kursi */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-neutral-800">Kapasitas Kursi</label>
+          <FormField label="Kapasitas Kursi">
             <div className="grid grid-cols-4 gap-2">
               {[2, 4, 6, 8].map((cap) => (
                 <button
@@ -133,11 +127,10 @@ export function AddTableModal({
                 </button>
               ))}
             </div>
-          </div>
+          </FormField>
 
           {/* Field: Status Awal */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-neutral-800">Status Awal</label>
+          <FormField label="Status Awal">
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -162,7 +155,7 @@ export function AddTableModal({
                 Diblokir (Maintenance)
               </button>
             </div>
-          </div>
+          </FormField>
         </div>
       </Drawer>
 
