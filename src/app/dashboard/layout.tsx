@@ -108,7 +108,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return pathname === item.href;
   };
 
-  const isKdsPage = pathname === '/dashboard/kds';
+  const isPosPage = pathname === '/dashboard/pos' && currentTab !== 'orders';
+  const isKdsPage =
+    pathname === '/dashboard/kds' || (pathname === '/dashboard/pos' && currentTab === 'orders');
+  const isReservationsPage =
+    pathname === '/dashboard/reservations' || pathname === '/dashboard/reservasi';
+  const isTerminalPage = isPosPage || isKdsPage || isReservationsPage;
 
   return (
     <div className="min-h-screen flex bg-[#F8F9FA]">
@@ -124,7 +129,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside
         className={cn(
           'fixed inset-y-0 left-0 z-50 w-64 bg-[#141414] text-white transition-transform duration-200 flex flex-col',
-          isKdsPage
+          isTerminalPage
             ? mobileMenuOpen
               ? 'translate-x-0'
               : '-translate-x-full'
@@ -239,20 +244,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   >
                     <QrCode className="size-4 shrink-0 text-neutral-400" />
                     <span className="truncate">QR Order</span>
-                  </Link>
-
-                  <Link
-                    href="/dashboard/reservations"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={cn(
-                      'flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium transition-colors',
-                      pathname === '/dashboard/reservations' || pathname === '/dashboard/reservasi'
-                        ? 'bg-white/10 text-white font-semibold'
-                        : 'text-neutral-400 hover:bg-white/5 hover:text-white'
-                    )}
-                  >
-                    <Calendar className="size-4 shrink-0 text-neutral-400" />
-                    <span className="truncate">Reservasi</span>
                   </Link>
                 </div>
               </div>
@@ -419,17 +410,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header matching Figma screenshot */}
-        <header
-          className={cn(
-            'sticky top-0 z-30 h-16 border-b px-6 flex items-center justify-between gap-4 transition-colors',
-            isKdsPage
-              ? 'border-neutral-800/80 bg-[#141414] text-white'
-              : 'border-neutral-200/80 bg-white text-neutral-800'
-          )}
-        >
+        <header className="sticky top-0 z-30 h-16 border-b border-neutral-800/80 bg-[#141414] text-white px-6 flex items-center justify-between gap-4 transition-colors">
           <div className="flex items-center gap-3 min-w-0">
-            {/* If KDS full-screen, show brand logo & drawer toggle matching Screenshot 1 */}
-            {isKdsPage ? (
+            {/* If terminal full-screen (POS, KDS, Reservasi), show brand logo & drawer toggle matching Screenshots */}
+            {isTerminalPage ? (
               <div className="flex items-center gap-3 mr-2">
                 <Link href={brandHomeHref} className="flex items-center">
                   <NemuLogo size="sm" />
@@ -445,7 +429,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             ) : (
               <button
                 onClick={() => setMobileMenuOpen(true)}
-                className="lg:hidden p-1.5 -ml-1 rounded-md text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100"
+                className="lg:hidden p-1.5 -ml-1 rounded-md text-neutral-400 hover:text-white hover:bg-neutral-800"
                 aria-label="Buka menu"
               >
                 <MenuIcon className="size-5" />
@@ -453,12 +437,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
 
             {/* Quick Action Badges matching Figma screenshot: POS, KDS, Reservasi */}
-            <div className="flex items-center gap-1.5 bg-[#1A1A1A] p-1.5 rounded-xl border border-neutral-800 shadow-xs">
+            <div className="flex items-center gap-1.5 bg-[#1F1F1F] p-1.5 rounded-xl border border-neutral-800 shadow-xs">
               <Link
                 href="/dashboard/pos"
                 className={cn(
-                  'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
-                  pathname === '/dashboard/pos' && currentTab !== 'orders'
+                  'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all',
+                  isPosPage
                     ? 'bg-[#FF5C38] text-white shadow-xs'
                     : 'text-neutral-300 hover:text-white hover:bg-white/10'
                 )}
@@ -466,9 +450,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Printer
                   className={cn(
                     'size-3.5',
-                    pathname === '/dashboard/pos' && currentTab !== 'orders'
-                      ? 'text-white'
-                      : 'text-[#FF5C38]'
+                    isPosPage ? 'text-white' : 'text-[#FF5C38]'
                   )}
                 />
                 <span>POS</span>
@@ -477,9 +459,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Link
                 href="/dashboard/kds"
                 className={cn(
-                  'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
-                  pathname === '/dashboard/kds' ||
-                    (pathname === '/dashboard/pos' && currentTab === 'orders')
+                  'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all',
+                  isKdsPage
                     ? 'bg-[#FF5C38] text-white shadow-xs'
                     : 'text-neutral-300 hover:text-white hover:bg-white/10'
                 )}
@@ -487,10 +468,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <ChefHat
                   className={cn(
                     'size-3.5',
-                    pathname === '/dashboard/kds' ||
-                      (pathname === '/dashboard/pos' && currentTab === 'orders')
-                      ? 'text-white'
-                      : 'text-[#FF5C38]'
+                    isKdsPage ? 'text-white' : 'text-[#FF5C38]'
                   )}
                 />
                 <span>KDS</span>
@@ -499,20 +477,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Link
                 href="/dashboard/reservations"
                 className={cn(
-                  'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
-                  pathname === '/dashboard/reservations' ||
-                    pathname === '/dashboard/reservasi'
+                  'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all',
+                  isReservationsPage
                     ? 'bg-[#FF5C38] text-white shadow-xs'
                     : 'text-neutral-300 hover:text-white hover:bg-white/10'
                 )}
               >
-                <Ticket
+                <Calendar
                   className={cn(
                     'size-3.5',
-                    pathname === '/dashboard/reservations' ||
-                      pathname === '/dashboard/reservasi'
-                      ? 'text-white'
-                      : 'text-[#FF5C38]'
+                    isReservationsPage ? 'text-white' : 'text-[#FF5C38]'
                   )}
                 />
                 <span>Reservasi</span>
@@ -523,25 +497,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Right Header: Mail & User profile matching Figma screenshot */}
           <div className="flex items-center gap-3">
             <button
-              className={cn(
-                'size-9 rounded-xl flex items-center justify-center transition-colors shadow-2xs',
-                isKdsPage
-                  ? 'border border-neutral-800 bg-[#222222] text-neutral-300 hover:bg-neutral-800'
-                  : 'border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-600'
-              )}
+              className="size-9 rounded-xl border border-neutral-800 bg-[#1E1E1E] hover:bg-neutral-800 text-neutral-300 flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
               title="Pesan & Notifikasi"
             >
               <Mail className="size-4" />
             </button>
 
-            <div
-              className={cn(
-                'flex items-center gap-2.5 px-3 py-1.5 rounded-full border shadow-2xs cursor-pointer transition-colors',
-                isKdsPage
-                  ? 'border-neutral-800 bg-[#1F1F1F] text-neutral-200 hover:bg-neutral-800'
-                  : 'border border-neutral-200 bg-white text-neutral-800 hover:bg-neutral-50'
-              )}
-            >
+            <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-full border border-neutral-800 bg-[#1E1E1E] hover:bg-neutral-800 text-neutral-200 shadow-2xs cursor-pointer transition-colors">
               <div className="size-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[11px] font-bold">
                 {getInitials(user?.name) || 'AP'}
               </div>

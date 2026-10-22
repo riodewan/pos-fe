@@ -34,20 +34,6 @@ export const SIDEBAR_NAV_ITEMS: NavItem[] = [
     group: 'Operasional',
   },
   {
-    href: ROUTES.DASHBOARD.POS,
-    label: 'Kasir POS',
-    icon: ShoppingCart,
-    roles: ['OWNER', 'MANAGER', 'CASHIER', 'SUPER_ADMIN'],
-    group: 'Operasional',
-  },
-  {
-    href: '/dashboard/pos?tab=orders',
-    label: 'Pesanan Masuk (QR)',
-    icon: ClipboardList,
-    roles: ['OWNER', 'MANAGER', 'CASHIER', 'SUPER_ADMIN'],
-    group: 'Operasional',
-  },
-  {
     href: ROUTES.DASHBOARD.TABLES,
     label: 'Meja & QR',
     icon: Grid,
