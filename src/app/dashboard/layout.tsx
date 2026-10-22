@@ -409,28 +409,43 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
 
             {/* Quick Action Badges matching Figma screenshot: POS, KDS, Reservasi */}
-            <div className="flex items-center gap-2 bg-[#1A1A1A] p-1.5 rounded-xl border border-neutral-800 shadow-xs">
+            <div className="flex items-center gap-1.5 bg-[#1A1A1A] p-1.5 rounded-xl border border-neutral-800 shadow-xs">
               <Link
                 href="/dashboard/pos"
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/10 text-xs font-semibold text-white transition-colors"
+                className={cn(
+                  'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
+                  pathname === '/dashboard/pos' && currentTab !== 'orders'
+                    ? 'bg-[#FF5C38] text-white shadow-xs'
+                    : 'text-neutral-300 hover:text-white hover:bg-white/10'
+                )}
               >
-                <Printer className="size-3.5 text-[#FF5C38]" />
+                <Printer className={cn('size-3.5', pathname === '/dashboard/pos' && currentTab !== 'orders' ? 'text-white' : 'text-[#FF5C38]')} />
                 <span>POS</span>
               </Link>
 
               <Link
                 href="/dashboard/pos?tab=orders"
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/10 text-xs font-semibold text-neutral-300 hover:text-white transition-colors"
+                className={cn(
+                  'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
+                  pathname === '/dashboard/pos' && currentTab === 'orders'
+                    ? 'bg-[#FF5C38] text-white shadow-xs'
+                    : 'text-neutral-300 hover:text-white hover:bg-white/10'
+                )}
               >
-                <ChefHat className="size-3.5 text-[#FF5C38]" />
+                <ChefHat className={cn('size-3.5', pathname === '/dashboard/pos' && currentTab === 'orders' ? 'text-white' : 'text-[#FF5C38]')} />
                 <span>KDS</span>
               </Link>
 
               <Link
                 href="/dashboard/tables"
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/10 text-xs font-semibold text-neutral-300 hover:text-white transition-colors"
+                className={cn(
+                  'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
+                  pathname === '/dashboard/tables'
+                    ? 'bg-[#FF5C38] text-white shadow-xs'
+                    : 'text-neutral-300 hover:text-white hover:bg-white/10'
+                )}
               >
-                <Ticket className="size-3.5 text-[#FF5C38]" />
+                <Ticket className={cn('size-3.5', pathname === '/dashboard/tables' ? 'text-white' : 'text-[#FF5C38]')} />
                 <span>Reservasi</span>
               </Link>
             </div>
