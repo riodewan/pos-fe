@@ -18,6 +18,9 @@ import {
   DataTable,
   ColumnDef,
   StatusBadge,
+  Button,
+  SearchInput,
+  Select,
 } from '@/components/common';
 import {
   MenuDetailsDrawer,
@@ -468,13 +471,14 @@ export default function MenuCatalogPage() {
           )}
 
           {/* Dynamic + Tambah Button matching active tab */}
-          <button
+          <Button
+            variant="primary"
+            size="sm"
+            leftIcon={<Plus className="size-4 stroke-[2.5]" />}
             onClick={handleTopAddClick}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-[#FF4D4D] hover:bg-[#E53939] text-white text-xs font-semibold transition-colors shadow-2xs"
           >
-            <Plus className="size-4 stroke-[2.5]" />
-            <span>{getAddButtonText()}</span>
-          </button>
+            {getAddButtonText()}
+          </Button>
         </div>
       </div>
 
@@ -535,63 +539,54 @@ export default function MenuCatalogPage() {
           {/* Filters Bar: Clean individual pills directly on background */}
           <div className="flex flex-wrap items-center gap-3">
             {/* Channel Filter */}
-            <div className="relative">
-              <select
-                value={selectedChannel}
-                onChange={(e) => setSelectedChannel(e.target.value)}
-                className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
-              >
-                <option value="all">Semua channel</option>
-                <option value="Kasir">Kasir</option>
-                <option value="QR Order">QR Order</option>
-                <option value="GrabFood">GrabFood</option>
-                <option value="ShopeeFood">ShopeeFood</option>
-                <option value="GoFood">GoFood</option>
-              </select>
-              <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
-            </div>
+            <Select
+              value={selectedChannel}
+              onChange={(e) => setSelectedChannel(e.target.value)}
+              size="sm"
+              options={[
+                { value: 'all', label: 'Semua channel' },
+                { value: 'Kasir', label: 'Kasir' },
+                { value: 'QR Order', label: 'QR Order' },
+                { value: 'GrabFood', label: 'GrabFood' },
+                { value: 'ShopeeFood', label: 'ShopeeFood' },
+                { value: 'GoFood', label: 'GoFood' },
+              ]}
+            />
 
             {/* Type Filter */}
-            <div className="relative">
-              <select
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-                className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
-              >
-                <option value="all">Semua tipe</option>
-                <option value="Minuman">Minuman</option>
-                <option value="Makanan">Makanan</option>
-                <option value="Cemilan">Cemilan</option>
-              </select>
-              <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
-            </div>
+            <Select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              size="sm"
+              options={[
+                { value: 'all', label: 'Semua tipe' },
+                { value: 'Minuman', label: 'Minuman' },
+                { value: 'Makanan', label: 'Makanan' },
+                { value: 'Cemilan', label: 'Cemilan' },
+              ]}
+            />
 
             {/* Status / Pembayaran Filter */}
-            <div className="relative">
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
-              >
-                <option value="all">Semua status</option>
-                <option value="Aktif">Aktif</option>
-                <option value="Nonaktif">Nonaktif</option>
-              </select>
-              <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
-            </div>
+            <Select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              size="sm"
+              options={[
+                { value: 'all', label: 'Semua status' },
+                { value: 'Aktif', label: 'Aktif' },
+                { value: 'Nonaktif', label: 'Nonaktif' },
+              ]}
+            />
 
             {/* Search Input */}
-            <div className="relative flex-1 min-w-[280px]">
-              <input
-                type="text"
+            <div className="flex-1 min-w-[280px]">
+              <SearchInput
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onClear={() => setSearchQuery('')}
                 placeholder="Cari nama menu, kategori, atau SKU"
-                className="w-full h-9 pl-3.5 pr-9 rounded-lg border border-neutral-200 bg-white text-xs text-neutral-900 placeholder:text-neutral-400 shadow-2xs focus:outline-none focus:border-neutral-400"
+                size="sm"
               />
-              <div className="absolute right-2.5 top-2 size-5 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-400">
-                <Search className="size-3" />
-              </div>
             </div>
           </div>
 

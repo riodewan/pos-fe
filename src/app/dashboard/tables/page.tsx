@@ -19,7 +19,7 @@ import {
   TableAreaManagement,
   TableCategoryManagement,
 } from '@/components/tables';
-import { EmptyState } from '@/components/common/EmptyState';
+import { EmptyState, Button, Select, SearchInput } from '@/components/common';
 
 // 12 Tables matching Screenshot 3 exactly
 const INITIAL_TABLES: TableItem[] = [
@@ -353,13 +353,14 @@ export default function TablesPage() {
           )}
 
           {/* Dynamic + Tambah Button */}
-          <button
+          <Button
+            variant="primary"
+            size="sm"
+            leftIcon={<Plus className="size-4 stroke-[2.5]" />}
             onClick={handleTopAddClick}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-[#FF4D4D] hover:bg-[#E53939] text-white text-xs font-semibold transition-colors shadow-2xs"
           >
-            <Plus className="size-4 stroke-[2.5]" />
-            <span>{getAddButtonText()}</span>
-          </button>
+            {getAddButtonText()}
+          </Button>
         </div>
       </div>
 
@@ -434,32 +435,27 @@ export default function TablesPage() {
             {/* Right Filters matching Screenshot 3 & 4 */}
             <div className="flex items-center gap-3">
               {/* Area Filter */}
-              <div className="relative">
-                <select
-                  value={areaFilter}
-                  onChange={(e) => setAreaFilter(e.target.value)}
-                  className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none hover:bg-neutral-50"
-                >
-                  <option value="all">Semua meja</option>
-                  <option value="Indoor">Indoor</option>
-                  <option value="Outdoor">Outdoor</option>
-                  <option value="VIP">VIP</option>
-                </select>
-                <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
-              </div>
+              <Select
+                value={areaFilter}
+                onChange={(e) => setAreaFilter(e.target.value)}
+                size="sm"
+                options={[
+                  { value: 'all', label: 'Semua meja' },
+                  { value: 'Indoor', label: 'Indoor' },
+                  { value: 'Outdoor', label: 'Outdoor' },
+                  { value: 'VIP', label: 'VIP' },
+                ]}
+              />
 
-              {/* Search input with dark circle magnifying button */}
-              <div className="relative w-64">
-                <input
-                  type="text"
+              {/* Search input with global SearchInput */}
+              <div className="w-64">
+                <SearchInput
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onClear={() => setSearchQuery('')}
                   placeholder="Cari nomor meja"
-                  className="w-full h-9 pl-3.5 pr-9 rounded-lg border border-neutral-200 bg-white text-xs text-neutral-900 placeholder:text-neutral-400 shadow-2xs focus:outline-none"
+                  size="sm"
                 />
-                <div className="absolute right-2 top-2 size-5 rounded-full bg-neutral-900 text-white flex items-center justify-center">
-                  <Search className="size-2.5 stroke-[2.5]" />
-                </div>
               </div>
             </div>
           </div>
