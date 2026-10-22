@@ -198,14 +198,22 @@ export default function MenuCatalogPage() {
     );
   };
 
+  const [drawerMode, setDrawerMode] = useState<'create' | 'edit'>('edit');
+
   const handleOpenItem = (item: MenuItem) => {
     setSelectedItem(item);
+    setDrawerMode('edit');
     setIsDrawerOpen(true);
   };
 
   const handleSaveItem = (updated: MenuItem) => {
-    setMenuItems((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-    showToast(`Perubahan menu ${updated.name} berhasil disimpan!`);
+    setMenuItems((prev) => {
+      const exists = prev.some((m) => m.id === updated.id);
+      if (exists) {
+        return prev.map((m) => (m.id === updated.id ? updated : m));
+      }
+      return [updated, ...prev];
+    });
   };
 
   const handleDeleteItem = (itemId: string) => {
@@ -216,17 +224,18 @@ export default function MenuCatalogPage() {
   const handleCreateNew = () => {
     const newItem: MenuItem = {
       id: `m-${Date.now()}`,
-      name: 'Menu Baru',
-      sku: `DRK-0${menuItems.length + 1}`,
+      name: '',
+      sku: `DRK-00${menuItems.length + 1}`,
       category: 'Kopi',
       type: 'Minuman',
-      price: 25000,
-      cost: 7000,
-      margin: 72.0,
+      price: 28000,
+      cost: 8000,
+      margin: 69.6,
       status: 'Aktif',
-      description: '',
+      description: 'Kopi espresso dengan susu fresh dan gula aren',
     };
     setSelectedItem(newItem);
+    setDrawerMode('create');
     setIsDrawerOpen(true);
   };
 
@@ -635,6 +644,7 @@ export default function MenuCatalogPage() {
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         item={selectedItem}
+        mode={drawerMode}
         onSave={handleSaveItem}
         onDelete={handleDeleteItem}
       />

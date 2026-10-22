@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Trash2,
@@ -9,8 +9,16 @@ import {
   Coffee,
   Utensils,
   Cookie,
-  MoreHorizontal,
   ChevronDown,
+  GripVertical,
+  Plus,
+  Edit2,
+  Bookmark,
+  Info,
+  Clock,
+  Calendar,
+  CheckCircle2,
+  Sparkles,
 } from 'lucide-react';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { formatRupiah } from '@/utils';
@@ -33,58 +41,153 @@ export interface MenuDetailsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   item: MenuItem | null;
+  mode?: 'create' | 'edit';
   onSave?: (updatedItem: MenuItem) => void;
   onDelete?: (itemId: string) => void;
+}
+
+interface VariantOption {
+  id: string;
+  name: string;
+  priceModifier: number;
+  status: 'Aktif' | 'Nonaktif';
+}
+
+interface VariantGroup {
+  id: string;
+  name: string;
+  selectionType: 'Pilihan Tunggal' | 'Pilihan Ganda';
+  options: VariantOption[];
+}
+
+interface IngredientItem {
+  id: string;
+  name: string;
+  unit: string;
+  amount: number;
+  cost: number;
 }
 
 export function MenuDetailsDrawer({
   isOpen,
   onClose,
   item,
+  mode = 'edit',
   onSave,
   onDelete,
 }: MenuDetailsDrawerProps) {
+  const isCreate = mode === 'create' || !item?.id || item.id.startsWith('new-');
   const [activeTab, setActiveTab] = useState<'info' | 'pricing' | 'ingredients' | 'settings'>('info');
 
-  // Form states initialized from item
-  const [name, setName] = useState(item?.name || '');
-  const [category, setCategory] = useState(item?.category || 'Kopi');
-  const [type, setType] = useState<MenuItem['type']>(item?.type || 'Minuman');
-  const [status, setStatus] = useState<MenuItem['status']>(item?.status || 'Aktif');
-  const [description, setDescription] = useState(
-    item?.description || 'Kopi espresso dengan susu fresh dan gula aren'
-  );
-  const [price, setPrice] = useState(item?.price || 28000);
-  const [cost, setCost] = useState(item?.cost || 8000);
+  // Success Modal State
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [savedItem, setSavedItem] = useState<MenuItem | null>(null);
+
+  // TAB 1: Informasi Dasar
+  const [name, setName] = useState('');
+  const [category, setCategory] = useState('Kopi');
+  const [type, setType] = useState<MenuItem['type']>('Minuman');
+  const [status, setStatus] = useState<MenuItem['status']>('Aktif');
+  const [description, setDescription] = useState('');
+
+  // TAB 2: Harga & Varian
+  const [price, setPrice] = useState(28000);
+  const [variantGroups, setVariantGroups] = useState<VariantGroup[]>([
+    {
+      id: 'vg-1',
+      name: 'Ukuran',
+      selectionType: 'Pilihan Tunggal',
+      options: [
+        { id: 'vo-1', name: 'Regular (Default)', priceModifier: 0, status: 'Aktif' },
+        { id: 'vo-2', name: 'Large', priceModifier: 5000, status: 'Aktif' },
+        { id: 'vo-3', name: 'Extra Large', priceModifier: 10000, status: 'Aktif' },
+      ],
+    },
+    {
+      id: 'vg-2',
+      name: 'Level Gula',
+      selectionType: 'Pilihan Tunggal',
+      options: [
+        { id: 'vo-4', name: 'Normal Sugar (100%)', priceModifier: 0, status: 'Aktif' },
+        { id: 'vo-5', name: 'Less Sugar (50%)', priceModifier: 0, status: 'Aktif' },
+        { id: 'vo-6', name: 'No Sugar (0%)', priceModifier: 0, status: 'Aktif' },
+      ],
+    },
+  ]);
+
+  // TAB 3: Bahan & HPP
+  const [activeVariantTab, setActiveVariantTab] = useState('Regular (Default)');
+  const [ingredients, setIngredients] = useState<IngredientItem[]>([
+    { id: 'ing-1', name: 'Kopi Espresso', unit: 'ml', amount: 30, cost: 5000 },
+    { id: 'ing-2', name: 'Susu UHT', unit: 'ml', amount: 120, cost: 1000 },
+    { id: 'ing-3', name: 'Syrup Gula Aren', unit: 'ml', amount: 20, cost: 1000 },
+    { id: 'ing-4', name: 'Es Batu', unit: 'gr', amount: 100, cost: 1000 },
+  ]);
+
+  // TAB 4: Pengaturan
+  const [isAvailable, setIsAvailable] = useState(true);
+  const [availabilitySchedule, setAvailabilitySchedule] = useState<'always' | 'hours' | 'period'>('always');
+  const [channelPos, setChannelPos] = useState(true);
+  const [channelQr, setChannelQr] = useState(false);
+  const [showInMenu, setShowInMenu] = useState(true);
+  const [isRecommended, setIsRecommended] = useState(true);
+  const [isNewBadge, setIsNewBadge] = useState(false);
+  const [isFavoriteBadge, setIsFavoriteBadge] = useState(false);
 
   // Sync state when item changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (item) {
-      setName(item.name);
-      setCategory(item.category);
-      setType(item.type);
-      setStatus(item.status);
+      setName(item.name || '');
+      setCategory(item.category || 'Kopi');
+      setType(item.type || 'Minuman');
+      setStatus(item.status || 'Aktif');
       setDescription(item.description || 'Kopi espresso dengan susu fresh dan gula aren');
-      setPrice(item.price);
-      setCost(item.cost);
+      setPrice(item.price || 28000);
+      setIsAvailable(item.status === 'Aktif');
     }
   }, [item]);
 
-  if (!isOpen || !item) return null;
+  if (!isOpen) return null;
 
-  const handleSave = () => {
-    onSave?.({
-      ...item,
-      name,
+  // HPP Calculation
+  const totalCost = ingredients.reduce((acc, ing) => acc + ing.cost, 0);
+  const netProfit = Math.max(0, price - totalCost);
+  const calculatedMargin = price > 0 ? Number((((price - totalCost) / price) * 100).toFixed(1)) : 0;
+
+  const handleSaveMenu = (isDraft = false) => {
+    const finalItem: MenuItem = {
+      id: item?.id || `m-${Date.now()}`,
+      name: name.trim() || 'Menu Tanpa Nama',
+      sku: item?.sku || `DRK-00${Math.floor(Math.random() * 90 + 10)}`,
       category,
       type,
-      status,
-      description,
       price,
-      cost,
-      margin: price > 0 ? Number((((price - cost) / price) * 100).toFixed(1)) : 0,
-    });
+      cost: totalCost,
+      margin: calculatedMargin,
+      status: isDraft ? 'Nonaktif' : status,
+      description,
+    };
+
+    setSavedItem(finalItem);
+    onSave?.(finalItem);
+    setShowSuccessModal(true);
+  };
+
+  const handleSuccessClose = () => {
+    setShowSuccessModal(false);
     onClose();
+  };
+
+  const handleAddIngredient = () => {
+    const newId = `ing-${Date.now()}`;
+    setIngredients((prev) => [
+      ...prev,
+      { id: newId, name: 'Bahan Tambahan', unit: 'ml', amount: 10, cost: 500 },
+    ]);
+  };
+
+  const handleRemoveIngredient = (id: string) => {
+    setIngredients((prev) => prev.filter((i) => i.id !== id));
   };
 
   return (
@@ -95,27 +198,17 @@ export function MenuDetailsDrawer({
         className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] transition-opacity"
       />
 
-      {/* Slide-over Container (matching Screenshot 2) */}
-      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-[620px] bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out">
-        {/* Drawer Top Header */}
-        <div className="p-6 border-b border-neutral-100 flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            {/* Thumbnail */}
-            <div className="size-12 rounded-xl bg-gradient-to-br from-amber-100 to-amber-200 border border-amber-300 flex items-center justify-center text-amber-900 shrink-0 shadow-2xs">
-              <Coffee className="size-6 text-amber-800" />
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-neutral-900 tracking-tight">
-                  {name || item.name}
-                </h2>
-                <StatusBadge variant="success" icon={<Check className="size-3" />}>
-                  Aktif
-                </StatusBadge>
-              </div>
-              <p className="text-xs text-neutral-400 mt-0.5">SKU: {item.sku}</p>
-            </div>
+      {/* Slide-over Container (matching Screenshot 2, 3, 4, 5) */}
+      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-[760px] bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out">
+        {/* Drawer Top Header matching Screenshots */}
+        <div className="p-6 border-b border-neutral-100 flex items-start justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-neutral-900 tracking-tight">
+              {isCreate ? 'Tambah Menu' : 'Edit Menu'}
+            </h2>
+            <p className="text-xs text-neutral-500 mt-0.5">
+              Lengkapi informasi menu, bahan, dan harga untuk ditampilkan di POS, QR Order, dan channel lainnya.
+            </p>
           </div>
 
           <button
@@ -129,10 +222,10 @@ export function MenuDetailsDrawer({
         {/* Drawer Body: 2 Columns (Sidebar & Form Content) */}
         <div className="flex-1 overflow-hidden flex">
           {/* Left Sub-nav */}
-          <div className="w-40 border-r border-neutral-100 p-4 space-y-1.5 shrink-0 bg-white">
+          <div className="w-44 border-r border-neutral-100 p-4 space-y-1.5 shrink-0 bg-white">
             <button
               onClick={() => setActiveTab('info')}
-              className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+              className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                 activeTab === 'info'
                   ? 'bg-red-50 text-[#E5484D]'
                   : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-800'
@@ -142,7 +235,7 @@ export function MenuDetailsDrawer({
             </button>
             <button
               onClick={() => setActiveTab('pricing')}
-              className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+              className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                 activeTab === 'pricing'
                   ? 'bg-red-50 text-[#E5484D]'
                   : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-800'
@@ -152,7 +245,7 @@ export function MenuDetailsDrawer({
             </button>
             <button
               onClick={() => setActiveTab('ingredients')}
-              className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+              className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                 activeTab === 'ingredients'
                   ? 'bg-red-50 text-[#E5484D]'
                   : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-800'
@@ -162,7 +255,7 @@ export function MenuDetailsDrawer({
             </button>
             <button
               onClick={() => setActiveTab('settings')}
-              className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+              className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                 activeTab === 'settings'
                   ? 'bg-red-50 text-[#E5484D]'
                   : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-800'
@@ -174,6 +267,7 @@ export function MenuDetailsDrawer({
 
           {/* Right Form Area */}
           <div className="flex-1 overflow-y-auto p-6 space-y-5">
+            {/* TAB 1: INFORMASI DASAR (Screenshot 5) */}
             {activeTab === 'info' && (
               <>
                 <div>
@@ -188,7 +282,7 @@ export function MenuDetailsDrawer({
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Contoh: Kopi Susu Gula Aren"
+                    placeholder="Kopi Susu Gula Aren"
                     className="w-full h-10 px-3.5 rounded-xl border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:border-neutral-400 shadow-2xs"
                   />
                 </div>
@@ -269,7 +363,7 @@ export function MenuDetailsDrawer({
                     rows={3}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Deskripsi bahan dan rasa menu..."
+                    placeholder="Kopi espresso dengan susu fresh dan gula aren"
                     className="w-full p-3 rounded-xl border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:border-neutral-400 shadow-2xs resize-none"
                   />
                 </div>
@@ -280,9 +374,18 @@ export function MenuDetailsDrawer({
                   <p className="text-[11px] text-neutral-400">WebP, JPG, PNG. Ratio 1:1, Maks. 2MB</p>
 
                   <div className="flex items-center gap-3 pt-1">
-                    {/* Existing Photo thumbnail */}
-                    <div className="size-16 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-800 shadow-2xs shrink-0">
-                      <Coffee className="size-7 text-amber-800" />
+                    {/* Existing Photo thumbnail 1 */}
+                    <div className="size-16 rounded-xl overflow-hidden border border-neutral-200 bg-neutral-100 relative shadow-2xs shrink-0 group">
+                      <div className="w-full h-full bg-gradient-to-br from-amber-700 to-amber-900 flex items-center justify-center text-amber-200">
+                        <Coffee className="size-7" />
+                      </div>
+                    </div>
+
+                    {/* Existing Photo thumbnail 2 */}
+                    <div className="size-16 rounded-xl overflow-hidden border border-neutral-200 bg-neutral-100 relative shadow-2xs shrink-0 group">
+                      <div className="w-full h-full bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center text-neutral-300">
+                        <Utensils className="size-7" />
+                      </div>
                     </div>
 
                     {/* Upload Box */}
@@ -295,115 +398,698 @@ export function MenuDetailsDrawer({
               </>
             )}
 
+            {/* TAB 2: HARGA & VARIAN (Screenshot 4) */}
             {activeTab === 'pricing' && (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
                   <h3 className="text-sm font-bold text-neutral-900">Harga & Varian</h3>
-                  <p className="text-xs text-neutral-400 mt-0.5">Kelola harga dasar dan opsi varian ukuran / rasa</p>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    Atur harga jual, dan buat varian jika memiliki beberapa opsi
+                  </p>
                 </div>
+
+                {/* Base Selling Price Input with Rp Prefix */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-neutral-800">Harga Jual Dasar (Rp)</label>
-                  <input
-                    type="number"
-                    value={price}
-                    onChange={(e) => setPrice(Number(e.target.value))}
-                    className="w-full h-10 px-3.5 rounded-xl border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:border-neutral-400 shadow-2xs"
-                  />
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3.5 text-xs font-semibold text-neutral-600 pointer-events-none">
+                      Rp
+                    </span>
+                    <input
+                      type="number"
+                      value={price}
+                      onChange={(e) => setPrice(Number(e.target.value))}
+                      className="w-full h-10 pl-10 pr-3.5 rounded-xl border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:border-neutral-400 shadow-2xs"
+                    />
+                  </div>
+                  <p className="text-[11px] text-neutral-400">
+                    Harga digunakan untuk transaksi POS, QR Order, dan channel lainnya.
+                  </p>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-neutral-800">Perkiraan HPP (Rp)</label>
-                  <input
-                    type="number"
-                    value={cost}
-                    onChange={(e) => setCost(Number(e.target.value))}
-                    className="w-full h-10 px-3.5 rounded-xl border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:border-neutral-400 shadow-2xs"
-                  />
-                </div>
-                <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-200 text-xs flex justify-between items-center">
-                  <span className="text-neutral-500">Margin Keuntungan:</span>
-                  <span className="font-bold text-emerald-600">
-                    {price > 0 ? (((price - cost) / price) * 100).toFixed(1) : 0}%
-                  </span>
+
+                {/* Variant Section */}
+                <div className="pt-2 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-bold text-neutral-900">
+                        Varian Menu <span className="font-normal text-neutral-400">(Opsional)</span>
+                      </h4>
+                      <p className="text-[11px] text-neutral-400 mt-0.5">
+                        Tambahkan kategori varian seperti ukuran, rasa, atau level gula
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newVg: VariantGroup = {
+                          id: `vg-${Date.now()}`,
+                          name: 'Varian Baru',
+                          selectionType: 'Pilihan Tunggal',
+                          options: [
+                            { id: `vo-${Date.now()}-1`, name: 'Opsi 1', priceModifier: 0, status: 'Aktif' },
+                          ],
+                        };
+                        setVariantGroups((prev) => [...prev, newVg]);
+                      }}
+                      className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-neutral-200 hover:bg-neutral-50 text-xs font-semibold text-neutral-700 transition-colors shadow-2xs"
+                    >
+                      <Plus className="size-3.5 stroke-[2.5]" />
+                      <span>Tambah Kategori Varian</span>
+                    </button>
+                  </div>
+
+                  {/* Variant Group Cards matching Screenshot 4 */}
+                  {variantGroups.map((group, gIdx) => (
+                    <div
+                      key={group.id}
+                      className="p-4 rounded-2xl border border-neutral-200/90 bg-white space-y-3 shadow-2xs"
+                    >
+                      {/* Group Header */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <GripVertical className="size-4 text-neutral-400 cursor-grab" />
+                          <span className="text-xs font-bold text-neutral-900">{group.name}</span>
+                          <div className="relative">
+                            <select
+                              value={group.selectionType}
+                              onChange={(e) => {
+                                const val = e.target.value as any;
+                                setVariantGroups((prev) =>
+                                  prev.map((g) => (g.id === group.id ? { ...g, selectionType: val } : g))
+                                );
+                              }}
+                              className="h-7 pl-2 pr-6 rounded-md border border-neutral-200 bg-neutral-50 text-[11px] font-medium text-neutral-700 appearance-none cursor-pointer focus:outline-none"
+                            >
+                              <option value="Pilihan Tunggal">Pilihan Tunggal</option>
+                              <option value="Pilihan Ganda">Pilihan Ganda</option>
+                            </select>
+                            <ChevronDown className="size-3 text-neutral-400 absolute right-1.5 top-2 pointer-events-none" />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            className="p-1 rounded text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100"
+                          >
+                            <Edit2 className="size-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setVariantGroups((prev) => prev.filter((g) => g.id !== group.id));
+                            }}
+                            className="p-1 rounded text-neutral-400 hover:text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Options Table */}
+                      <div className="border border-neutral-100 rounded-xl overflow-hidden">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-neutral-50/70 border-b border-neutral-100 text-[11px] font-semibold text-neutral-500">
+                            <tr>
+                              <th className="py-2 px-3 w-8">
+                                <input
+                                  type="checkbox"
+                                  defaultChecked
+                                  className="rounded border-neutral-300 size-3.5 text-[#FF4D4D] focus:ring-0"
+                                />
+                              </th>
+                              <th className="py-2 px-3">Nama</th>
+                              <th className="py-2 px-3 w-36">Harga</th>
+                              <th className="py-2 px-3 w-28">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-neutral-100">
+                            {group.options.map((opt, oIdx) => (
+                              <tr key={opt.id} className="hover:bg-neutral-50/50">
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="checkbox"
+                                    defaultChecked
+                                    className="rounded border-neutral-300 size-3.5 text-[#FF4D4D] focus:ring-0"
+                                  />
+                                </td>
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="text"
+                                    value={opt.name}
+                                    onChange={(e) => {
+                                      const newName = e.target.value;
+                                      setVariantGroups((prev) =>
+                                        prev.map((g) =>
+                                          g.id === group.id
+                                            ? {
+                                                ...g,
+                                                options: g.options.map((o) =>
+                                                  o.id === opt.id ? { ...o, name: newName } : o
+                                                ),
+                                              }
+                                            : g
+                                        )
+                                      );
+                                    }}
+                                    className="w-full bg-transparent border-0 text-xs text-neutral-800 focus:outline-none focus:ring-0 font-medium"
+                                  />
+                                </td>
+                                <td className="py-2 px-3">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[11px] text-neutral-400 font-semibold">Rp</span>
+                                    <input
+                                      type="number"
+                                      value={opt.priceModifier}
+                                      onChange={(e) => {
+                                        const val = Number(e.target.value);
+                                        setVariantGroups((prev) =>
+                                          prev.map((g) =>
+                                            g.id === group.id
+                                              ? {
+                                                  ...g,
+                                                  options: g.options.map((o) =>
+                                                    o.id === opt.id ? { ...o, priceModifier: val } : o
+                                                  ),
+                                                }
+                                              : g
+                                          )
+                                        );
+                                      }}
+                                      className="w-20 h-7 px-2 rounded-lg border border-neutral-200 text-xs text-neutral-900 focus:outline-none"
+                                    />
+                                  </div>
+                                </td>
+                                <td className="py-2 px-3">
+                                  <div className="relative">
+                                    <select
+                                      value={opt.status}
+                                      onChange={(e) => {
+                                        const val = e.target.value as any;
+                                        setVariantGroups((prev) =>
+                                          prev.map((g) =>
+                                            g.id === group.id
+                                              ? {
+                                                  ...g,
+                                                  options: g.options.map((o) =>
+                                                    o.id === opt.id ? { ...o, status: val } : o
+                                                  ),
+                                                }
+                                              : g
+                                          )
+                                        );
+                                      }}
+                                      className="w-full h-7 pl-2 pr-6 rounded-lg border border-neutral-200 bg-white text-[11px] font-semibold text-emerald-600 appearance-none cursor-pointer focus:outline-none"
+                                    >
+                                      <option value="Aktif">Aktif</option>
+                                      <option value="Nonaktif">Nonaktif</option>
+                                    </select>
+                                    <ChevronDown className="size-3 text-neutral-400 absolute right-1.5 top-2 pointer-events-none" />
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Add Option Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newOpt: VariantOption = {
+                            id: `vo-${Date.now()}`,
+                            name: 'Opsi Baru',
+                            priceModifier: 0,
+                            status: 'Aktif',
+                          };
+                          setVariantGroups((prev) =>
+                            prev.map((g) =>
+                              g.id === group.id ? { ...g, options: [...g.options, newOpt] } : g
+                            )
+                          );
+                        }}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-neutral-700 hover:text-neutral-900 pt-1"
+                      >
+                        <Plus className="size-3.5 stroke-[2.5]" />
+                        <span>Tambah Opsi Varian</span>
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
+            {/* TAB 3: BAHAN & HPP (Screenshot 3) */}
             {activeTab === 'ingredients' && (
               <div className="space-y-4">
+                {/* Blue Info Callout matching Screenshot 3 */}
+                <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/80 flex items-start gap-3">
+                  <div className="size-5 rounded-full bg-blue-500 text-white flex items-center justify-center shrink-0 mt-0.5">
+                    <Info className="size-3.5 stroke-[2.5]" />
+                  </div>
+                  <p className="text-xs text-blue-800 leading-relaxed font-medium">
+                    HPP akan dihitung otomatis berdasarkan bahan yang dipilih. Pastikan harga bahan pada inventory sudah diperbaharui.
+                  </p>
+                </div>
+
                 <div>
                   <h3 className="text-sm font-bold text-neutral-900">Bahan & HPP</h3>
-                  <p className="text-xs text-neutral-400 mt-0.5">Resep dan alokasi stok bahan baku untuk menu ini</p>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    Atur bahan yang digunakan, takaran per porsi, dan otomatis menghitung HPP.
+                  </p>
                 </div>
-                <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-200 text-xs text-neutral-600 space-y-2">
-                  <div className="flex justify-between font-semibold text-neutral-800">
-                    <span>Bahan Baku</span>
-                    <span>Takaran</span>
+
+                {/* Card: Gunakan bahan berbeda per varian */}
+                <div className="p-4 rounded-2xl border border-neutral-200/90 bg-white space-y-4 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="size-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shadow-2xs">
+                        <Cookie className="size-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-neutral-900">
+                          Gunakan bahan berbeda per varian
+                        </h4>
+                        <p className="text-[11px] text-neutral-400 mt-0.5">
+                          Atur perbedaan takaran bahan untuk setiap setiap varian.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="relative">
+                      <select
+                        defaultValue="Ukuran"
+                        className="h-8 pl-3 pr-7 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none"
+                      >
+                        <option value="Ukuran">Ukuran</option>
+                        <option value="Level Gula">Level Gula</option>
+                      </select>
+                      <ChevronDown className="size-3.5 text-neutral-400 absolute right-2 top-2.5 pointer-events-none" />
+                    </div>
                   </div>
-                  <div className="flex justify-between pt-1 border-t border-neutral-200">
-                    <span>Biji Kopi House Blend</span>
-                    <span>18 gram</span>
+
+                  {/* Variant Sub-Tabs matching Screenshot 3 */}
+                  <div className="flex items-center border-b border-neutral-200 gap-6 text-xs">
+                    {(['Regular (Default)', 'Large', 'Extra Large'] as const).map((vt) => (
+                      <button
+                        key={vt}
+                        type="button"
+                        onClick={() => setActiveVariantTab(vt)}
+                        className={`pb-2.5 font-semibold transition-all border-b-2 ${
+                          activeVariantTab === vt
+                            ? 'border-[#FF5C38] text-[#FF5C38]'
+                            : 'border-transparent text-neutral-400 hover:text-neutral-700'
+                        }`}
+                      >
+                        {vt}
+                      </button>
+                    ))}
                   </div>
-                  <div className="flex justify-between">
-                    <span>Fresh Milk Greenfields</span>
-                    <span>120 ml</span>
+
+                  {/* Ingredient Table */}
+                  <div className="border border-neutral-100 rounded-xl overflow-hidden">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-neutral-50/70 border-b border-neutral-100 text-[11px] font-semibold text-neutral-500">
+                        <tr>
+                          <th className="py-2.5 px-3 w-8">
+                            <input
+                              type="checkbox"
+                              defaultChecked
+                              className="rounded border-neutral-300 size-3.5 text-[#FF4D4D] focus:ring-0"
+                            />
+                          </th>
+                          <th className="py-2.5 px-3">Bahan</th>
+                          <th className="py-2.5 px-3 w-20">Satuan</th>
+                          <th className="py-2.5 px-3 w-24">Takaran</th>
+                          <th className="py-2.5 px-3 w-28">Harga</th>
+                          <th className="py-2.5 px-2 w-8"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-100">
+                        {ingredients.map((ing) => (
+                          <tr key={ing.id} className="hover:bg-neutral-50/50">
+                            <td className="py-2.5 px-3">
+                              <input
+                                type="checkbox"
+                                defaultChecked
+                                className="rounded border-neutral-300 size-3.5 text-[#FF4D4D] focus:ring-0"
+                              />
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <div className="relative">
+                                <select
+                                  value={ing.name}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setIngredients((prev) =>
+                                      prev.map((i) => (i.id === ing.id ? { ...i, name: val } : i))
+                                    );
+                                  }}
+                                  className="w-full h-8 pl-2.5 pr-7 rounded-lg border border-neutral-200 bg-white text-xs font-semibold text-neutral-800 appearance-none cursor-pointer focus:outline-none"
+                                >
+                                  <option value="Kopi Espresso">Kopi Espresso</option>
+                                  <option value="Susu UHT">Susu UHT</option>
+                                  <option value="Syrup Gula Aren">Syrup Gula Aren</option>
+                                  <option value="Es Batu">Es Batu</option>
+                                  <option value="Matcha Powder">Matcha Powder</option>
+                                  <option value="Bubuk Cokelat">Bubuk Cokelat</option>
+                                </select>
+                                <ChevronDown className="size-3 text-neutral-400 absolute right-2 top-2.5 pointer-events-none" />
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3 text-neutral-600 font-medium">{ing.unit}</td>
+                            <td className="py-2.5 px-3">
+                              <input
+                                type="number"
+                                value={ing.amount}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value);
+                                  setIngredients((prev) =>
+                                    prev.map((i) => (i.id === ing.id ? { ...i, amount: val } : i))
+                                  );
+                                }}
+                                className="w-16 h-8 px-2 rounded-lg border border-neutral-200 text-xs text-neutral-900 focus:outline-none"
+                              />
+                            </td>
+                            <td className="py-2.5 px-3 font-semibold text-neutral-800">
+                              {formatRupiah(ing.cost)}
+                            </td>
+                            <td className="py-2.5 px-2">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveIngredient(ing.id)}
+                                className="p-1 rounded text-neutral-300 hover:text-red-600 hover:bg-red-50"
+                              >
+                                <X className="size-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Sirup Gula Aren Organik</span>
-                    <span>25 ml</span>
+
+                  {/* Add Ingredient Button */}
+                  <button
+                    type="button"
+                    onClick={handleAddIngredient}
+                    className="w-full py-2.5 rounded-xl border border-dashed border-neutral-300 text-neutral-700 hover:bg-neutral-50 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <Plus className="size-3.5 stroke-[2.5]" />
+                    <span>Tambah Bahan</span>
+                  </button>
+                </div>
+
+                {/* 4-Grid Summary Stats matching Screenshot 3 */}
+                <div className="grid grid-cols-4 gap-3 pt-1">
+                  <div className="p-3.5 rounded-xl border border-neutral-200/90 bg-white">
+                    <p className="text-[11px] font-medium text-neutral-400">Harga Jual</p>
+                    <p className="text-sm font-bold text-neutral-900 mt-1">{formatRupiah(price)}</p>
+                  </div>
+                  <div className="p-3.5 rounded-xl border border-neutral-200/90 bg-white">
+                    <p className="text-[11px] font-medium text-neutral-400">Total HPP Regular</p>
+                    <p className="text-sm font-bold text-neutral-900 mt-1">{formatRupiah(totalCost)}</p>
+                  </div>
+                  <div className="p-3.5 rounded-xl border border-neutral-200/90 bg-white">
+                    <p className="text-[11px] font-medium text-neutral-400">Untung Bersih</p>
+                    <p className="text-sm font-bold text-neutral-900 mt-1">{formatRupiah(netProfit)}</p>
+                  </div>
+                  <div className="p-3.5 rounded-xl border border-neutral-200/90 bg-white">
+                    <p className="text-[11px] font-medium text-neutral-400">Margin (%)</p>
+                    <p className="text-sm font-bold text-emerald-600 mt-1">{calculatedMargin}%</p>
                   </div>
                 </div>
               </div>
             )}
 
+            {/* TAB 4: PENGATURAN (Screenshot 2) */}
             {activeTab === 'settings' && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
-                  <h3 className="text-sm font-bold text-neutral-900">Pengaturan Tambahan</h3>
-                  <p className="text-xs text-neutral-400 mt-0.5">Pengaturan visibilitas kasir dan channel penjualan</p>
+                  <h3 className="text-sm font-bold text-neutral-900">Pengaturan</h3>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    Atur ketersediaan, tampilan, dan channel penjualan menu ini
+                  </p>
                 </div>
-                <div className="space-y-2 text-xs">
-                  <label className="flex items-center gap-2 text-neutral-800 cursor-pointer">
-                    <input type="checkbox" defaultChecked className="rounded border-neutral-300 text-blue-600" />
-                    <span>Tampilkan di Kasir POS</span>
-                  </label>
-                  <label className="flex items-center gap-2 text-neutral-800 cursor-pointer">
-                    <input type="checkbox" defaultChecked className="rounded border-neutral-300 text-blue-600" />
-                    <span>Tampilkan di QR Order Pelanggan</span>
-                  </label>
-                  <label className="flex items-center gap-2 text-neutral-800 cursor-pointer">
-                    <input type="checkbox" defaultChecked className="rounded border-neutral-300 text-blue-600" />
-                    <span>Tersedia untuk Online Delivery (GoFood / GrabFood)</span>
-                  </label>
+
+                {/* Section: Ketersediaan & Status */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-neutral-900">Ketersediaan & Status</h4>
+
+                  <div className="flex items-center justify-between p-3.5 rounded-xl border border-neutral-200/90 bg-white">
+                    <span className="text-xs font-semibold text-neutral-800">Tersedia</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsAvailable(!isAvailable)}
+                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                        isAvailable
+                          ? 'bg-blue-600 text-white shadow-2xs'
+                          : 'bg-neutral-200 text-neutral-600'
+                      }`}
+                    >
+                      <span className="size-2 rounded-full bg-white" />
+                      <span>{isAvailable ? 'Menu Aktif' : 'Menu Nonaktif'}</span>
+                    </button>
+                  </div>
+
+                  {/* Blue Alert Notice */}
+                  <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-200/80 flex items-center gap-2.5 text-xs text-blue-700 font-medium">
+                    <Info className="size-4 shrink-0 text-blue-600" />
+                    <span>Nonaktif jika menu tidak tersedia untuk dipesan.</span>
+                  </div>
+
+                  {/* Radio Card Group */}
+                  <div className="p-4 rounded-2xl border border-neutral-200/90 bg-white space-y-3 shadow-2xs">
+                    <div>
+                      <h5 className="text-xs font-bold text-neutral-900">Pengaturan</h5>
+                      <p className="text-[11px] text-neutral-400 mt-0.5">
+                        Atur ketersediaan, tampilan, dan channel penjualan menu ini
+                      </p>
+                    </div>
+
+                    <div className="space-y-2.5 pt-1">
+                      <label className="flex items-start gap-2.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="availability"
+                          checked={availabilitySchedule === 'always'}
+                          onChange={() => setAvailabilitySchedule('always')}
+                          className="mt-0.5 text-blue-600 focus:ring-0"
+                        />
+                        <div>
+                          <p className="text-xs font-semibold text-neutral-800">Selalu tersedia</p>
+                        </div>
+                      </label>
+
+                      <label className="flex items-start gap-2.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="availability"
+                          checked={availabilitySchedule === 'hours'}
+                          onChange={() => setAvailabilitySchedule('hours')}
+                          className="mt-0.5 text-blue-600 focus:ring-0"
+                        />
+                        <div>
+                          <p className="text-xs font-semibold text-neutral-800">Atur hari & jam</p>
+                          <p className="text-[11px] text-neutral-400">
+                            Tentukan hari dan jam khusus untuk menu ini
+                          </p>
+                        </div>
+                      </label>
+
+                      <label className="flex items-start gap-2.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="availability"
+                          checked={availabilitySchedule === 'period'}
+                          onChange={() => setAvailabilitySchedule('period')}
+                          className="mt-0.5 text-blue-600 focus:ring-0"
+                        />
+                        <div>
+                          <p className="text-xs font-semibold text-neutral-800">Atur periode tanggal</p>
+                          <p className="text-[11px] text-neutral-400">
+                            Tentukan tanggal mulai dan berakhir.
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section: Channel Penjualan */}
+                <div className="space-y-2.5">
+                  <div>
+                    <h4 className="text-xs font-bold text-neutral-900">Channel Penjualan</h4>
+                    <p className="text-[11px] text-neutral-400 mt-0.5">
+                      Pilih channel yang menampilkan menu ini
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="flex items-start gap-3 p-3 rounded-xl border border-neutral-200/90 bg-white cursor-pointer hover:bg-neutral-50/50">
+                      <input
+                        type="checkbox"
+                        checked={channelPos}
+                        onChange={(e) => setChannelPos(e.target.checked)}
+                        className="mt-0.5 rounded border-neutral-300 text-blue-600 focus:ring-0 size-4"
+                      />
+                      <div>
+                        <p className="text-xs font-semibold text-neutral-900">POS (Kasir)</p>
+                        <p className="text-[11px] text-neutral-400">Tersedia untuk pemesanan di outlet</p>
+                      </div>
+                    </label>
+
+                    <label className="flex items-start gap-3 p-3 rounded-xl border border-neutral-200/90 bg-white cursor-pointer hover:bg-neutral-50/50">
+                      <input
+                        type="checkbox"
+                        checked={channelQr}
+                        onChange={(e) => setChannelQr(e.target.checked)}
+                        className="mt-0.5 rounded border-neutral-300 text-blue-600 focus:ring-0 size-4"
+                      />
+                      <div>
+                        <p className="text-xs font-semibold text-neutral-900">QR Order</p>
+                        <p className="text-[11px] text-neutral-400">Tersedia untuk pemesanan di outlet</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Section: Tampilan */}
+                <div className="space-y-2.5">
+                  <h4 className="text-xs font-bold text-neutral-900">Tampilan</h4>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="flex items-start gap-2.5 p-3 rounded-xl border border-neutral-200/90 bg-white cursor-pointer hover:bg-neutral-50/50">
+                      <input
+                        type="checkbox"
+                        checked={showInMenu}
+                        onChange={(e) => setShowInMenu(e.target.checked)}
+                        className="mt-0.5 rounded border-neutral-300 text-blue-600 focus:ring-0 size-4"
+                      />
+                      <div>
+                        <p className="text-xs font-semibold text-neutral-900">
+                          Tampilkan di daftar menu
+                        </p>
+                        <p className="text-[11px] text-neutral-400 mt-0.5">
+                          Menu akan ditampilkan pada semua channel yang dipilih
+                        </p>
+                      </div>
+                    </label>
+
+                    <label className="flex items-start gap-2.5 p-3 rounded-xl border border-neutral-200/90 bg-white cursor-pointer hover:bg-neutral-50/50">
+                      <input
+                        type="checkbox"
+                        checked={isRecommended}
+                        onChange={(e) => setIsRecommended(e.target.checked)}
+                        className="mt-0.5 rounded border-neutral-300 text-blue-600 focus:ring-0 size-4"
+                      />
+                      <div>
+                        <p className="text-xs font-semibold text-neutral-900">Menu Rekomendasi</p>
+                        <p className="text-[11px] text-neutral-400 mt-0.5">
+                          Tampilkan sebagai menu rekomendasi di POS dan QR Order.
+                        </p>
+                      </div>
+                    </label>
+
+                    <label className="flex items-start gap-2.5 p-3 rounded-xl border border-neutral-200/90 bg-white cursor-pointer hover:bg-neutral-50/50">
+                      <input
+                        type="checkbox"
+                        checked={isNewBadge}
+                        onChange={(e) => setIsNewBadge(e.target.checked)}
+                        className="mt-0.5 rounded border-neutral-300 text-blue-600 focus:ring-0 size-4"
+                      />
+                      <div>
+                        <p className="text-xs font-semibold text-neutral-900">Menu Baru</p>
+                        <p className="text-[11px] text-neutral-400 mt-0.5">
+                          Tampilkan label &quot;Baru&quot; pada menu.
+                        </p>
+                      </div>
+                    </label>
+
+                    <label className="flex items-start gap-2.5 p-3 rounded-xl border border-neutral-200/90 bg-white cursor-pointer hover:bg-neutral-50/50">
+                      <input
+                        type="checkbox"
+                        checked={isFavoriteBadge}
+                        onChange={(e) => setIsFavoriteBadge(e.target.checked)}
+                        className="mt-0.5 rounded border-neutral-300 text-blue-600 focus:ring-0 size-4"
+                      />
+                      <div>
+                        <p className="text-xs font-semibold text-neutral-900">Menu Favorit</p>
+                        <p className="text-[11px] text-neutral-400 mt-0.5">
+                          Tampilkan label &quot;Favorit&quot; pada menu.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Drawer Bottom Actions matching Screenshot 2 */}
-        <div className="p-4 border-t border-neutral-100 flex items-center justify-between gap-4 bg-white">
+        {/* Drawer Bottom Footer matching Screenshots 2, 3, 4, 5 */}
+        <div className="p-4 px-6 border-t border-neutral-100 flex items-center justify-between gap-4 bg-white">
           <button
-            onClick={() => {
-              if (confirm(`Apakah Anda yakin ingin menghapus menu ${item.name}?`)) {
-                onDelete?.(item.id);
-                onClose();
-              }
-            }}
-            className="h-10 px-4 rounded-xl border border-neutral-200 text-red-500 hover:bg-red-50 text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-2xs"
+            type="button"
+            onClick={() => handleSaveMenu(true)}
+            className="inline-flex items-center gap-2 h-11 px-5 rounded-xl border border-neutral-200 text-neutral-700 hover:bg-neutral-50 text-xs font-semibold transition-colors"
           >
-            <Trash2 className="size-3.5" />
-            <span>Hapus Menu</span>
+            <Bookmark className="size-4" />
+            <span>Simpan sebagai Draf</span>
           </button>
 
           <button
-            onClick={handleSave}
-            className="flex-1 h-10 px-5 rounded-xl bg-[#FF7A59] hover:bg-[#E56645] text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+            type="button"
+            onClick={() => handleSaveMenu(false)}
+            className="inline-flex items-center gap-2 h-11 px-7 rounded-xl bg-[#E5484D] hover:bg-[#D9383D] text-white text-xs font-semibold transition-colors shadow-2xs"
           >
-            <Check className="size-4 stroke-[2.5]" />
-            <span>Simpan Perubahan</span>
+            <CheckCircle2 className="size-4 stroke-[2.5]" />
+            <span>Simpan Menu</span>
           </button>
         </div>
       </div>
+
+      {/* SUCCESS MODAL matching Screenshot 1 */}
+      {showSuccessModal && (
+        <>
+          <div className="fixed inset-0 z-60 bg-black/50 backdrop-blur-[2px] transition-opacity" />
+          <div className="fixed inset-0 z-70 flex items-center justify-center p-4">
+            <div className="w-full max-w-[480px] bg-white rounded-3xl p-8 shadow-2xl flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-200">
+              {/* Big Green Circle with Checkmark matching Screenshot 1 */}
+              <div className="size-24 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25 mb-6">
+                <Check className="size-12 stroke-[3]" />
+              </div>
+
+              {/* Title & Description */}
+              <h3 className="text-xl font-bold text-neutral-900 tracking-tight">
+                Menu Berhasil Ditambahkan!
+              </h3>
+              <p className="text-xs text-neutral-500 mt-2 max-w-[360px] leading-relaxed">
+                Menu baru berhasil ditambahkan dan sudah tersimpan. Kamu bisa melihat dan mengelola menu ini di daftar menu.
+              </p>
+
+              {/* Action Buttons matching Screenshot 1 */}
+              <div className="grid grid-cols-2 gap-3 w-full mt-8">
+                <button
+                  type="button"
+                  onClick={handleSuccessClose}
+                  className="h-11 rounded-2xl border border-red-200 hover:bg-red-50/50 text-[#E5484D] text-xs font-semibold transition-colors"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSuccessClose}
+                  className="h-11 rounded-2xl bg-[#FF5C38] hover:bg-[#EE4E2A] text-white text-xs font-semibold transition-colors shadow-2xs"
+                >
+                  Kembali ke Daftar Menu
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }
