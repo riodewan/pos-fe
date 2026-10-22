@@ -25,6 +25,17 @@ import {
   Check,
   Link2,
 } from 'lucide-react';
+import { ProgressStepper, StepItem } from '@/components/common/ProgressStepper';
+import { ReviewSummaryCard } from '@/components/common/ReviewSummaryCard';
+import { Switch } from '@/components/ui/switch';
+
+const ONBOARDING_STEPS: StepItem[] = [
+  { num: 1, label: 'Identitas Outlet' },
+  { num: 2, label: 'Jam Operasional' },
+  { num: 3, label: 'Deskripsi' },
+  { num: 4, label: 'Fasilitas' },
+  { num: 5, label: 'Review' },
+];
 
 export interface FirstLoginModalProps {
   isOpen: boolean;
@@ -369,64 +380,12 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
             </p>
           </div>
 
-          {/* 5-Step Progress Stepper: Continuous, perfectly centered track line */}
-          <div className="relative mb-7 px-1">
-            {/* Continuous Connecting Track Line spanning exactly from center of step 1 (10%) to center of step 5 (90%) */}
-            <div className="absolute top-[14px] left-[10%] right-[10%] h-[2.5px] -translate-y-1/2 z-0">
-              {/* Background inactive track */}
-              <div className="w-full h-full bg-neutral-200 rounded-full" />
-              {/* Active filled orange track */}
-              <div
-                className="absolute top-0 left-0 h-full bg-[#FF5C38] rounded-full transition-all duration-300"
-                style={{
-                  width: `${((Math.min(currentStep, 5) - 1) / 4) * 100}%`,
-                }}
-              />
-            </div>
-
-            {/* Stepper Columns */}
-            <div className="relative z-10 flex items-start justify-between">
-              {[
-                { num: 1, label: 'Identitas Outlet' },
-                { num: 2, label: 'Jam Operasional' },
-                { num: 3, label: 'Deskripsi' },
-                { num: 4, label: 'Fasilitas' },
-                { num: 5, label: 'Review' },
-              ].map((s) => {
-                const isPast = s.num < currentStep;
-                const isCurrent = s.num === currentStep;
-                const isDoneOrActive = isCurrent || isPast;
-
-                return (
-                  <div key={s.num} className="flex-1 flex flex-col items-center">
-                    {/* Step Circle with solid white ring to cleanly mask the line underneath */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (s.num <= currentStep) setCurrentStep(s.num);
-                      }}
-                      className={`size-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ring-4 ring-white select-none cursor-pointer ${
-                        isDoneOrActive
-                          ? 'bg-[#FF5C38] text-white shadow-xs'
-                          : 'bg-neutral-200 text-neutral-500'
-                      }`}
-                    >
-                      {s.num}
-                    </button>
-
-                    {/* Step Label */}
-                    <span
-                      className={`text-[10.5px] mt-2 text-center font-medium leading-tight max-w-[68px] select-none ${
-                        isDoneOrActive ? 'text-[#FF5C38]' : 'text-neutral-400'
-                      }`}
-                    >
-                      {s.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          {/* 5-Step Progress Stepper using Global ProgressStepper Component */}
+          <ProgressStepper
+            steps={ONBOARDING_STEPS}
+            currentStep={currentStep}
+            onStepClick={setCurrentStep}
+          />
 
           {/* ============================================================ */}
           {/* STEP 1: IDENTITAS OUTLET                                     */}
@@ -605,19 +564,11 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
                     </div>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={() => toggleDaySchedule(idx)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      item.isOpen ? 'bg-[#2563EB]' : 'bg-neutral-300'
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block size-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                        item.isOpen ? 'translate-x-5' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
+                  <Switch
+                    checked={item.isOpen}
+                    onCheckedChange={() => toggleDaySchedule(idx)}
+                    aria-label={`Jadwal ${item.day}`}
+                  />
                 </div>
               ))}
 
@@ -758,28 +709,17 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
                 </p>
               </div>
 
-              {/* 4 Summary Cards matching Screenshot 1 */}
+              {/* 4 Summary Cards using Global ReviewSummaryCard Component */}
               <div className="space-y-3">
                 {/* 1. Identitas Outlet */}
-                <div className="p-4 rounded-2xl border border-neutral-200 bg-white shadow-xs">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="size-6 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs">
-                        🏢
-                      </div>
-                      <h4 className="text-[13px] font-bold text-neutral-900">
-                        Identitas Outlet
-                      </h4>
-                    </div>
-                    <button
-                      onClick={() => setCurrentStep(1)}
-                      className="px-3 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-semibold transition-colors"
-                    >
-                      Ubah
-                    </button>
-                  </div>
-
-                  <div className="space-y-3 pl-8 text-xs">
+                <ReviewSummaryCard
+                  icon="🏢"
+                  iconBgColor="bg-emerald-50"
+                  iconTextColor="text-emerald-600"
+                  title="Identitas Outlet"
+                  onEdit={() => setCurrentStep(1)}
+                >
+                  <div className="space-y-3 text-xs">
                     <div className="flex items-center gap-6">
                       <span className="w-16 text-neutral-500">Logo</span>
                       <div className="size-12 rounded-xl bg-[#C2410C] text-white flex items-center justify-center font-black text-sm tracking-wider shadow-sm">
@@ -805,76 +745,46 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
                       </div>
                     </div>
                   </div>
-                </div>
+                </ReviewSummaryCard>
 
                 {/* 2. Jam Operasional */}
-                <div className="p-4 rounded-2xl border border-neutral-200 bg-white shadow-xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="size-6 rounded-md bg-teal-50 text-teal-600 flex items-center justify-center text-xs">
-                        ⏰
-                      </div>
-                      <h4 className="text-[13px] font-bold text-neutral-900">
-                        Jam Operasional
-                      </h4>
-                    </div>
-                    <button
-                      onClick={() => setCurrentStep(2)}
-                      className="px-3 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-semibold transition-colors"
-                    >
-                      Ubah
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-8 pl-8 mt-2 text-xs">
+                <ReviewSummaryCard
+                  icon="⏰"
+                  iconBgColor="bg-teal-50"
+                  iconTextColor="text-teal-600"
+                  title="Jam Operasional"
+                  onEdit={() => setCurrentStep(2)}
+                >
+                  <div className="flex items-center gap-8 text-xs">
                     <span className="font-semibold text-neutral-900">
                       Senin - Minggu
                     </span>
                     <span className="text-neutral-600">08:00 - 23:00</span>
                   </div>
-                </div>
+                </ReviewSummaryCard>
 
                 {/* 3. Deskripsi */}
-                <div className="p-4 rounded-2xl border border-neutral-200 bg-white shadow-xs">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="size-6 rounded-md bg-teal-50 text-teal-600 flex items-center justify-center text-xs">
-                        📄
-                      </div>
-                      <h4 className="text-[13px] font-bold text-neutral-900">
-                        Deskripsi
-                      </h4>
-                    </div>
-                    <button
-                      onClick={() => setCurrentStep(3)}
-                      className="px-3 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-semibold transition-colors"
-                    >
-                      Ubah
-                    </button>
-                  </div>
-                  <p className="text-xs text-neutral-700 pl-8 leading-relaxed">
+                <ReviewSummaryCard
+                  icon="📄"
+                  iconBgColor="bg-teal-50"
+                  iconTextColor="text-teal-600"
+                  title="Deskripsi"
+                  onEdit={() => setCurrentStep(3)}
+                >
+                  <p className="text-xs text-neutral-700 leading-relaxed">
                     {description || 'Belum ada deskripsi.'}
                   </p>
-                </div>
+                </ReviewSummaryCard>
 
                 {/* 4. Fasilitas */}
-                <div className="p-4 rounded-2xl border border-neutral-200 bg-white shadow-xs">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="size-6 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs">
-                        ⚡
-                      </div>
-                      <h4 className="text-[13px] font-bold text-neutral-900">
-                        Fasilitas
-                      </h4>
-                    </div>
-                    <button
-                      onClick={() => setCurrentStep(4)}
-                      className="px-3 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-semibold transition-colors"
-                    >
-                      Ubah
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-2 pl-8 flex-wrap">
+                <ReviewSummaryCard
+                  icon="⚡"
+                  iconBgColor="bg-emerald-50"
+                  iconTextColor="text-emerald-600"
+                  title="Fasilitas"
+                  onEdit={() => setCurrentStep(4)}
+                >
+                  <div className="flex items-center gap-2 flex-wrap">
                     {selectedFacilities.map((fac) => (
                       <span
                         key={fac}
@@ -884,7 +794,7 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
                       </span>
                     ))}
                   </div>
-                </div>
+                </ReviewSummaryCard>
               </div>
 
               {/* Bottom Buttons */}

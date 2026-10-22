@@ -14,8 +14,8 @@ import {
   Clock,
   AlertCircle,
 } from 'lucide-react';
-import { NemuLogo } from '@/components/common/NemuLogo';
-import { LoginSlider } from '@/components/auth/LoginSlider';
+import { AuthLayout } from '@/components/common/AuthLayout';
+import { ReviewSummaryCard } from '@/components/common/ReviewSummaryCard';
 
 interface UploadedFile {
   name: string;
@@ -107,20 +107,7 @@ export default function KybPage() {
   };
 
   return (
-    <div className="min-h-screen lg:h-screen bg-white p-3 sm:p-4 lg:p-5 flex flex-col lg:flex-row relative">
-      {/* Left Branding Panel with Slider */}
-      <div className="lg:w-[40%] xl:w-[38%] min-w-[380px] lg:max-w-[560px] shrink-0 bg-[#1A1A1A] text-white rounded-[24px] sm:rounded-[32px] p-6 sm:p-8 lg:p-10 flex flex-col justify-between relative overflow-hidden min-h-[580px] lg:h-full">
-        {/* Top Logo */}
-        <div className="shrink-0 mb-2">
-          <NemuLogo size="lg" theme="dark" />
-        </div>
-
-        {/* Center Mockup & Bottom Slider */}
-        <LoginSlider />
-      </div>
-
-      {/* Right Content Panel */}
-      <div className="flex-1 flex flex-col justify-between lg:h-full pt-4 sm:pt-6 lg:pt-8 pb-0 sm:pb-1 px-4 sm:px-8 lg:px-12 overflow-y-auto">
+    <AuthLayout rightPanelClassName="px-4 sm:px-8 lg:px-12">
         {/* ----------------- STEP 0: OVERVIEW SCREEN (Screenshot 5) ----------------- */}
         {step === 0 && (
           <div className="w-full max-w-[540px] mx-auto my-auto py-6 animate-in fade-in duration-200">
@@ -760,24 +747,14 @@ export default function KybPage() {
             {/* Review Cards matching Screenshot 2 */}
             <div className="space-y-3.5">
               {/* Card 1: Informasi bisnis */}
-              <div className="rounded-2xl border border-gray-200 p-4 bg-white space-y-3">
-                <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
-                  <div className="flex items-center gap-2">
-                    <div className="size-6 rounded-md bg-[#E6F4EA] text-[#0F9D58] flex items-center justify-center">
-                      <Briefcase className="size-3.5" />
-                    </div>
-                    <span className="text-sm font-bold text-[#111827]">
-                      Informasi bisnis
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setStep(1)}
-                    className="bg-[#E0EEFF] text-[#2563EB] hover:bg-[#D0E5FF] px-3.5 py-1 text-xs font-semibold rounded-lg transition-colors"
-                  >
-                    Ubah
-                  </button>
-                </div>
+              <ReviewSummaryCard
+                icon={<Briefcase className="size-3.5" />}
+                iconBgColor="bg-[#E6F4EA]"
+                iconTextColor="text-[#0F9D58]"
+                title="Informasi bisnis"
+                onEdit={() => setStep(1)}
+                divided
+              >
                 <div className="space-y-1.5 text-xs">
                   <div className="flex">
                     <span className="text-[#6B7280] w-36 sm:w-40 shrink-0">Nama Bisnis</span>
@@ -802,27 +779,17 @@ export default function KybPage() {
                     </span>
                   </div>
                 </div>
-              </div>
+              </ReviewSummaryCard>
 
               {/* Card 2: Dokumen legal */}
-              <div className="rounded-2xl border border-gray-200 p-4 bg-white space-y-3">
-                <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
-                  <div className="flex items-center gap-2">
-                    <div className="size-6 rounded-md bg-[#E6F4EA] text-[#0F9D58] flex items-center justify-center">
-                      <FileText className="size-3.5" />
-                    </div>
-                    <span className="text-sm font-bold text-[#111827]">
-                      Dokumen legal
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setStep(2)}
-                    className="bg-[#E0EEFF] text-[#2563EB] hover:bg-[#D0E5FF] px-3.5 py-1 text-xs font-semibold rounded-lg transition-colors"
-                  >
-                    Ubah
-                  </button>
-                </div>
+              <ReviewSummaryCard
+                icon={<FileText className="size-3.5" />}
+                iconBgColor="bg-[#E6F4EA]"
+                iconTextColor="text-[#0F9D58]"
+                title="Dokumen legal"
+                onEdit={() => setStep(2)}
+                divided
+              >
                 <div className="space-y-2 text-xs">
                   <div className="flex items-center">
                     <span className="text-[#6B7280] w-36 sm:w-40 shrink-0">NIB</span>
@@ -852,27 +819,17 @@ export default function KybPage() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </ReviewSummaryCard>
 
               {/* Card 3: Informasi pemilik */}
-              <div className="rounded-2xl border border-gray-200 p-4 bg-white space-y-3">
-                <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
-                  <div className="flex items-center gap-2">
-                    <div className="size-6 rounded-md bg-[#E6F4EA] text-[#0F9D58] flex items-center justify-center">
-                      <User className="size-3.5" />
-                    </div>
-                    <span className="text-sm font-bold text-[#111827]">
-                      Informasi pemilik
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setStep(3)}
-                    className="bg-[#E0EEFF] text-[#2563EB] hover:bg-[#D0E5FF] px-3.5 py-1 text-xs font-semibold rounded-lg transition-colors"
-                  >
-                    Ubah
-                  </button>
-                </div>
+              <ReviewSummaryCard
+                icon={<User className="size-3.5" />}
+                iconBgColor="bg-[#E6F4EA]"
+                iconTextColor="text-[#0F9D58]"
+                title="Informasi pemilik"
+                onEdit={() => setStep(3)}
+                divided
+              >
                 <div className="space-y-1.5 text-xs">
                   <div className="flex">
                     <span className="text-[#6B7280] w-36 sm:w-40 shrink-0">Nama Lengkap</span>
@@ -901,7 +858,7 @@ export default function KybPage() {
                     </span>
                   </div>
                 </div>
-              </div>
+              </ReviewSummaryCard>
 
               {/* Navigation Buttons */}
               <div className="flex items-center gap-3 pt-2">
@@ -978,22 +935,6 @@ export default function KybPage() {
           </div>
         )}
 
-        {/* Footer */}
-        <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-[#9CA3AF] gap-3 pt-4 pb-1 border-t border-gray-100 lg:border-t-0">
-          <span>© 2026 Nemu Network</span>
-          <div className="flex items-center gap-6">
-            <Link href="#" className="hover:text-[#4B5563] transition-colors">
-              Kebijakan Privasi
-            </Link>
-            <Link href="#" className="hover:text-[#4B5563] transition-colors">
-              Syarat dan Ketentuan
-            </Link>
-            <Link href="#" className="hover:text-[#4B5563] transition-colors">
-              Bantuan
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
+    </AuthLayout>
   );
 }

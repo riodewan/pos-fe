@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff, AlertTriangle, Loader2, Check } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { NemuLogo } from '@/components/common/NemuLogo';
-import { LoginSlider } from '@/components/auth/LoginSlider';
+import { AuthLayout } from '@/components/common/AuthLayout';
 import { ApiError } from '@/lib/api';
 
 export default function RegisterPage() {
@@ -66,203 +65,168 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen lg:h-screen bg-white p-3 sm:p-4 lg:p-5 flex flex-col lg:flex-row relative">
-      {/* Left Branding Panel with Slider */}
-      <div className="lg:w-[40%] xl:w-[38%] min-w-[380px] lg:max-w-[560px] shrink-0 bg-[#1A1A1A] text-white rounded-[24px] sm:rounded-[32px] p-6 sm:p-8 lg:p-10 flex flex-col justify-between relative overflow-hidden min-h-[580px] lg:h-full">
-        {/* Top Logo */}
-        <div className="shrink-0 mb-2">
-          <NemuLogo size="lg" theme="dark" />
-        </div>
-
-        {/* Center Mockup & Bottom Slider */}
-        <LoginSlider />
-      </div>
-
-      {/* Right Content Panel */}
-      <div className="flex-1 flex flex-col justify-between lg:h-full pt-4 sm:pt-6 lg:pt-8 pb-0 sm:pb-1 px-4 sm:px-8 lg:px-10">
-        {/* State 1: Success State */}
-        {isSuccess ? (
-          <div className="w-full max-w-[480px] mx-auto my-auto py-8 flex flex-col items-center text-center animate-in fade-in duration-300">
-            {/* Glowing Green Checkmark Circle */}
-            <div className="size-24 rounded-full bg-[#EAF8F0] flex items-center justify-center mb-6 shadow-sm">
-              <div className="size-16 rounded-full bg-[#16A34A] text-white flex items-center justify-center shadow-md">
-                <Check className="size-9 stroke-[3]" />
-              </div>
+    <AuthLayout>
+      {/* State 1: Success State */}
+      {isSuccess ? (
+        <div className="w-full max-w-[480px] mx-auto my-auto py-8 flex flex-col items-center text-center animate-in fade-in duration-300">
+          {/* Glowing Green Checkmark Circle */}
+          <div className="size-24 rounded-full bg-[#EAF8F0] flex items-center justify-center mb-6 shadow-sm">
+            <div className="size-16 rounded-full bg-[#16A34A] text-white flex items-center justify-center shadow-md">
+              <Check className="size-9 stroke-[3]" />
             </div>
-
-            {/* Title */}
-            <h2 className="text-[28px] sm:text-[34px] font-bold text-[#111827] tracking-tight leading-tight mb-2">
-              Akun berhasil dibuat!
-            </h2>
-
-            {/* Subtitle */}
-            <p className="text-sm sm:text-[15px] text-[#6B7280] max-w-sm mb-8 leading-relaxed">
-              Selanjutnya, lengkapi informasi bisnis untuk melanjutkan proses pendaftaran NemuPOS.
-            </p>
-
-            {/* Action Button */}
-            <button
-              type="button"
-              onClick={handleContinueVerification}
-              className="w-full h-[52px] rounded-xl text-white font-medium text-base flex items-center justify-center transition-all hover:brightness-95 active:scale-[0.99] shadow-sm"
-              style={{
-                backgroundColor: '#FF5C38',
-              }}
-            >
-              Lanjutkan Verifikasi Bisnis
-            </button>
           </div>
-        ) : (
-          /* State 2: Register Form */
-          <div className="w-full max-w-[540px] mx-auto my-auto py-4">
-            {/* Header */}
-            <div className="space-y-2 mb-8">
-              <h2 className="text-[32px] sm:text-[36px] font-bold text-[#111827] tracking-tight leading-tight">
-                Buat akun NemuPOS
-              </h2>
-              <p className="text-[15px] text-[#6B7280]">
-                Daftar untuk mulai mengelola transaksi, stok, dan laporan outletmu dengan NemuPOS.
-              </p>
+
+          {/* Title */}
+          <h2 className="text-[28px] sm:text-[34px] font-bold text-[#111827] tracking-tight leading-tight mb-2">
+            Akun berhasil dibuat!
+          </h2>
+
+          {/* Subtitle */}
+          <p className="text-sm sm:text-[15px] text-[#6B7280] max-w-sm mb-8 leading-relaxed">
+            Selanjutnya, lengkapi informasi bisnis untuk melanjutkan proses pendaftaran NemuPOS.
+          </p>
+
+          {/* Action Button */}
+          <button
+            onClick={handleContinueVerification}
+            className="w-full h-[52px] rounded-xl bg-[#FF8265] hover:bg-[#FF6F4E] active:scale-[0.99] text-white font-semibold text-[15px] transition-all flex items-center justify-center shadow-sm"
+          >
+            Lanjutkan Verifikasi Bisnis
+          </button>
+        </div>
+      ) : (
+        /* State 2: Form Registration State */
+        <div className="w-full max-w-[540px] mx-auto my-auto py-4 animate-in fade-in duration-200">
+          {/* Header */}
+          <div className="space-y-2 mb-8">
+            <h2 className="text-[32px] sm:text-[36px] font-bold text-[#111827] tracking-tight leading-tight">
+              Daftar akun NemuPOS
+            </h2>
+            <p className="text-[15px] text-[#6B7280]">
+              Lengkapi data berikut untuk mulai menggunakan NemuPOS.
+            </p>
+          </div>
+
+          {/* Error Banner matching Screenshot 2 */}
+          {errorMsg && (
+            <div className="flex items-start gap-3 p-4 mb-6 rounded-xl bg-[#FEF2F2] border border-[#FCA5A5] text-[#991B1B] animate-in fade-in duration-150">
+              <AlertTriangle className="size-5 shrink-0 text-[#EF4444] mt-0.5" />
+              <div className="text-xs sm:text-[13px] leading-relaxed">
+                {errorMsg}
+              </div>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+            {/* Nama Lengkap Field */}
+            <div className="space-y-1.5 sm:space-y-2">
+              <label className="block text-sm font-medium text-[#111827]">
+                Nama Lengkap
+              </label>
+              <input
+                type="text"
+                placeholder="Masukkan nama lengkap"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={loading}
+                required
+                className="w-full h-[50px] sm:h-[52px] px-4 rounded-xl border border-[#E5E7EB] bg-white text-[15px] text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#374151] transition-colors"
+              />
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Error Banner matching Figma Screenshot 2 */}
-              {errorMsg && (
-                <div className="flex items-start gap-3 p-3.5 rounded-xl bg-[#FFF5F5] text-[#C53030] border border-[#FEB2B2] animate-in fade-in duration-200">
-                  <AlertTriangle className="size-5 shrink-0 text-[#E53E3E] mt-0.5" />
-                  <span className="text-xs sm:text-[13px] leading-relaxed">{errorMsg}</span>
-                </div>
-              )}
+            {/* Email Field */}
+            <div className="space-y-1.5 sm:space-y-2">
+              <label className="block text-sm font-medium text-[#111827]">
+                Email
+              </label>
+              <input
+                type="email"
+                placeholder="Masukkan alamat email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+                required
+                className="w-full h-[50px] sm:h-[52px] px-4 rounded-xl border border-[#E5E7EB] bg-white text-[15px] text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#374151] transition-colors"
+              />
+            </div>
 
-              {/* Nama Lengkap Field */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-[#111827]">
-                  Nama Lengkap
-                </label>
+            {/* Nomor HP Field */}
+            <div className="space-y-1.5 sm:space-y-2">
+              <label className="block text-sm font-medium text-[#111827]">
+                Nomor HP
+              </label>
+              <input
+                type="tel"
+                placeholder="Masukkan nomor handphone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                disabled={loading}
+                className="w-full h-[50px] sm:h-[52px] px-4 rounded-xl border border-[#E5E7EB] bg-white text-[15px] text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#374151] transition-colors"
+              />
+            </div>
+
+            {/* Password Field */}
+            <div className="space-y-1.5 sm:space-y-2">
+              <label className="block text-sm font-medium text-[#111827]">
+                Password
+              </label>
+              <div className="relative">
                 <input
-                  type="text"
-                  placeholder="Nama lengkap sesuai ID/KTP"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Minimal 8 karakter"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
                   required
-                  className="w-full h-[52px] px-4 rounded-xl border border-[#E5E7EB] bg-white text-[15px] text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#374151] transition-colors"
+                  className="w-full h-[50px] sm:h-[52px] pl-4 pr-12 rounded-xl border border-[#E5E7EB] bg-white text-[15px] text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#374151] transition-colors"
                 />
-              </div>
-
-              {/* Email Field */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-[#111827]">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  placeholder="nama@mail.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading}
-                  required
-                  className="w-full h-[52px] px-4 rounded-xl border border-[#E5E7EB] bg-white text-[15px] text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#374151] transition-colors"
-                />
-              </div>
-
-              {/* Nomor HP Field */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-[#111827]">
-                  Nomor HP
-                </label>
-                <input
-                  type="tel"
-                  placeholder="Contoh: 081234567890"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  disabled={loading}
-                  className="w-full h-[52px] px-4 rounded-xl border border-[#E5E7EB] bg-white text-[15px] text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#374151] transition-colors"
-                />
-              </div>
-
-              {/* Password Field */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-[#111827]">
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Minimal 8 karakter"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    required
-                    className="w-full h-[52px] pl-4 pr-12 rounded-xl border border-[#E5E7EB] bg-white text-[15px] text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#374151] transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7280] transition-colors p-1"
-                    aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
-                  >
-                    {showPassword ? (
-                      <Eye className="size-5" />
-                    ) : (
-                      <EyeOff className="size-5" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <div className="pt-3">
                 <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full h-[52px] rounded-xl text-white font-medium text-base flex items-center justify-center gap-2 transition-all hover:brightness-95 active:scale-[0.99] disabled:opacity-80 disabled:cursor-not-allowed"
-                  style={{
-                    backgroundColor: '#FF8265',
-                  }}
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7280] transition-colors p-1"
+                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
                 >
-                  {loading ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      <span>Membuat Akun...</span>
-                    </>
+                  {showPassword ? (
+                    <Eye className="size-5" />
                   ) : (
-                    'Buat Akun'
+                    <EyeOff className="size-5" />
                   )}
                 </button>
               </div>
+            </div>
 
-              {/* Back to Login link */}
-              <div className="text-center text-xs sm:text-[13px] text-[#111827] pt-2">
-                Sudah punya akun?{' '}
-                <Link
-                  href="/login"
-                  className="font-semibold text-[#FF8265] hover:underline"
-                >
-                  Masuk
-                </Link>
-              </div>
-            </form>
-          </div>
-        )}
+            {/* Submit Button */}
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-[50px] sm:h-[52px] rounded-xl bg-[#FF8265] hover:bg-[#FF6F4E] active:scale-[0.99] text-white font-semibold text-[15px] transition-all flex items-center justify-center shadow-sm disabled:opacity-60"
+              >
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="size-5 animate-spin" />
+                    <span>Membuat Akun...</span>
+                  </div>
+                ) : (
+                  'Buat Akun'
+                )}
+              </button>
+            </div>
 
-        {/* Footer */}
-        <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-[#9CA3AF] gap-3 pt-4 pb-1 border-t border-gray-100 lg:border-t-0">
-          <span>© 2026 Nemu Network</span>
-          <div className="flex items-center gap-6">
-            <Link href="#" className="hover:text-[#4B5563] transition-colors">
-              Kebijakan Privasi
-            </Link>
-            <Link href="#" className="hover:text-[#4B5563] transition-colors">
-              Syarat dan Ketentuan
-            </Link>
-            <Link href="#" className="hover:text-[#4B5563] transition-colors">
-              Bantuan
-            </Link>
-          </div>
+            {/* Back to Login link */}
+            <div className="text-center text-xs sm:text-[13px] text-[#111827] pt-2">
+              Sudah punya akun?{' '}
+              <Link
+                href="/login"
+                className="font-semibold text-[#FF8265] hover:underline"
+              >
+                Masuk
+              </Link>
+            </div>
+          </form>
         </div>
-      </div>
-    </div>
+      )}
+    </AuthLayout>
   );
 }
