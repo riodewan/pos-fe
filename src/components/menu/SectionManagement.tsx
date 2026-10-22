@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from 'react';
 import {
-  Plus,
   Search,
   ChevronDown,
   Check,
@@ -13,7 +12,11 @@ import {
   Edit2,
   Trash2,
   X,
-  Layers,
+  Bookmark,
+  CheckCircle2,
+  Coffee,
+  Cookie,
+  Utensils,
 } from 'lucide-react';
 import { DataTable, ColumnDef, StatusBadge } from '@/components/common';
 
@@ -26,6 +29,7 @@ export interface SectionItem {
   sortOrder: number;
   status: 'Aktif' | 'Nonaktif';
   description?: string;
+  selectedMenuIds?: string[];
 }
 
 export const INITIAL_SECTIONS: SectionItem[] = [
@@ -38,6 +42,7 @@ export const INITIAL_SECTIONS: SectionItem[] = [
     sortOrder: 1,
     status: 'Aktif',
     description: 'Menu signature kopi pilihan terbaik barista yang direkomendasikan kepada pelanggan.',
+    selectedMenuIds: ['m-1', 'm-2', 'm-4', 'm-6'],
   },
   {
     id: 'sec-2',
@@ -48,6 +53,7 @@ export const INITIAL_SECTIONS: SectionItem[] = [
     sortOrder: 2,
     status: 'Aktif',
     description: 'Paket bundling kopi dan croissant hangat untuk santapan pagi hemat.',
+    selectedMenuIds: ['m-1', 'm-6', 'm-7'],
   },
   {
     id: 'sec-3',
@@ -58,6 +64,7 @@ export const INITIAL_SECTIONS: SectionItem[] = [
     sortOrder: 3,
     status: 'Aktif',
     description: 'Menu dengan penjualan tertinggi bulan ini untuk dorongan impulsive order.',
+    selectedMenuIds: ['m-1', 'm-2', 'm-3', 'm-6', 'm-8'],
   },
   {
     id: 'sec-4',
@@ -68,6 +75,7 @@ export const INITIAL_SECTIONS: SectionItem[] = [
     sortOrder: 4,
     status: 'Aktif',
     description: 'Pilihan pastry dan french fries untuk santai sore hari.',
+    selectedMenuIds: ['m-6', 'm-7', 'm-8'],
   },
   {
     id: 'sec-5',
@@ -78,7 +86,20 @@ export const INITIAL_SECTIONS: SectionItem[] = [
     sortOrder: 5,
     status: 'Nonaktif',
     description: 'Bundling makan siang hemat 2 porsi makanan dan minuman segar.',
+    selectedMenuIds: ['m-8', 'm-9'],
   },
+];
+
+const AVAILABLE_MENUS = [
+  { id: 'm-1', name: 'Kopi Susu Gula Aren', category: 'Kopi', price: 28000 },
+  { id: 'm-2', name: 'Matcha Latte', category: 'Kopi', price: 30000 },
+  { id: 'm-3', name: 'Americano', category: 'Kopi', price: 22000 },
+  { id: 'm-4', name: 'Cappucino', category: 'Kopi', price: 28000 },
+  { id: 'm-5', name: 'Latte', category: 'Kopi', price: 27000 },
+  { id: 'm-6', name: 'Croissant', category: 'Pastry', price: 25000 },
+  { id: 'm-7', name: 'Chocolate Croissant', category: 'Pastry', price: 28000 },
+  { id: 'm-8', name: 'Chicken Sandwich', category: 'Makanan Berat', price: 45000 },
+  { id: 'm-9', name: 'Pasta Carbonara', category: 'Makanan Berat', price: 48000 },
 ];
 
 interface SectionManagementProps {
@@ -97,6 +118,8 @@ export function SectionManagement({ onShowToast, isCreateOpen, onCloseCreate }: 
   // Drawer / Modal for Edit / Create
   const [editingSection, setEditingSection] = useState<SectionItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [savedSectionName, setSavedSectionName] = useState('');
 
   // Form State
   const [formName, setFormName] = useState('');
@@ -105,6 +128,7 @@ export function SectionManagement({ onShowToast, isCreateOpen, onCloseCreate }: 
   const [formSortOrder, setFormSortOrder] = useState<number>(1);
   const [formStatus, setFormStatus] = useState<'Aktif' | 'Nonaktif'>('Aktif');
   const [formDescription, setFormDescription] = useState('');
+  const [formSelectedMenuIds, setFormSelectedMenuIds] = useState<string[]>([]);
 
   // Handle external trigger for create
   React.useEffect(() => {
@@ -121,6 +145,7 @@ export function SectionManagement({ onShowToast, isCreateOpen, onCloseCreate }: 
     setFormSortOrder(sections.length + 1);
     setFormStatus('Aktif');
     setFormDescription('');
+    setFormSelectedMenuIds(['m-1', 'm-2']);
     setIsDrawerOpen(true);
   };
 
@@ -132,6 +157,7 @@ export function SectionManagement({ onShowToast, isCreateOpen, onCloseCreate }: 
     setFormSortOrder(sec.sortOrder);
     setFormStatus(sec.status);
     setFormDescription(sec.description || '');
+    setFormSelectedMenuIds(sec.selectedMenuIds || []);
     setIsDrawerOpen(true);
   };
 
@@ -141,12 +167,19 @@ export function SectionManagement({ onShowToast, isCreateOpen, onCloseCreate }: 
     if (onCloseCreate) onCloseCreate();
   };
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
+  const toggleMenuSelection = (menuId: string) => {
+    setFormSelectedMenuIds((prev) =>
+      prev.includes(menuId) ? prev.filter((id) => id !== menuId) : [...prev, menuId]
+    );
+  };
+
+  const handleSave = (isDraft = false) => {
     if (!formName.trim()) {
       alert('Nama section wajib diisi');
       return;
     }
+
+    const status = isDraft ? 'Nonaktif' : formStatus;
 
     if (editingSection) {
       setSections((prev) =>
@@ -157,29 +190,33 @@ export function SectionManagement({ onShowToast, isCreateOpen, onCloseCreate }: 
                 name: formName,
                 placement: formPlacement,
                 activeHours: formActiveHours,
+                itemCount: formSelectedMenuIds.length,
                 sortOrder: formSortOrder,
-                status: formStatus,
+                status,
                 description: formDescription,
+                selectedMenuIds: formSelectedMenuIds,
               }
             : s
         )
       );
-      onShowToast(`Section ${formName} berhasil diperbarui!`);
     } else {
       const newSec: SectionItem = {
         id: `sec-${Date.now()}`,
         name: formName,
         placement: formPlacement,
         activeHours: formActiveHours,
-        itemCount: 0,
+        itemCount: formSelectedMenuIds.length,
         sortOrder: formSortOrder,
-        status: formStatus,
+        status,
         description: formDescription,
+        selectedMenuIds: formSelectedMenuIds,
       };
       setSections((prev) => [...prev, newSec]);
-      onShowToast(`Section ${formName} berhasil ditambahkan!`);
     }
-    handleCloseDrawer();
+
+    setSavedSectionName(formName);
+    setIsDrawerOpen(false);
+    setShowSuccessModal(true);
   };
 
   const handleDelete = (id: string, name: string) => {
@@ -385,23 +422,16 @@ export function SectionManagement({ onShowToast, isCreateOpen, onCloseCreate }: 
             onClick={handleCloseDrawer}
             className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] transition-opacity"
           />
-          <div className="fixed inset-y-0 right-0 z-50 w-full max-w-[520px] bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out">
+          <div className="fixed inset-y-0 right-0 z-50 w-full max-w-[640px] bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out">
             {/* Header */}
-            <div className="p-6 border-b border-neutral-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center text-purple-600">
-                  <Columns className="size-5" />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-neutral-900 tracking-tight">
-                    {editingSection ? 'Edit Section Menu' : 'Tambah Section Baru'}
-                  </h2>
-                  <p className="text-xs text-neutral-400 mt-0.5">
-                    {editingSection
-                      ? `Atur penempatan dan jadwal section "${editingSection.name}"`
-                      : 'Buat grup display khusus di QR order atau POS'}
-                  </p>
-                </div>
+            <div className="p-6 border-b border-neutral-100 flex items-start justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-neutral-900 tracking-tight">
+                  {editingSection ? 'Edit Section' : 'Tambah Section'}
+                </h2>
+                <p className="text-xs text-neutral-500 mt-0.5">
+                  Atur grup display khusus, penempatan channel, dan daftar menu terkait.
+                </p>
               </div>
 
               <button
@@ -413,7 +443,7 @@ export function SectionManagement({ onShowToast, isCreateOpen, onCloseCreate }: 
             </div>
 
             {/* Form Body */}
-            <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-6 space-y-5">
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
               {/* Field: Nama Section */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-neutral-800">
@@ -503,6 +533,35 @@ export function SectionManagement({ onShowToast, isCreateOpen, onCloseCreate }: 
                 </div>
               </div>
 
+              {/* Field: Pilih Menu Terdaftar dalam Section */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-neutral-800">
+                  Menu Terdaftar ({formSelectedMenuIds.length} Dipilih)
+                </label>
+                <div className="border border-neutral-200 rounded-xl p-3 max-h-48 overflow-y-auto space-y-1.5 bg-neutral-50/40">
+                  {AVAILABLE_MENUS.map((menu) => (
+                    <label
+                      key={menu.id}
+                      className="flex items-center justify-between p-2 rounded-lg bg-white border border-neutral-200/70 hover:border-neutral-300 cursor-pointer text-xs"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={formSelectedMenuIds.includes(menu.id)}
+                          onChange={() => toggleMenuSelection(menu.id)}
+                          className="rounded border-neutral-300 text-[#FF4D4D] focus:ring-0 size-4"
+                        />
+                        <span className="font-semibold text-neutral-800">{menu.name}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500">
+                          {menu.category}
+                        </span>
+                      </div>
+                      <span className="font-medium text-neutral-700">Rp{menu.price.toLocaleString('id-ID')}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
               {/* Field: Deskripsi */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-neutral-800">Deskripsi Section</label>
@@ -514,40 +573,66 @@ export function SectionManagement({ onShowToast, isCreateOpen, onCloseCreate }: 
                   className="w-full p-3 rounded-xl border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:border-neutral-400 shadow-2xs resize-none"
                 />
               </div>
+            </div>
 
-              {/* Footer Buttons */}
-              <div className="pt-4 border-t border-neutral-100 flex items-center justify-between gap-3">
-                {editingSection ? (
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(editingSection.id, editingSection.name)}
-                    className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold transition-colors"
-                  >
-                    <Trash2 className="size-4" />
-                    <span>Hapus Section</span>
-                  </button>
-                ) : (
-                  <div />
-                )}
+            {/* Footer matching Tambah Menu styling */}
+            <div className="p-4 px-6 border-t border-neutral-100 flex items-center justify-between gap-4 bg-white">
+              <button
+                type="button"
+                onClick={() => handleSave(true)}
+                className="inline-flex items-center gap-2 h-11 px-5 rounded-xl border border-neutral-200 text-neutral-700 hover:bg-neutral-50 text-xs font-semibold transition-colors"
+              >
+                <Bookmark className="size-4" />
+                <span>Simpan sebagai Draf</span>
+              </button>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleCloseDrawer}
-                    className="h-10 px-4 rounded-xl border border-neutral-200 text-neutral-600 hover:bg-neutral-50 text-xs font-semibold transition-colors"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    className="inline-flex items-center gap-1.5 h-10 px-5 rounded-xl bg-[#FF7D54] hover:bg-[#FF6A3D] text-white text-xs font-semibold transition-colors shadow-2xs"
-                  >
-                    <Check className="size-4 stroke-[2.5]" />
-                    <span>Simpan Section</span>
-                  </button>
-                </div>
+              <button
+                type="button"
+                onClick={() => handleSave(false)}
+                className="inline-flex items-center gap-2 h-11 px-7 rounded-xl bg-[#E5484D] hover:bg-[#D9383D] text-white text-xs font-semibold transition-colors shadow-2xs"
+              >
+                <CheckCircle2 className="size-4 stroke-[2.5]" />
+                <span>Simpan Section</span>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* SUCCESS MODAL matching Screenshot 1 */}
+      {showSuccessModal && (
+        <>
+          <div className="fixed inset-0 z-60 bg-black/50 backdrop-blur-[2px] transition-opacity" />
+          <div className="fixed inset-0 z-70 flex items-center justify-center p-4">
+            <div className="w-full max-w-[480px] bg-white rounded-3xl p-8 shadow-2xl flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-200">
+              <div className="size-24 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25 mb-6">
+                <Check className="size-12 stroke-[3]" />
               </div>
-            </form>
+
+              <h3 className="text-xl font-bold text-neutral-900 tracking-tight">
+                Section Berhasil Ditambahkan!
+              </h3>
+              <p className="text-xs text-neutral-500 mt-2 max-w-[360px] leading-relaxed">
+                Section &quot;{savedSectionName}&quot; berhasil disimpan dan akan ditampilkan pada channel yang ditentukan.
+              </p>
+
+              <div className="grid grid-cols-2 gap-3 w-full mt-8">
+                <button
+                  type="button"
+                  onClick={() => setShowSuccessModal(false)}
+                  className="h-11 rounded-2xl border border-red-200 hover:bg-red-50/50 text-[#E5484D] text-xs font-semibold transition-colors"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSuccessModal(false)}
+                  className="h-11 rounded-2xl bg-[#FF5C38] hover:bg-[#EE4E2A] text-white text-xs font-semibold transition-colors shadow-2xs"
+                >
+                  Kembali ke Daftar Section
+                </button>
+              </div>
+            </div>
           </div>
         </>
       )}

@@ -5,7 +5,6 @@ import {
   Plus,
   Search,
   ChevronDown,
-  MoreVertical,
   Check,
   Tag,
   Coffee,
@@ -14,7 +13,8 @@ import {
   Edit2,
   Trash2,
   X,
-  Layers,
+  Bookmark,
+  CheckCircle2,
 } from 'lucide-react';
 import { DataTable, ColumnDef, StatusBadge } from '@/components/common';
 
@@ -108,6 +108,8 @@ export function CategoryManagement({ onShowToast, isCreateOpen, onCloseCreate }:
   // Drawer / Modal for Edit / Create
   const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [savedCategoryName, setSavedCategoryName] = useState('');
 
   // Form State
   const [formName, setFormName] = useState('');
@@ -152,14 +154,14 @@ export function CategoryManagement({ onShowToast, isCreateOpen, onCloseCreate }:
     if (onCloseCreate) onCloseCreate();
   };
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = (isDraft = false) => {
     if (!formName.trim()) {
       alert('Nama kategori wajib diisi');
       return;
     }
 
     const slug = formSlug.trim() || formName.toLowerCase().replace(/\s+/g, '-');
+    const status = isDraft ? 'Nonaktif' : formStatus;
 
     if (editingCategory) {
       setCategories((prev) =>
@@ -171,13 +173,12 @@ export function CategoryManagement({ onShowToast, isCreateOpen, onCloseCreate }:
                 slug,
                 type: formType,
                 sortOrder: formSortOrder,
-                status: formStatus,
+                status,
                 description: formDescription,
               }
             : c
         )
       );
-      onShowToast(`Kategori ${formName} berhasil diperbarui!`);
     } else {
       const newCat: CategoryItem = {
         id: `cat-${Date.now()}`,
@@ -186,13 +187,15 @@ export function CategoryManagement({ onShowToast, isCreateOpen, onCloseCreate }:
         type: formType,
         itemCount: 0,
         sortOrder: formSortOrder,
-        status: formStatus,
+        status,
         description: formDescription,
       };
       setCategories((prev) => [...prev, newCat]);
-      onShowToast(`Kategori ${formName} berhasil ditambahkan!`);
     }
-    handleCloseDrawer();
+
+    setSavedCategoryName(formName);
+    setIsDrawerOpen(false);
+    setShowSuccessModal(true);
   };
 
   const handleDelete = (id: string, name: string) => {
@@ -402,23 +405,16 @@ export function CategoryManagement({ onShowToast, isCreateOpen, onCloseCreate }:
             onClick={handleCloseDrawer}
             className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] transition-opacity"
           />
-          <div className="fixed inset-y-0 right-0 z-50 w-full max-w-[520px] bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out">
-            {/* Header */}
-            <div className="p-6 border-b border-neutral-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600">
-                  <Tag className="size-5" />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-neutral-900 tracking-tight">
-                    {editingCategory ? 'Edit Kategori' : 'Tambah Kategori Baru'}
-                  </h2>
-                  <p className="text-xs text-neutral-400 mt-0.5">
-                    {editingCategory
-                      ? `Kelola informasi kategori "${editingCategory.name}"`
-                      : 'Buat kategori baru untuk menu katalog'}
-                  </p>
-                </div>
+          <div className="fixed inset-y-0 right-0 z-50 w-full max-w-[600px] bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out">
+            {/* Header matching Tambah Menu style */}
+            <div className="p-6 border-b border-neutral-100 flex items-start justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-neutral-900 tracking-tight">
+                  {editingCategory ? 'Edit Kategori' : 'Tambah Kategori'}
+                </h2>
+                <p className="text-xs text-neutral-500 mt-0.5">
+                  Lengkapi nama, tipe, dan urutan kategori untuk katalog menu outlet.
+                </p>
               </div>
 
               <button
@@ -430,7 +426,7 @@ export function CategoryManagement({ onShowToast, isCreateOpen, onCloseCreate }:
             </div>
 
             {/* Form Body */}
-            <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-6 space-y-5">
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
               {/* Field: Nama Kategori */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-neutral-800">
@@ -458,7 +454,7 @@ export function CategoryManagement({ onShowToast, isCreateOpen, onCloseCreate }:
                   type="text"
                   value={formSlug}
                   onChange={(e) => setFormSlug(e.target.value)}
-                  placeholder="contoh: signature-coffee"
+                  placeholder="signature-coffee"
                   className="w-full h-10 px-3.5 rounded-xl border border-neutral-200 text-xs font-mono text-neutral-700 focus:outline-none focus:border-neutral-400 shadow-2xs bg-neutral-50/50"
                 />
               </div>
@@ -539,40 +535,66 @@ export function CategoryManagement({ onShowToast, isCreateOpen, onCloseCreate }:
                   className="w-full p-3 rounded-xl border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:border-neutral-400 shadow-2xs resize-none"
                 />
               </div>
+            </div>
 
-              {/* Footer Buttons */}
-              <div className="pt-4 border-t border-neutral-100 flex items-center justify-between gap-3">
-                {editingCategory ? (
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(editingCategory.id, editingCategory.name)}
-                    className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold transition-colors"
-                  >
-                    <Trash2 className="size-4" />
-                    <span>Hapus Kategori</span>
-                  </button>
-                ) : (
-                  <div />
-                )}
+            {/* Footer matching Tambah Menu styling */}
+            <div className="p-4 px-6 border-t border-neutral-100 flex items-center justify-between gap-4 bg-white">
+              <button
+                type="button"
+                onClick={() => handleSave(true)}
+                className="inline-flex items-center gap-2 h-11 px-5 rounded-xl border border-neutral-200 text-neutral-700 hover:bg-neutral-50 text-xs font-semibold transition-colors"
+              >
+                <Bookmark className="size-4" />
+                <span>Simpan sebagai Draf</span>
+              </button>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleCloseDrawer}
-                    className="h-10 px-4 rounded-xl border border-neutral-200 text-neutral-600 hover:bg-neutral-50 text-xs font-semibold transition-colors"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    className="inline-flex items-center gap-1.5 h-10 px-5 rounded-xl bg-[#FF7D54] hover:bg-[#FF6A3D] text-white text-xs font-semibold transition-colors shadow-2xs"
-                  >
-                    <Check className="size-4 stroke-[2.5]" />
-                    <span>Simpan Kategori</span>
-                  </button>
-                </div>
+              <button
+                type="button"
+                onClick={() => handleSave(false)}
+                className="inline-flex items-center gap-2 h-11 px-7 rounded-xl bg-[#E5484D] hover:bg-[#D9383D] text-white text-xs font-semibold transition-colors shadow-2xs"
+              >
+                <CheckCircle2 className="size-4 stroke-[2.5]" />
+                <span>Simpan Kategori</span>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* SUCCESS MODAL matching Screenshot 1 */}
+      {showSuccessModal && (
+        <>
+          <div className="fixed inset-0 z-60 bg-black/50 backdrop-blur-[2px] transition-opacity" />
+          <div className="fixed inset-0 z-70 flex items-center justify-center p-4">
+            <div className="w-full max-w-[480px] bg-white rounded-3xl p-8 shadow-2xl flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-200">
+              <div className="size-24 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25 mb-6">
+                <Check className="size-12 stroke-[3]" />
               </div>
-            </form>
+
+              <h3 className="text-xl font-bold text-neutral-900 tracking-tight">
+                Kategori Berhasil Ditambahkan!
+              </h3>
+              <p className="text-xs text-neutral-500 mt-2 max-w-[360px] leading-relaxed">
+                Kategori &quot;{savedCategoryName}&quot; berhasil disimpan. Kamu bisa mulai mengelompokkan menu ke dalam kategori ini.
+              </p>
+
+              <div className="grid grid-cols-2 gap-3 w-full mt-8">
+                <button
+                  type="button"
+                  onClick={() => setShowSuccessModal(false)}
+                  className="h-11 rounded-2xl border border-red-200 hover:bg-red-50/50 text-[#E5484D] text-xs font-semibold transition-colors"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSuccessModal(false)}
+                  className="h-11 rounded-2xl bg-[#FF5C38] hover:bg-[#EE4E2A] text-white text-xs font-semibold transition-colors shadow-2xs"
+                >
+                  Kembali ke Daftar Kategori
+                </button>
+              </div>
+            </div>
           </div>
         </>
       )}
