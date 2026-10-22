@@ -107,7 +107,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return pathname === item.href;
   };
 
-  const activeItem = accessibleItems.find(isItemActive);
+  const isKdsPage = pathname === '/dashboard/kds';
 
   return (
     <div className="min-h-screen flex bg-[#F8F9FA]">
@@ -122,8 +122,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Sidebar Navigation */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-64 bg-[#141414] text-white transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 flex flex-col',
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          'fixed inset-y-0 left-0 z-50 w-64 bg-[#141414] text-white transition-transform duration-200 flex flex-col',
+          isKdsPage
+            ? mobileMenuOpen
+              ? 'translate-x-0'
+              : '-translate-x-full'
+            : mobileMenuOpen
+            ? 'translate-x-0'
+            : '-translate-x-full lg:sticky lg:top-0 lg:h-screen lg:translate-x-0'
         )}
       >
         <div className="h-full flex flex-col justify-between">
@@ -398,15 +404,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header matching Figma screenshot */}
-        <header className="sticky top-0 z-30 h-16 border-b border-neutral-200/80 bg-white text-neutral-800 px-6 flex items-center justify-between gap-4">
+        <header
+          className={cn(
+            'sticky top-0 z-30 h-16 border-b px-6 flex items-center justify-between gap-4 transition-colors',
+            isKdsPage
+              ? 'border-neutral-800/80 bg-[#141414] text-white'
+              : 'border-neutral-200/80 bg-white text-neutral-800'
+          )}
+        >
           <div className="flex items-center gap-3 min-w-0">
-            <button
-              onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-1.5 -ml-1 rounded-md text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100"
-              aria-label="Buka menu"
-            >
-              <MenuIcon className="size-5" />
-            </button>
+            {/* If KDS full-screen, show brand logo & drawer toggle matching Screenshot 1 */}
+            {isKdsPage ? (
+              <div className="flex items-center gap-3 mr-2">
+                <Link href={brandHomeHref} className="flex items-center">
+                  <NemuLogo size="sm" />
+                </Link>
+                <button
+                  onClick={() => setMobileMenuOpen(true)}
+                  className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
+                  aria-label="Buka menu navigasi"
+                >
+                  <MenuIcon className="size-5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="lg:hidden p-1.5 -ml-1 rounded-md text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100"
+                aria-label="Buka menu"
+              >
+                <MenuIcon className="size-5" />
+              </button>
+            )}
 
             {/* Quick Action Badges matching Figma screenshot: POS, KDS, Reservasi */}
             <div className="flex items-center gap-1.5 bg-[#1A1A1A] p-1.5 rounded-xl border border-neutral-800 shadow-xs">
@@ -419,20 +448,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     : 'text-neutral-300 hover:text-white hover:bg-white/10'
                 )}
               >
-                <Printer className={cn('size-3.5', pathname === '/dashboard/pos' && currentTab !== 'orders' ? 'text-white' : 'text-[#FF5C38]')} />
+                <Printer
+                  className={cn(
+                    'size-3.5',
+                    pathname === '/dashboard/pos' && currentTab !== 'orders'
+                      ? 'text-white'
+                      : 'text-[#FF5C38]'
+                  )}
+                />
                 <span>POS</span>
               </Link>
 
               <Link
-                href="/dashboard/pos?tab=orders"
+                href="/dashboard/kds"
                 className={cn(
                   'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
-                  pathname === '/dashboard/pos' && currentTab === 'orders'
+                  pathname === '/dashboard/kds' ||
+                    (pathname === '/dashboard/pos' && currentTab === 'orders')
                     ? 'bg-[#FF5C38] text-white shadow-xs'
                     : 'text-neutral-300 hover:text-white hover:bg-white/10'
                 )}
               >
-                <ChefHat className={cn('size-3.5', pathname === '/dashboard/pos' && currentTab === 'orders' ? 'text-white' : 'text-[#FF5C38]')} />
+                <ChefHat
+                  className={cn(
+                    'size-3.5',
+                    pathname === '/dashboard/kds' ||
+                      (pathname === '/dashboard/pos' && currentTab === 'orders')
+                      ? 'text-white'
+                      : 'text-[#FF5C38]'
+                  )}
+                />
                 <span>KDS</span>
               </Link>
 
@@ -445,7 +490,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     : 'text-neutral-300 hover:text-white hover:bg-white/10'
                 )}
               >
-                <Ticket className={cn('size-3.5', pathname === '/dashboard/tables' ? 'text-white' : 'text-[#FF5C38]')} />
+                <Ticket
+                  className={cn(
+                    'size-3.5',
+                    pathname === '/dashboard/tables' ? 'text-white' : 'text-[#FF5C38]'
+                  )}
+                />
                 <span>Reservasi</span>
               </Link>
             </div>
@@ -454,17 +504,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Right Header: Mail & User profile matching Figma screenshot */}
           <div className="flex items-center gap-3">
             <button
-              className="size-9 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-600 flex items-center justify-center transition-colors shadow-2xs"
+              className={cn(
+                'size-9 rounded-xl flex items-center justify-center transition-colors shadow-2xs',
+                isKdsPage
+                  ? 'border border-neutral-800 bg-[#222222] text-neutral-300 hover:bg-neutral-800'
+                  : 'border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-600'
+              )}
               title="Pesan & Notifikasi"
             >
-              <Mail className="size-4 text-neutral-600" />
+              <Mail className="size-4" />
             </button>
 
-            <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-full border border-neutral-200 bg-white shadow-2xs cursor-pointer hover:bg-neutral-50 transition-colors">
+            <div
+              className={cn(
+                'flex items-center gap-2.5 px-3 py-1.5 rounded-full border shadow-2xs cursor-pointer transition-colors',
+                isKdsPage
+                  ? 'border-neutral-800 bg-[#1F1F1F] text-neutral-200 hover:bg-neutral-800'
+                  : 'border border-neutral-200 bg-white text-neutral-800 hover:bg-neutral-50'
+              )}
+            >
               <div className="size-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[11px] font-bold">
                 {getInitials(user?.name) || 'AP'}
               </div>
-              <span className="text-xs font-medium text-neutral-800 hidden sm:inline">
+              <span className="text-xs font-medium hidden sm:inline">
                 {user?.name || 'Andi Pratama'}
               </span>
               <ChevronDown className="size-3 text-neutral-400" />

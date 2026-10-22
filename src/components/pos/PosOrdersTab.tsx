@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
 import {
   ClipboardList,
   Clock,
@@ -221,6 +222,35 @@ export function PosOrdersTab({ onBackToRegister, onPrintBill }: PosOrdersTabProp
 
   return (
     <div className="space-y-5">
+      {/* Top Header Bar with KDS Launcher and Back to Register */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-neutral-200/90 shadow-2xs">
+        <div>
+          <h2 className="text-sm font-bold text-neutral-900">
+            Daftar Antrean Pesanan & Dapur
+          </h2>
+          <p className="text-xs text-neutral-500">
+            Kelola persiapan pesanan kasir POS dan pesanan mandiri tamu dari QR meja.
+          </p>
+        </div>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <Link
+            href="/dashboard/kds"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-bold transition-all shadow-2xs"
+          >
+            <ChefHat className="size-3.5 text-[#FF5C38]" />
+            <span>Buka Layar KDS Penuh</span>
+          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onBackToRegister}
+            className="text-xs font-semibold"
+          >
+            Kembali ke Kasir
+          </Button>
+        </div>
+      </div>
+
       {/* KPI Stats Overview Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="p-3.5 rounded-xl border border-neutral-200/80 bg-white shadow-2xs">
