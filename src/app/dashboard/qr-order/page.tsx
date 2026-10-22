@@ -8,24 +8,27 @@ import {
   Check,
   Share2,
   Plus,
-  Search,
-  ChevronDown,
   MoreVertical,
   QrCode,
   CheckCircle2,
-  X,
   Bookmark,
-  Calendar,
-  Sparkles,
-  ExternalLink,
   Info,
-  Clock,
-  Layers,
-  Palette,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { DataTable, ColumnDef, StatusBadge } from '@/components/common';
-import { EmptyState } from '@/components/common/EmptyState';
+import {
+  DataTable,
+  ColumnDef,
+  StatusBadge,
+  EmptyState,
+  Button,
+  SearchInput,
+  Switch,
+  Select,
+  Pagination,
+  Card,
+  Drawer,
+  Modal,
+} from '@/components/common';
 
 interface TableQrItem {
   id: string;
@@ -100,22 +103,29 @@ export default function QrOrderPage() {
   const [dispStatusFilter, setDispStatusFilter] = useState('all');
   const [selectedDispIds, setSelectedDispIds] = useState<string[]>([]);
 
-  // Generate Disposable QR Modal
+  // Modal / Drawer state for creating Disposable QR
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [formEventName, setFormEventName] = useState('');
   const [formExpiryDate, setFormExpiryDate] = useState('15/10/2026');
   const [formUsageLimit, setFormUsageLimit] = useState<'single' | 'unlimited'>('single');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  // Settings State
+  const [showLogoOnMenu, setShowLogoOnMenu] = useState(true);
+  const [requireCustomerName, setRequireCustomerName] = useState(true);
+  const [enableQrisPayment, setEnableQrisPayment] = useState(true);
+
+  // Copy Feedback Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    setTimeout(() => setToastMessage(null), 2500);
   };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard?.writeText(text);
-    showToast('Tautan berhasil disalin!');
+    showToast('Tautan berhasil disalin ke clipboard!');
   };
 
   // Filter Table QRs
@@ -145,8 +155,8 @@ export default function QrOrderPage() {
     });
   }, [demoMode, disposableQrs, dispStatusFilter, dispSearch]);
 
-  const toggleSelectTableQr = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const toggleSelectTableQr = (id: string, e?: React.SyntheticEvent) => {
+    e?.stopPropagation();
     setSelectedTableQrIds((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
@@ -160,8 +170,8 @@ export default function QrOrderPage() {
     }
   };
 
-  const toggleSelectDispQr = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const toggleSelectDispQr = (id: string, e?: React.SyntheticEvent) => {
+    e?.stopPropagation();
     setSelectedDispIds((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
@@ -248,357 +258,332 @@ export default function QrOrderPage() {
         {/* LEFT COLUMN: QR Per Meja & QR Sekali Pakai (8 Cols ~ 68%) */}
         <div className="lg:col-span-8 space-y-6">
           {/* CARD 1: QR PER MEJA */}
-          <div className="bg-white rounded-2xl border border-neutral-200/80 p-5 lg:p-6 space-y-4 shadow-2xs">
-            {/* Header */}
-            <div>
-              <h2 className="text-base font-bold text-neutral-900">QR Per Meja</h2>
-              <p className="text-xs text-neutral-400 mt-0.5">
-                QR unik untuk setiap meja. Ditempel di meja agar pelanggan bisa langsung memesan.
-              </p>
-            </div>
-
+          <Card
+            title="QR Per Meja"
+            subtitle="QR unik untuk setiap meja. Ditempel di meja agar pelanggan bisa langsung memesan."
+            className="p-5 lg:p-6"
+          >
             {/* Filter Bar */}
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              {/* Search input with dark circle magnifying button */}
-              <div className="relative flex-1 min-w-[200px]">
-                <input
-                  type="text"
+            <div className="flex flex-wrap items-center gap-3 pt-1 pb-3">
+              <div className="flex-1 min-w-[200px]">
+                <SearchInput
                   value={tableSearch}
                   onChange={(e) => setTableSearch(e.target.value)}
+                  onClear={() => setTableSearch('')}
                   placeholder="Cari nomor meja..."
-                  className="w-full h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs text-neutral-900 placeholder:text-neutral-400 shadow-2xs focus:outline-none"
+                  size="sm"
                 />
-                <div className="absolute right-2 top-2 size-5 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-400">
-                  <Search className="size-2.5 stroke-[2.5]" />
-                </div>
               </div>
 
-              {/* Area filter */}
-              <div className="relative">
-                <select
-                  value={tableAreaFilter}
-                  onChange={(e) => setTableAreaFilter(e.target.value)}
-                  className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none hover:bg-neutral-50"
-                >
-                  <option value="all">Semua area</option>
-                  <option value="Indoor">Indoor</option>
-                  <option value="Outdoor">Outdoor</option>
-                  <option value="VIP">VIP</option>
-                </select>
-                <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
-              </div>
+              <Select
+                value={tableAreaFilter}
+                onChange={(e) => setTableAreaFilter(e.target.value)}
+                size="sm"
+                options={[
+                  { value: 'all', label: 'Semua area' },
+                  { value: 'Indoor', label: 'Indoor' },
+                  { value: 'Outdoor', label: 'Outdoor' },
+                  { value: 'VIP', label: 'VIP' },
+                ]}
+              />
 
-              {/* Status filter */}
-              <div className="relative">
-                <select
-                  value={tableStatusFilter}
-                  onChange={(e) => setTableStatusFilter(e.target.value)}
-                  className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none hover:bg-neutral-50"
-                >
-                  <option value="all">Semua status</option>
-                  <option value="Aktif">Aktif</option>
-                  <option value="Nonaktif">Nonaktif</option>
-                </select>
-                <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
-              </div>
+              <Select
+                value={tableStatusFilter}
+                onChange={(e) => setTableStatusFilter(e.target.value)}
+                size="sm"
+                options={[
+                  { value: 'all', label: 'Semua status' },
+                  { value: 'Aktif', label: 'Aktif' },
+                  { value: 'Nonaktif', label: 'Nonaktif' },
+                ]}
+              />
 
-              {/* Download Semua Button */}
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="sm"
+                leftIcon={<Download className="size-3.5" />}
                 onClick={() => downloadQr('Semua Meja')}
-                className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 text-xs font-semibold text-neutral-700 transition-colors shadow-2xs"
               >
-                <Download className="size-3.5" />
-                <span>Download Semua</span>
-              </button>
+                Download Semua
+              </Button>
             </div>
 
             {/* Table or Empty State */}
             {filteredTableQrs.length > 0 ? (
-              <div className="border border-neutral-200/80 rounded-xl overflow-hidden">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-neutral-50/70 border-b border-neutral-200/80 text-[11px] font-semibold text-neutral-500">
-                    <tr>
-                      <th className="py-2.5 px-3 w-8">
-                        <input
-                          type="checkbox"
-                          checked={
-                            selectedTableQrIds.length === filteredTableQrs.length &&
-                            filteredTableQrs.length > 0
-                          }
-                          onChange={toggleSelectAllTableQrs}
-                          className="rounded border-neutral-300 text-[#FF4D4D] focus:ring-0 size-3.5 cursor-pointer"
-                        />
-                      </th>
-                      <th className="py-2.5 px-3">Meja</th>
-                      <th className="py-2.5 px-3">Area</th>
-                      <th className="py-2.5 px-3">QR Code</th>
-                      <th className="py-2.5 px-3">Tautan</th>
-                      <th className="py-2.5 px-3">Status</th>
-                      <th className="py-2.5 px-3">Unduh</th>
-                      <th className="py-2.5 px-2 w-8"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100">
-                    {filteredTableQrs.map((tbl) => (
-                      <tr key={tbl.id} className="hover:bg-neutral-50/50">
-                        <td className="py-3 px-3">
+              <div className="space-y-4">
+                <div className="overflow-x-auto border-t border-neutral-100">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-neutral-200/80 text-neutral-500 font-medium">
+                        <th className="py-3 px-2 w-8">
                           <input
                             type="checkbox"
-                            checked={selectedTableQrIds.includes(tbl.id)}
-                            onClick={(e) => toggleSelectTableQr(tbl.id, e)}
-                            onChange={() => {}}
-                            className="rounded border-neutral-300 text-[#FF4D4D] focus:ring-0 size-3.5 cursor-pointer"
+                            checked={
+                              selectedTableQrIds.length === filteredTableQrs.length &&
+                              filteredTableQrs.length > 0
+                            }
+                            onChange={toggleSelectAllTableQrs}
+                            className="rounded border-neutral-300 text-orange-600 focus:ring-0 size-3.5"
                           />
-                        </td>
-                        <td className="py-3 px-3 font-bold text-neutral-900">{tbl.tableNumber}</td>
-                        <td className="py-3 px-3">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#FFF8E1] text-[#A76D04] border border-[#FFE082]/60">
-                            {tbl.area}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3">
-                          <div className="size-8 rounded-lg bg-white border border-neutral-200 p-0.5 shadow-2xs flex items-center justify-center">
-                            <QRCodeSVG value={tbl.url} size={28} />
-                          </div>
-                        </td>
-                        <td className="py-3 px-3">
-                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50/70 border border-blue-200/60 text-blue-600 font-mono text-[11px]">
-                            <span className="truncate max-w-[130px]">{tbl.url}</span>
-                            <button
-                              type="button"
-                              onClick={() => copyToClipboard(tbl.url)}
-                              className="text-blue-500 hover:text-blue-700"
-                              title="Salin Tautan"
-                            >
-                              <Copy className="size-3" />
-                            </button>
-                          </div>
-                        </td>
-                        <td className="py-3 px-3">
-                          <StatusBadge variant="success" icon={<Check className="size-3" />}>
-                            Aktif
-                          </StatusBadge>
-                        </td>
-                        <td className="py-3 px-3">
-                          <button
-                            type="button"
-                            onClick={() => downloadQr(`Meja ${tbl.tableNumber}`)}
-                            className="inline-flex items-center gap-1.5 h-7 px-3 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 text-[11px] font-semibold text-neutral-700 shadow-2xs"
-                          >
-                            <Download className="size-3" />
-                            <span>Download</span>
-                          </button>
-                        </td>
-                        <td className="py-3 px-2 text-right">
-                          <button
-                            type="button"
-                            className="p-1 rounded text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100"
-                          >
-                            <MoreVertical className="size-4" />
-                          </button>
-                        </td>
+                        </th>
+                        <th className="py-3 px-3 font-semibold text-neutral-700">Meja</th>
+                        <th className="py-3 px-3 font-semibold text-neutral-700">Area</th>
+                        <th className="py-3 px-3 font-semibold text-neutral-700">QR Code</th>
+                        <th className="py-3 px-3 font-semibold text-neutral-700">Tautan</th>
+                        <th className="py-3 px-3 font-semibold text-neutral-700">Status</th>
+                        <th className="py-3 px-3 font-semibold text-neutral-700">Unduh</th>
+                        <th className="py-3 px-2 w-8"></th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                {/* Footer Pagination */}
-                <div className="py-2.5 px-4 bg-neutral-50/50 border-t border-neutral-100 flex items-center justify-between text-xs text-neutral-500">
-                  <span>Menampilkan 1 - {filteredTableQrs.length} dari 10 QR</span>
-                  <div className="flex items-center gap-1">
-                    <button className="size-6 rounded flex items-center justify-center text-neutral-400 hover:bg-neutral-200/50">
-                      &lt;
-                    </button>
-                    <span className="size-6 rounded bg-[#FF4D4D] text-white font-semibold flex items-center justify-center text-xs">
-                      1
-                    </span>
-                    <button className="size-6 rounded flex items-center justify-center text-neutral-400 hover:bg-neutral-200/50">
-                      &gt;
-                    </button>
-                  </div>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100 text-neutral-800">
+                      {filteredTableQrs.map((row) => {
+                        const isSelected = selectedTableQrIds.includes(row.id);
+                        return (
+                          <tr
+                            key={row.id}
+                            className={`hover:bg-neutral-50/70 transition-colors ${
+                              isSelected ? 'bg-orange-50/20' : ''
+                            }`}
+                          >
+                            <td className="py-3 px-2">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => toggleSelectTableQr(row.id, e)}
+                                className="rounded border-neutral-300 text-orange-600 focus:ring-0 size-3.5"
+                              />
+                            </td>
+                            <td className="py-3 px-3 font-semibold text-neutral-900">
+                              {row.tableNumber}
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-800 border border-amber-200/60">
+                                {row.area}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3">
+                              <div className="p-1 rounded-md bg-white border border-neutral-200 shadow-2xs inline-flex items-center justify-center relative">
+                                <QRCodeSVG value={row.url} size={32} level="M" />
+                                <div className="absolute size-2.5 rounded-full bg-[#E5484D] border border-white" />
+                              </div>
+                            </td>
+                            <td className="py-3 px-3">
+                              <div className="flex items-center gap-1.5 text-blue-600 font-mono text-[11px]">
+                                <span className="hover:underline cursor-pointer truncate max-w-[130px]">
+                                  {row.url}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => copyToClipboard(row.url)}
+                                  className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                                  title="Salin Tautan"
+                                >
+                                  <Copy className="size-3" />
+                                </button>
+                              </div>
+                            </td>
+                            <td className="py-3 px-3">
+                              <StatusBadge variant="success" dot size="sm">
+                                {row.status}
+                              </StatusBadge>
+                            </td>
+                            <td className="py-3 px-3">
+                              <Button
+                                variant="secondary"
+                                size="xs"
+                                leftIcon={<Download className="size-3" />}
+                                onClick={() => downloadQr(`Meja ${row.tableNumber}`)}
+                              >
+                                Download
+                              </Button>
+                            </td>
+                            <td className="py-3 px-2 text-right">
+                              <button className="text-neutral-400 hover:text-neutral-600 p-1">
+                                <MoreVertical className="size-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
+
+                <Pagination
+                  currentPage={1}
+                  totalPages={1}
+                  totalItems={filteredTableQrs.length}
+                  itemsPerPage={10}
+                  onPageChange={() => {}}
+                  itemName="QR"
+                />
               </div>
             ) : (
-              /* Empty State matching Screenshot 2 */
               <div className="py-12 flex flex-col items-center justify-center text-center">
                 <EmptyState
                   title="BELUM ADA MEJA"
                   description="Tambahkan meja dan atur tata letaknya untuk mulai mengelola pesanan dine-in di outletmu."
                   actionLabel="Tambah Meja"
-                  onAction={() => (window.location.href = '/dashboard/tables')}
+                  onAction={() => window.location.assign('/dashboard/tables')}
                 />
               </div>
             )}
-          </div>
+          </Card>
 
           {/* CARD 2: QR SEKALI PAKAI */}
-          <div className="bg-white rounded-2xl border border-neutral-200/80 p-5 lg:p-6 space-y-4 shadow-2xs">
-            {/* Header with Generate Button matching Screenshot 1 */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base font-bold text-neutral-900">QR Sekali Pakai</h2>
-                <p className="text-xs text-neutral-400 mt-0.5">
-                  Buat QR untuk pesanan sekalai pakai (tidak terikat meja). Cocok untuk event, pop-up, atau takeway.
-                </p>
-              </div>
-
-              <button
-                type="button"
+          <Card
+            title="QR Sekali Pakai"
+            subtitle="Buat QR untuk pesanan sekali pakai (tidak terikat meja). Cocok untuk event, pop-up, atau takeaway."
+            action={
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<Plus className="size-4" />}
                 onClick={() => setIsGenerateModalOpen(true)}
-                className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-[#E5484D] hover:bg-[#D9383D] text-white text-xs font-semibold transition-colors shadow-2xs shrink-0"
               >
-                <Plus className="size-4 stroke-[2.5]" />
-                <span>Generate QR Sekali Pakai</span>
-              </button>
-            </div>
-
+                Generate QR Sekali Pakai
+              </Button>
+            }
+            className="p-5 lg:p-6"
+          >
             {/* Filter Bar */}
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <div className="relative flex-1 min-w-[200px]">
-                <input
-                  type="text"
+            <div className="flex flex-wrap items-center gap-3 pt-1 pb-3">
+              <div className="flex-1 min-w-[200px]">
+                <SearchInput
                   value={dispSearch}
                   onChange={(e) => setDispSearch(e.target.value)}
-                  placeholder="Cari nomor meja..."
-                  className="w-full h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs text-neutral-900 placeholder:text-neutral-400 shadow-2xs focus:outline-none"
+                  onClear={() => setDispSearch('')}
+                  placeholder="Cari nomor meja / catatan..."
+                  size="sm"
                 />
-                <div className="absolute right-2 top-2 size-5 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-400">
-                  <Search className="size-2.5 stroke-[2.5]" />
-                </div>
               </div>
 
-              <div className="relative">
-                <select
-                  defaultValue="all"
-                  className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none hover:bg-neutral-50"
-                >
-                  <option value="all">Semua area</option>
-                  <option value="event">Event</option>
-                  <option value="takeaway">Takeaway</option>
-                </select>
-                <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
-              </div>
+              <Select
+                value="all"
+                disabled
+                size="sm"
+                options={[{ value: 'all', label: 'Semua area' }]}
+              />
 
-              <div className="relative">
-                <select
-                  value={dispStatusFilter}
-                  onChange={(e) => setDispStatusFilter(e.target.value)}
-                  className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none hover:bg-neutral-50"
-                >
-                  <option value="all">Semua status</option>
-                  <option value="Aktif">Aktif</option>
-                  <option value="Selesai">Selesai</option>
-                </select>
-                <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
-              </div>
+              <Select
+                value={dispStatusFilter}
+                onChange={(e) => setDispStatusFilter(e.target.value)}
+                size="sm"
+                options={[
+                  { value: 'all', label: 'Semua status' },
+                  { value: 'Aktif', label: 'Aktif' },
+                  { value: 'Selesai', label: 'Selesai' },
+                ]}
+              />
 
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="sm"
+                leftIcon={<Download className="size-3.5" />}
                 onClick={() => downloadQr('Semua QR Sekali Pakai')}
-                className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 text-xs font-semibold text-neutral-700 transition-colors shadow-2xs"
               >
-                <Download className="size-3.5" />
-                <span>Download Semua</span>
-              </button>
+                Download Semua
+              </Button>
             </div>
 
             {/* Table or Empty State */}
             {filteredDisposableQrs.length > 0 ? (
-              <div className="border border-neutral-200/80 rounded-xl overflow-hidden">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-neutral-50/70 border-b border-neutral-200/80 text-[11px] font-semibold text-neutral-500">
-                    <tr>
-                      <th className="py-2.5 px-3 w-8">
-                        <input
-                          type="checkbox"
-                          checked={
-                            selectedDispIds.length === filteredDisposableQrs.length &&
-                            filteredDisposableQrs.length > 0
-                          }
-                          onChange={toggleSelectAllDispQrs}
-                          className="rounded border-neutral-300 text-[#FF4D4D] focus:ring-0 size-3.5 cursor-pointer"
-                        />
-                      </th>
-                      <th className="py-2.5 px-3">Nama / Catatan</th>
-                      <th className="py-2.5 px-3">Tautan</th>
-                      <th className="py-2.5 px-3">Dibuat</th>
-                      <th className="py-2.5 px-3">Kadaluwarsa</th>
-                      <th className="py-2.5 px-3">Status</th>
-                      <th className="py-2.5 px-2 w-8"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100">
-                    {filteredDisposableQrs.map((item) => (
-                      <tr key={item.id} className="hover:bg-neutral-50/50">
-                        <td className="py-3 px-3">
+              <div className="space-y-4">
+                <div className="overflow-x-auto border-t border-neutral-100">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-neutral-200/80 text-neutral-500 font-medium">
+                        <th className="py-3 px-2 w-8">
                           <input
                             type="checkbox"
-                            checked={selectedDispIds.includes(item.id)}
-                            onClick={(e) => toggleSelectDispQr(item.id, e)}
-                            onChange={() => {}}
-                            className="rounded border-neutral-300 text-[#FF4D4D] focus:ring-0 size-3.5 cursor-pointer"
+                            checked={
+                              selectedDispIds.length === filteredDisposableQrs.length &&
+                              filteredDisposableQrs.length > 0
+                            }
+                            onChange={toggleSelectAllDispQrs}
+                            className="rounded border-neutral-300 text-orange-600 focus:ring-0 size-3.5"
                           />
-                        </td>
-                        <td className="py-3 px-3 font-semibold text-neutral-900">{item.name}</td>
-                        <td className="py-3 px-3">
-                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50/70 border border-blue-200/60 text-blue-600 font-mono text-[11px]">
-                            <span className="truncate max-w-[130px]">{item.url}</span>
-                            <button
-                              type="button"
-                              onClick={() => copyToClipboard(item.url)}
-                              className="text-blue-500 hover:text-blue-700"
-                              title="Salin Tautan"
-                            >
-                              <Copy className="size-3" />
-                            </button>
-                          </div>
-                        </td>
-                        <td className="py-3 px-3 text-neutral-600 font-medium">{item.createdAt}</td>
-                        <td className="py-3 px-3 text-neutral-600 font-medium">{item.expiredAt}</td>
-                        <td className="py-3 px-3">
-                          {item.status === 'Aktif' ? (
-                            <StatusBadge variant="success" icon={<Check className="size-3" />}>
-                              Aktif
-                            </StatusBadge>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 text-neutral-600 border border-neutral-200">
-                              <X className="size-3" />
-                              <span>Selesai</span>
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-2 text-right">
-                          <button
-                            type="button"
-                            className="p-1 rounded text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100"
-                          >
-                            <MoreVertical className="size-4" />
-                          </button>
-                        </td>
+                        </th>
+                        <th className="py-3 px-3 font-semibold text-neutral-700">Nama / Catatan</th>
+                        <th className="py-3 px-3 font-semibold text-neutral-700">Tautan</th>
+                        <th className="py-3 px-3 font-semibold text-neutral-700">Dibuat</th>
+                        <th className="py-3 px-3 font-semibold text-neutral-700">Kadaluwarsa</th>
+                        <th className="py-3 px-3 font-semibold text-neutral-700">Status</th>
+                        <th className="py-3 px-2 w-8"></th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                {/* Footer Pagination */}
-                <div className="py-2.5 px-4 bg-neutral-50/50 border-t border-neutral-100 flex items-center justify-between text-xs text-neutral-500">
-                  <span>Menampilkan 1 - {filteredDisposableQrs.length} dari 10 QR</span>
-                  <div className="flex items-center gap-1">
-                    <button className="size-6 rounded flex items-center justify-center text-neutral-400 hover:bg-neutral-200/50">
-                      &lt;
-                    </button>
-                    <span className="size-6 rounded bg-[#FF4D4D] text-white font-semibold flex items-center justify-center text-xs">
-                      1
-                    </span>
-                    <button className="size-6 rounded flex items-center justify-center text-neutral-400 hover:bg-neutral-200/50">
-                      &gt;
-                    </button>
-                  </div>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100 text-neutral-800">
+                      {filteredDisposableQrs.map((row) => {
+                        const isSelected = selectedDispIds.includes(row.id);
+                        return (
+                          <tr
+                            key={row.id}
+                            className={`hover:bg-neutral-50/70 transition-colors ${
+                              isSelected ? 'bg-orange-50/20' : ''
+                            }`}
+                          >
+                            <td className="py-3 px-2">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => toggleSelectDispQr(row.id, e)}
+                                className="rounded border-neutral-300 text-orange-600 focus:ring-0 size-3.5"
+                              />
+                            </td>
+                            <td className="py-3 px-3 font-medium text-neutral-900">
+                              {row.name}
+                            </td>
+                            <td className="py-3 px-3">
+                              <div className="flex items-center gap-1.5 text-blue-600 font-mono text-[11px]">
+                                <span className="hover:underline cursor-pointer truncate max-w-[130px]">
+                                  {row.url}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => copyToClipboard(row.url)}
+                                  className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                                  title="Salin Tautan"
+                                >
+                                  <Copy className="size-3" />
+                                </button>
+                              </div>
+                            </td>
+                            <td className="py-3 px-3 text-neutral-600">{row.createdAt}</td>
+                            <td className="py-3 px-3 text-neutral-600">{row.expiredAt}</td>
+                            <td className="py-3 px-3">
+                              {row.status === 'Aktif' ? (
+                                <StatusBadge variant="success" dot size="sm">
+                                  Aktif
+                                </StatusBadge>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-neutral-600 text-white">
+                                  <span className="size-1.5 rounded-full bg-neutral-300" />
+                                  <span>Selesai</span>
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 px-2 text-right">
+                              <button className="text-neutral-400 hover:text-neutral-600 p-1">
+                                <MoreVertical className="size-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
+
+                <Pagination
+                  currentPage={1}
+                  totalPages={1}
+                  totalItems={filteredDisposableQrs.length}
+                  itemsPerPage={10}
+                  onPageChange={() => {}}
+                  itemName="QR"
+                />
               </div>
             ) : (
-              /* Empty State matching Screenshot 2 */
               <div className="py-12 flex flex-col items-center justify-center text-center">
                 <EmptyState
                   title="BELUM ADA QR SEKALI PAKAI"
@@ -608,36 +593,26 @@ export default function QrOrderPage() {
                 />
               </div>
             )}
-          </div>
+          </Card>
         </div>
 
         {/* RIGHT COLUMN: QR Menu Utama & Pengaturan Tampilan (4 Cols ~ 32%) */}
         <div className="lg:col-span-4 space-y-6">
           {/* CARD: QR MENU UTAMA matching Screenshot 1 */}
-          <div className="bg-white rounded-2xl border border-neutral-200/80 p-5 lg:p-6 space-y-4 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold text-neutral-900">QR Menu Utama</h3>
-                <p className="text-xs text-neutral-400 mt-0.5 leading-relaxed">
-                  Satu QR untuk akses menu tanpa memilih meja (untuk dine-in atau general)
-                </p>
-              </div>
-
-              {/* Toggle Aktif matching Screenshot 1 */}
-              <button
-                type="button"
-                onClick={() => setIsMasterQrActive(!isMasterQrActive)}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all shrink-0 ${
-                  isMasterQrActive
-                    ? 'bg-blue-600 text-white shadow-2xs'
-                    : 'bg-neutral-200 text-neutral-600'
-                }`}
-              >
-                <span className="size-2 rounded-full bg-white" />
-                <span>Aktif</span>
-              </button>
-            </div>
-
+          <Card
+            title="QR Menu Utama"
+            subtitle="Satu QR untuk akses menu tanpa memilih meja (untuk dine-in atau general)"
+            action={
+              <Switch
+                checked={isMasterQrActive}
+                onChange={setIsMasterQrActive}
+                label="Aktif"
+                size="sm"
+                color="blue"
+              />
+            }
+            className="p-5 lg:p-6"
+          >
             {/* Big QR Code in center */}
             <div className="py-6 flex flex-col items-center justify-center">
               <div className="p-4 rounded-3xl bg-white border border-neutral-200/90 shadow-sm flex items-center justify-center relative">
@@ -669,228 +644,207 @@ export default function QrOrderPage() {
 
             {/* Action Buttons: Download QR & Bagikan */}
             <div className="grid grid-cols-2 gap-3 pt-1">
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="md"
+                leftIcon={<Download className="size-4" />}
                 onClick={() => downloadQr('Menu Utama')}
-                className="h-10 rounded-xl bg-[#E5484D] hover:bg-[#D9383D] text-white text-xs font-semibold transition-colors shadow-2xs flex items-center justify-center gap-1.5"
+                fullWidth
               >
-                <Download className="size-4" />
-                <span>Download QR</span>
-              </button>
+                Download QR
+              </Button>
 
-              <button
-                type="button"
+              <Button
+                variant="outline-primary"
+                size="md"
+                leftIcon={<Share2 className="size-4" />}
                 onClick={() => copyToClipboard(masterQrUrl)}
-                className="h-10 rounded-xl border border-[#FF7D54] hover:bg-orange-50/50 text-[#E5484D] text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+                fullWidth
               >
-                <Share2 className="size-4" />
-                <span>Bagikan</span>
-              </button>
+                Bagikan
+              </Button>
             </div>
-          </div>
+          </Card>
 
           {/* CARD: PENGATURAN TAMPILAN */}
-          <div className="bg-white rounded-2xl border border-neutral-200/80 p-5 lg:p-6 space-y-4 shadow-2xs">
-            <div>
-              <h3 className="text-base font-bold text-neutral-900">Pengaturan Tampilan</h3>
-              <p className="text-xs text-neutral-400 mt-0.5">
-                Kustomisasi tampilan halaman pemesanan pelanggan
-              </p>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="p-3 rounded-xl border border-neutral-200/80 bg-neutral-50/40 flex items-center justify-between">
+          <Card
+            title="Pengaturan Tampilan"
+            subtitle="Kustomisasi tampilan halaman pemesanan pelanggan"
+            className="p-5 lg:p-6"
+          >
+            <div className="space-y-3 pt-2">
+              <div className="p-3.5 rounded-xl border border-neutral-200/80 bg-neutral-50/40 flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-neutral-800">Tampilkan Logo Outlet</p>
+                  <p className="text-xs font-semibold text-neutral-800">Tampilkan Logo Outlet</p>
                   <p className="text-[11px] text-neutral-400">Header landing page pelanggan</p>
                 </div>
-                <input
-                  type="checkbox"
-                  defaultChecked
-                  className="rounded border-neutral-300 text-blue-600 focus:ring-0 size-4"
+                <Switch
+                  checked={showLogoOnMenu}
+                  onChange={setShowLogoOnMenu}
+                  size="sm"
+                  color="blue"
                 />
               </div>
 
-              <div className="p-3 rounded-xl border border-neutral-200/80 bg-neutral-50/40 flex items-center justify-between">
+              <div className="p-3.5 rounded-xl border border-neutral-200/80 bg-neutral-50/40 flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-neutral-800">Wajib Masukkan Nama Tamu</p>
+                  <p className="text-xs font-semibold text-neutral-800">Wajib Masukkan Nama Tamu</p>
                   <p className="text-[11px] text-neutral-400">Sebelum memulai pemesanan</p>
                 </div>
-                <input
-                  type="checkbox"
-                  defaultChecked
-                  className="rounded border-neutral-300 text-blue-600 focus:ring-0 size-4"
+                <Switch
+                  checked={requireCustomerName}
+                  onChange={setRequireCustomerName}
+                  size="sm"
+                  color="blue"
                 />
               </div>
 
-              <div className="p-3 rounded-xl border border-neutral-200/80 bg-neutral-50/40 flex items-center justify-between">
+              <div className="p-3.5 rounded-xl border border-neutral-200/80 bg-neutral-50/40 flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-neutral-800">Izinkan Pembayaran Online (QRIS)</p>
+                  <p className="text-xs font-semibold text-neutral-800">Izinkan Pembayaran Online (QRIS)</p>
                   <p className="text-[11px] text-neutral-400">Bayar langsung di browser pelanggan</p>
                 </div>
-                <input
-                  type="checkbox"
-                  defaultChecked
-                  className="rounded border-neutral-300 text-blue-600 focus:ring-0 size-4"
+                <Switch
+                  checked={enableQrisPayment}
+                  onChange={setEnableQrisPayment}
+                  size="sm"
+                  color="blue"
                 />
               </div>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 
-      {/* Slide-over Drawer for Generate QR Sekali Pakai */}
-      {isGenerateModalOpen && (
-        <>
-          <div
-            onClick={() => setIsGenerateModalOpen(false)}
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] transition-opacity"
-          />
-          <div className="fixed inset-y-0 right-0 z-50 w-full max-w-[560px] bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out">
-            {/* Header */}
-            <div className="p-6 border-b border-neutral-100 flex items-start justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-neutral-900 tracking-tight">
-                  Generate QR Sekali Pakai
-                </h2>
-                <p className="text-xs text-neutral-500 mt-0.5">
-                  Buat QR dinamis untuk event, pop-up booth, atau pelanggan takeaway langsung.
-                </p>
-              </div>
+      {/* Slide-over Drawer for Generate QR Sekali Pakai using global Drawer */}
+      <Drawer
+        isOpen={isGenerateModalOpen}
+        onClose={() => setIsGenerateModalOpen(false)}
+        title="Generate QR Sekali Pakai"
+        subtitle="Buat QR dinamis untuk event, pop-up booth, atau pelanggan takeaway langsung."
+        size="md"
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <Button
+              variant="secondary"
+              size="sm"
+              leftIcon={<Bookmark className="size-4" />}
+              onClick={() => handleGenerateDisposable(true)}
+            >
+              Simpan sebagai Draf
+            </Button>
 
-              <button
-                onClick={() => setIsGenerateModalOpen(false)}
-                className="size-7 rounded-full bg-neutral-100 text-neutral-400 hover:text-neutral-700 flex items-center justify-center transition-colors"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<CheckCircle2 className="size-4" />}
+              onClick={() => handleGenerateDisposable(false)}
+            >
+              Generate QR
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-5">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-neutral-800">
+              Nama Acara / Catatan <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={formEventName}
+              onChange={(e) => setFormEventName(e.target.value)}
+              placeholder="Contoh: Bazaar Akhir Pekan, Takeaway 12 Okt"
+              className="w-full h-10 px-3.5 rounded-xl border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:border-neutral-400 shadow-2xs"
+            />
+          </div>
 
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-800">
-                  Nama Acara / Catatan <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formEventName}
-                  onChange={(e) => setFormEventName(e.target.value)}
-                  placeholder="Contoh: Bazaar Akhir Pekan, Takeaway 12 Okt"
-                  className="w-full h-10 px-3.5 rounded-xl border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:border-neutral-400 shadow-2xs"
-                />
-              </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-neutral-800">Tanggal Kadaluwarsa</label>
+            <input
+              type="text"
+              value={formExpiryDate}
+              onChange={(e) => setFormExpiryDate(e.target.value)}
+              placeholder="Contoh: 15/10/2026"
+              className="w-full h-10 px-3.5 rounded-xl border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:border-neutral-400 shadow-2xs"
+            />
+          </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-800">Tanggal Kadaluwarsa</label>
-                <input
-                  type="text"
-                  value={formExpiryDate}
-                  onChange={(e) => setFormExpiryDate(e.target.value)}
-                  placeholder="Contoh: 15/10/2026"
-                  className="w-full h-10 px-3.5 rounded-xl border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:border-neutral-400 shadow-2xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-800">Batas Penggunaan</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setFormUsageLimit('single')}
-                    className={`h-9 rounded-xl text-xs font-semibold border transition-all ${
-                      formUsageLimit === 'single'
-                        ? 'border-blue-500 bg-blue-50 text-blue-600 shadow-2xs'
-                        : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
-                    }`}
-                  >
-                    1 Kali Pesan (Single Order)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormUsageLimit('unlimited')}
-                    className={`h-9 rounded-xl text-xs font-semibold border transition-all ${
-                      formUsageLimit === 'unlimited'
-                        ? 'border-blue-500 bg-blue-50 text-blue-600 shadow-2xs'
-                        : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
-                    }`}
-                  >
-                    Bebas dalam Periode
-                  </button>
-                </div>
-              </div>
-
-              {/* Info note */}
-              <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/80 flex items-start gap-2.5 text-xs text-blue-700">
-                <Info className="size-4 shrink-0 text-blue-600 mt-0.5" />
-                <span>
-                  QR yang sudah kadaluwarsa otomatis tidak dapat digunakan untuk melakukan pesanan baru.
-                </span>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="p-4 px-6 border-t border-neutral-100 flex items-center justify-between gap-4 bg-white">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-neutral-800">Batas Penggunaan</label>
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => handleGenerateDisposable(true)}
-                className="inline-flex items-center gap-2 h-11 px-5 rounded-xl border border-neutral-200 text-neutral-700 hover:bg-neutral-50 text-xs font-semibold transition-colors"
+                onClick={() => setFormUsageLimit('single')}
+                className={`h-9 rounded-xl text-xs font-semibold border transition-all ${
+                  formUsageLimit === 'single'
+                    ? 'border-blue-500 bg-blue-50 text-blue-600 shadow-2xs'
+                    : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
+                }`}
               >
-                <Bookmark className="size-4" />
-                <span>Simpan sebagai Draf</span>
+                1 Kali Pesan (Single Order)
               </button>
-
               <button
                 type="button"
-                onClick={() => handleGenerateDisposable(false)}
-                className="inline-flex items-center gap-2 h-11 px-7 rounded-xl bg-[#E5484D] hover:bg-[#D9383D] text-white text-xs font-semibold transition-colors shadow-2xs"
+                onClick={() => setFormUsageLimit('unlimited')}
+                className={`h-9 rounded-xl text-xs font-semibold border transition-all ${
+                  formUsageLimit === 'unlimited'
+                    ? 'border-blue-500 bg-blue-50 text-blue-600 shadow-2xs'
+                    : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
+                }`}
               >
-                <CheckCircle2 className="size-4 stroke-[2.5]" />
-                <span>Generate QR</span>
+                Bebas dalam Periode
               </button>
             </div>
           </div>
-        </>
-      )}
 
-      {/* Success Modal */}
-      {showSuccessModal && (
-        <>
-          <div className="fixed inset-0 z-60 bg-black/50 backdrop-blur-[2px] transition-opacity" />
-          <div className="fixed inset-0 z-70 flex items-center justify-center p-4">
-            <div className="w-full max-w-[480px] bg-white rounded-3xl p-8 shadow-2xl flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-200">
-              <div className="size-24 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25 mb-6">
-                <Check className="size-12 stroke-[3]" />
-              </div>
-
-              <h3 className="text-xl font-bold text-neutral-900 tracking-tight">
-                QR Sekali Pakai Berhasil Dibuat!
-              </h3>
-              <p className="text-xs text-neutral-500 mt-2 max-w-[360px] leading-relaxed">
-                QR &quot;{formEventName}&quot; berhasil dibuat dan siap diunduh atau dibagikan ke pelanggan.
-              </p>
-
-              <div className="grid grid-cols-2 gap-3 w-full mt-8">
-                <button
-                  type="button"
-                  onClick={() => setShowSuccessModal(false)}
-                  className="h-11 rounded-2xl border border-red-200 hover:bg-red-50/50 text-[#E5484D] text-xs font-semibold transition-colors"
-                >
-                  Tutup
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowSuccessModal(false)}
-                  className="h-11 rounded-2xl bg-[#FF5C38] hover:bg-[#EE4E2A] text-white text-xs font-semibold transition-colors shadow-2xs"
-                >
-                  Kembali ke Daftar QR
-                </button>
-              </div>
-            </div>
+          <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/80 flex items-start gap-2.5 text-xs text-blue-700">
+            <Info className="size-4 shrink-0 text-blue-600 mt-0.5" />
+            <span>
+              QR yang sudah kadaluwarsa otomatis tidak dapat digunakan untuk melakukan pesanan baru.
+            </span>
           </div>
-        </>
-      )}
+        </div>
+      </Drawer>
+
+      {/* Success Modal using global Modal */}
+      <Modal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        showCloseButton={false}
+        size="md"
+      >
+        <div className="flex flex-col items-center text-center py-2">
+          <div className="size-20 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25 mb-5">
+            <Check className="size-10 stroke-[3]" />
+          </div>
+
+          <h3 className="text-lg font-bold text-neutral-900 tracking-tight">
+            QR Sekali Pakai Berhasil Dibuat!
+          </h3>
+          <p className="text-xs text-neutral-500 mt-2 max-w-[340px] leading-relaxed">
+            QR &quot;{formEventName}&quot; berhasil dibuat dan siap diunduh atau dibagikan ke pelanggan.
+          </p>
+
+          <div className="grid grid-cols-2 gap-3 w-full mt-6">
+            <Button
+              variant="outline-primary"
+              size="md"
+              onClick={() => setShowSuccessModal(false)}
+            >
+              Tutup
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => setShowSuccessModal(false)}
+            >
+              Kembali ke Daftar QR
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
