@@ -22,7 +22,10 @@ import {
 import {
   MenuDetailsDrawer,
   MenuItem,
-} from '@/components/menu/MenuDetailsDrawer';
+  CategoryManagement,
+  TypeManagement,
+  SectionManagement,
+} from '@/components/menu';
 import { formatRupiah } from '@/utils';
 
 // 9 Items matching Screenshot 1 exactly
@@ -227,6 +230,41 @@ export default function MenuCatalogPage() {
     setIsDrawerOpen(true);
   };
 
+  // Sub-tab creation modal triggers
+  const [isCreateCategoryOpen, setIsCreateCategoryOpen] = useState(false);
+  const [isCreateTypeOpen, setIsCreateTypeOpen] = useState(false);
+  const [isCreateSectionOpen, setIsCreateSectionOpen] = useState(false);
+
+  const getAddButtonText = () => {
+    switch (activeTab) {
+      case 'category':
+        return 'Tambah Kategori';
+      case 'type':
+        return 'Tambah Tipe';
+      case 'section':
+        return 'Tambah Section';
+      default:
+        return 'Tambah Menu';
+    }
+  };
+
+  const handleTopAddClick = () => {
+    switch (activeTab) {
+      case 'category':
+        setIsCreateCategoryOpen(true);
+        break;
+      case 'type':
+        setIsCreateTypeOpen(true);
+        break;
+      case 'section':
+        setIsCreateSectionOpen(true);
+        break;
+      default:
+        handleCreateNew();
+        break;
+    }
+  };
+
   // Category Badge Helper matching Figma
   const getCategoryBadge = (category: string) => {
     switch (category) {
@@ -392,39 +430,41 @@ export default function MenuCatalogPage() {
           </p>
         </div>
 
-        {/* Right Header: Discrete Switcher & + Tambah Menu */}
+        {/* Right Header: Discrete Switcher & + Dynamic Add Button */}
         <div className="flex items-center gap-3">
-          {/* Demo Switcher */}
-          <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-lg border border-neutral-200 text-xs">
-            <button
-              onClick={() => setDemoMode('populated')}
-              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
-                demoMode === 'populated'
-                  ? 'bg-white text-neutral-800 shadow-2xs font-semibold'
-                  : 'text-neutral-500 hover:text-neutral-800'
-              }`}
-            >
-              Data Terisi
-            </button>
-            <button
-              onClick={() => setDemoMode('empty')}
-              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
-                demoMode === 'empty'
-                  ? 'bg-white text-neutral-800 shadow-2xs font-semibold'
-                  : 'text-neutral-500 hover:text-neutral-800'
-              }`}
-            >
-              Belum Ada Menu
-            </button>
-          </div>
+          {/* Demo Switcher (only for menu tab) */}
+          {activeTab === 'menu' && (
+            <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-lg border border-neutral-200 text-xs">
+              <button
+                onClick={() => setDemoMode('populated')}
+                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
+                  demoMode === 'populated'
+                    ? 'bg-white text-neutral-800 shadow-2xs font-semibold'
+                    : 'text-neutral-500 hover:text-neutral-800'
+                }`}
+              >
+                Data Terisi
+              </button>
+              <button
+                onClick={() => setDemoMode('empty')}
+                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
+                  demoMode === 'empty'
+                    ? 'bg-white text-neutral-800 shadow-2xs font-semibold'
+                    : 'text-neutral-500 hover:text-neutral-800'
+                }`}
+              >
+                Belum Ada Menu
+              </button>
+            </div>
+          )}
 
-          {/* + Tambah Menu button matching Screenshot 1 */}
+          {/* Dynamic + Tambah Button matching active tab */}
           <button
-            onClick={handleCreateNew}
+            onClick={handleTopAddClick}
             className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-[#FF4D4D] hover:bg-[#E53939] text-white text-xs font-semibold transition-colors shadow-2xs"
           >
             <Plus className="size-4 stroke-[2.5]" />
-            <span>Tambah Menu</span>
+            <span>{getAddButtonText()}</span>
           </button>
         </div>
       </div>
@@ -480,83 +520,115 @@ export default function MenuCatalogPage() {
         </button>
       </div>
 
-      {/* Filters Bar: Clean individual pills directly on background */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Channel Filter */}
-        <div className="relative">
-          <select
-            value={selectedChannel}
-            onChange={(e) => setSelectedChannel(e.target.value)}
-            className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
-          >
-            <option value="all">Semua channel</option>
-            <option value="Kasir">Kasir</option>
-            <option value="QR Order">QR Order</option>
-            <option value="GrabFood">GrabFood</option>
-            <option value="ShopeeFood">ShopeeFood</option>
-            <option value="GoFood">GoFood</option>
-          </select>
-          <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
-        </div>
+      {/* TAB CONTENT: MENU */}
+      {activeTab === 'menu' && (
+        <div className="space-y-4">
+          {/* Filters Bar: Clean individual pills directly on background */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Channel Filter */}
+            <div className="relative">
+              <select
+                value={selectedChannel}
+                onChange={(e) => setSelectedChannel(e.target.value)}
+                className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
+              >
+                <option value="all">Semua channel</option>
+                <option value="Kasir">Kasir</option>
+                <option value="QR Order">QR Order</option>
+                <option value="GrabFood">GrabFood</option>
+                <option value="ShopeeFood">ShopeeFood</option>
+                <option value="GoFood">GoFood</option>
+              </select>
+              <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
+            </div>
 
-        {/* Type Filter */}
-        <div className="relative">
-          <select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-            className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
-          >
-            <option value="all">Semua tipe</option>
-            <option value="Minuman">Minuman</option>
-            <option value="Makanan">Makanan</option>
-            <option value="Cemilan">Cemilan</option>
-          </select>
-          <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
-        </div>
+            {/* Type Filter */}
+            <div className="relative">
+              <select
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+                className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
+              >
+                <option value="all">Semua tipe</option>
+                <option value="Minuman">Minuman</option>
+                <option value="Makanan">Makanan</option>
+                <option value="Cemilan">Cemilan</option>
+              </select>
+              <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
+            </div>
 
-        {/* Status / Pembayaran Filter */}
-        <div className="relative">
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
-          >
-            <option value="all">Semua status</option>
-            <option value="Aktif">Aktif</option>
-            <option value="Nonaktif">Nonaktif</option>
-          </select>
-          <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
-        </div>
+            {/* Status / Pembayaran Filter */}
+            <div className="relative">
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
+              >
+                <option value="all">Semua status</option>
+                <option value="Aktif">Aktif</option>
+                <option value="Nonaktif">Nonaktif</option>
+              </select>
+              <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
+            </div>
 
-        {/* Search Input */}
-        <div className="relative flex-1 min-w-[280px]">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari nama menu, kategori, atau SKU"
-            className="w-full h-9 pl-3.5 pr-9 rounded-lg border border-neutral-200 bg-white text-xs text-neutral-900 placeholder:text-neutral-400 shadow-2xs focus:outline-none focus:border-neutral-400"
-          />
-          <div className="absolute right-2.5 top-2 size-5 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-400">
-            <Search className="size-3" />
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-[280px]">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari nama menu, kategori, atau SKU"
+                className="w-full h-9 pl-3.5 pr-9 rounded-lg border border-neutral-200 bg-white text-xs text-neutral-900 placeholder:text-neutral-400 shadow-2xs focus:outline-none focus:border-neutral-400"
+              />
+              <div className="absolute right-2.5 top-2 size-5 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-400">
+                <Search className="size-3" />
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Global DataTable matching Screenshot 1 & 3 */}
-      <DataTable
-        columns={columns}
-        data={filteredMenuItems}
-        keyExtractor={(item) => item.id}
-        selectable
-        selectedIds={selectedIds}
-        onToggleSelect={toggleSelectRow}
-        onToggleSelectAll={toggleSelectAll}
-        onRowClick={handleOpenItem}
-        emptyTitle="BELUM ADA MENU"
-        emptyDescription="Tambahkan menu untuk mulai mengelola harga jual, bahan, dan HPP produk outletmu."
-        entityName="menu"
-      />
+          {/* Global DataTable matching Screenshot 1 & 3 */}
+          <DataTable
+            columns={columns}
+            data={filteredMenuItems}
+            keyExtractor={(item) => item.id}
+            selectable
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelectRow}
+            onToggleSelectAll={toggleSelectAll}
+            onRowClick={handleOpenItem}
+            emptyTitle="BELUM ADA MENU"
+            emptyDescription="Tambahkan menu untuk mulai mengelola harga jual, bahan, dan HPP produk outletmu."
+            entityName="menu"
+          />
+        </div>
+      )}
+
+      {/* TAB CONTENT: KATEGORI */}
+      {activeTab === 'category' && (
+        <CategoryManagement
+          onShowToast={showToast}
+          isCreateOpen={isCreateCategoryOpen}
+          onCloseCreate={() => setIsCreateCategoryOpen(false)}
+        />
+      )}
+
+      {/* TAB CONTENT: TIPE */}
+      {activeTab === 'type' && (
+        <TypeManagement
+          onShowToast={showToast}
+          isCreateOpen={isCreateTypeOpen}
+          onCloseCreate={() => setIsCreateTypeOpen(false)}
+        />
+      )}
+
+      {/* TAB CONTENT: SECTION */}
+      {activeTab === 'section' && (
+        <SectionManagement
+          onShowToast={showToast}
+          isCreateOpen={isCreateSectionOpen}
+          onCloseCreate={() => setIsCreateSectionOpen(false)}
+        />
+      )}
 
       {/* Slide-over Menu Edit/Detail Drawer matching Screenshot 2 */}
       <MenuDetailsDrawer
