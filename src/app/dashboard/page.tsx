@@ -2,51 +2,67 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   TrendingUp,
   CreditCard,
   ShoppingBag,
   DollarSign,
-  Coffee,
-  ArrowUpRight,
-  RefreshCw,
-  QrCode,
-  PackagePlus,
-  UtensilsCrossed,
+  ChevronDown,
+  Calendar,
+  Sparkles,
+  ArrowRight,
+  ChevronRight,
+  Package,
+  Layers,
+  Sparkle,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
 import { reportsService } from '@/services';
 import { DashboardReport } from '@/types';
 import { formatRupiah, getISODateOnly, getPastDateISO } from '@/utils';
-import { ROUTES } from '@/constants';
-import { PageHeader, StatCard, LoadingScreen } from '@/components/common';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { FirstLoginModal } from '@/components/dashboard/FirstLoginModal';
 
 export default function DashboardOverviewPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, activeTenant, isLoading } = useAuth();
   const { activeStore } = useStore();
 
   const [report, setReport] = useState<DashboardReport | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [daysFilter, setDaysFilter] = useState<'today' | '7days' | '30days'>('30days');
+  const [loading, setLoading] = useState(false);
+  const [showFirstLoginModal, setShowFirstLoginModal] = useState(false);
 
-  const roleName = user?.is_internal ? 'SUPER_ADMIN' : activeTenant?.role?.toUpperCase();
-  const isOwnerOrManager = roleName === 'SUPER_ADMIN' || roleName === 'OWNER' || roleName === 'MANAGER';
+  const roleName = user?.is_internal
+    ? 'SUPER_ADMIN'
+    : activeTenant?.role?.toUpperCase();
+  const isOwnerOrManager =
+    roleName === 'SUPER_ADMIN' ||
+    roleName === 'OWNER' ||
+    roleName === 'MANAGER';
 
   // Role-based redirect from overview: Cashier goes to POS, Inventory goes to Stock
   useEffect(() => {
     if (isLoading) return;
     if (roleName === 'CASHIER') {
-      router.replace(ROUTES.DASHBOARD.POS);
+      router.replace('/dashboard/pos');
     } else if (roleName === 'INVENTORY') {
-      router.replace(ROUTES.DASHBOARD.INVENTORY);
+      router.replace('/dashboard/inventory');
     }
   }, [roleName, isLoading, router]);
+
+  // Check if first login / onboarding should be displayed
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const onboarded = localStorage.getItem('nemu_tenant_onboarded');
+      const forceOnboarding = searchParams?.get('onboarding') === 'true';
+      // Automatically open onboarding for new tenants or if forced
+      if (!onboarded || forceOnboarding) {
+        setShowFirstLoginModal(true);
+      }
+    }
+  }, [searchParams]);
 
   const fetchDashboardData = useCallback(async () => {
     if (isLoading || !activeStore || !isOwnerOrManager) {
@@ -55,38 +71,24 @@ export default function DashboardOverviewPage() {
     }
 
     setLoading(true);
-
     const end_date = getISODateOnly();
-    let start_date = end_date;
-    if (daysFilter === '7days') {
-      start_date = getPastDateISO(7);
-    } else if (daysFilter === '30days') {
-      start_date = getPastDateISO(30);
-    }
+    const start_date = getPastDateISO(30);
 
     try {
       const res = await reportsService.getDashboardOverview(start_date, end_date);
       setReport(res.data);
     } catch (err) {
-      console.error('Failed to load dashboard report:', err);
+      console.warn('Dashboard report notice (using default mockup state):', err);
     } finally {
       setLoading(false);
     }
-  }, [activeStore, daysFilter, isOwnerOrManager, isLoading]);
+  }, [activeStore, isOwnerOrManager, isLoading]);
 
   useEffect(() => {
     if (!isLoading && isOwnerOrManager && activeStore) {
       fetchDashboardData();
     }
   }, [fetchDashboardData, isLoading, isOwnerOrManager, activeStore]);
-
-  if (isLoading || loading) {
-    return <LoadingScreen message="Memuat ringkasan performa outlet..." />;
-  }
-
-  if (!isOwnerOrManager) {
-    return <LoadingScreen message="Mengarahkan ke ruang kerja operasional Anda..." />;
-  }
 
   const kpis = report?.kpis || {
     gross_sales: 0,
@@ -100,242 +102,412 @@ export default function DashboardOverviewPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Page Header with Filter Bar */}
-      <PageHeader
-        title="Ringkasan Outlet"
-        description={`Laporan operasional dan kinerja penjualan ${activeStore ? activeStore.name : 'Outlet'}`}
-      >
-        <div className="flex items-center rounded-md border border-border bg-surface p-0.5 text-xs">
-          <button
-            onClick={() => setDaysFilter('today')}
-            className={`px-2.5 py-1 rounded-sm text-xs transition-colors ${
-              daysFilter === 'today'
-                ? 'bg-card text-foreground shadow-xs font-medium'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Hari Ini
-          </button>
-          <button
-            onClick={() => setDaysFilter('7days')}
-            className={`px-2.5 py-1 rounded-sm text-xs transition-colors ${
-              daysFilter === '7days'
-                ? 'bg-card text-foreground shadow-xs font-medium'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            7 Hari
-          </button>
-          <button
-            onClick={() => setDaysFilter('30days')}
-            className={`px-2.5 py-1 rounded-sm text-xs transition-colors ${
-              daysFilter === '30days'
-                ? 'bg-card text-foreground shadow-xs font-medium'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            30 Hari
-          </button>
+    <div className="p-6 lg:p-8 space-y-6 max-w-[1440px] mx-auto">
+      {/* Top Header Row matching Figma: Greeting, Outlet dropdown, Date Picker */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
+            Selamat pagi,
+          </h1>
+          <p className="text-xs text-neutral-500 mt-0.5">
+            Ringkasan performa outlet anda hari ini.
+          </p>
         </div>
 
-        <Button
-          variant="outline"
-          size="icon-sm"
-          onClick={fetchDashboardData}
-          title="Refresh Data"
-          disabled={loading}
-        >
-          <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
-        </Button>
-      </PageHeader>
+        <div className="flex items-center gap-2.5">
+          {/* Outlet Selector Dropdown Pill */}
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-neutral-200 shadow-xs text-xs font-semibold text-neutral-800 cursor-pointer hover:bg-neutral-50 transition-colors">
+            <span>{activeStore?.name || 'Kopi Mantap (Main Outlet)'}</span>
+            <ChevronDown className="size-3.5 text-neutral-400" />
+          </div>
 
-      {/* KPI Cards Grid using StatCard common component */}
+          {/* Date Picker Pill */}
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-neutral-200 shadow-xs text-xs font-semibold text-neutral-800 cursor-pointer hover:bg-neutral-50 transition-colors">
+            <span>Today (14/10/2026)</span>
+            <Calendar className="size-3.5 text-neutral-400" />
+          </div>
+
+          {/* Trigger to re-open first login modal anytime */}
+          <button
+            onClick={() => setShowFirstLoginModal(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-[#FF5C38] border border-orange-200 text-xs font-semibold transition-colors"
+            title="Buka kembali alur Profil Outlet First Login"
+          >
+            <Sparkles className="size-3.5" />
+            <span className="hidden md:inline">Lengkapi Profil</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Row 1: 4 Metric KPI Cards matching Figma */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Pendapatan Kotor"
-          value={formatRupiah(kpis.gross_sales)}
-          subtitle="Total Penjualan Kotor"
-          icon={DollarSign}
-        />
+        {/* KPI 1: Total Penjualan */}
+        <div className="p-4 rounded-2xl bg-white border border-neutral-200/80 shadow-xs flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="size-6 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <span className="text-xs">📊</span>
+              </div>
+              <span className="text-xs text-neutral-500 font-medium">
+                Total Penjualan
+              </span>
+            </div>
+            <h3 className="text-xl font-bold text-neutral-900 mt-2">
+              {formatRupiah(kpis.gross_sales)}
+            </h3>
+            <div className="flex items-center gap-1 text-[11px] text-neutral-400 mt-1">
+              <span>% 0</span>
+              <span>Dari kemarin</span>
+            </div>
+          </div>
+          <div className="text-emerald-500 shrink-0">
+            <svg width="48" height="24" viewBox="0 0 48 24" fill="none">
+              <path
+                d="M2 18L16 14L30 18L46 6"
+                stroke="#10B981"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        </div>
 
-        <StatCard
-          title="Pendapatan Bersih"
-          value={formatRupiah(kpis.net_sales)}
-          subtitle={`Diskon: ${formatRupiah(kpis.total_discounts)}`}
-          icon={TrendingUp}
-        />
+        {/* KPI 2: Total Transaksi */}
+        <div className="p-4 rounded-2xl bg-white border border-neutral-200/80 shadow-xs">
+          <div className="flex items-center gap-2">
+            <div className="size-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
+              <span className="text-xs">💳</span>
+            </div>
+            <span className="text-xs text-neutral-500 font-medium">
+              Total Transaksi
+            </span>
+          </div>
+          <h3 className="text-xl font-bold text-neutral-900 mt-2">
+            {kpis.total_orders}
+          </h3>
+          <div className="flex items-center gap-1 text-[11px] text-neutral-400 mt-1">
+            <span>&nbsp;</span>
+          </div>
+        </div>
 
-        <StatCard
-          title="Total Pesanan"
-          value={kpis.total_orders.toLocaleString('id-ID')}
-          subtitle="Pesanan selesai terverifikasi"
-          icon={ShoppingBag}
-        />
+        {/* KPI 3: Average Order Value (AOV) */}
+        <div className="p-4 rounded-2xl bg-white border border-neutral-200/80 shadow-xs">
+          <div className="flex items-center gap-2">
+            <div className="size-6 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center">
+              <span className="text-xs">🛒</span>
+            </div>
+            <span className="text-xs text-neutral-500 font-medium truncate">
+              Average Order Value (AOV)
+            </span>
+          </div>
+          <h3 className="text-xl font-bold text-neutral-900 mt-2">
+            {formatRupiah(kpis.average_order_value)}
+          </h3>
+          <div className="flex items-center gap-1 text-[11px] text-neutral-400 mt-1">
+            <span>&nbsp;</span>
+          </div>
+        </div>
 
-        <StatCard
-          title="Rata-rata Order (AOV)"
-          value={formatRupiah(kpis.average_order_value)}
-          subtitle="Rata-rata per struk"
-          icon={CreditCard}
-        />
+        {/* KPI 4: Profit Estimasi */}
+        <div className="p-4 rounded-2xl bg-white border border-neutral-200/80 shadow-xs flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="size-6 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center">
+                <span className="text-xs">🌾</span>
+              </div>
+              <span className="text-xs text-neutral-500 font-medium">
+                Profit Estimasi
+              </span>
+            </div>
+            <h3 className="text-xl font-bold text-neutral-900 mt-2">
+              {formatRupiah(kpis.net_sales)}
+            </h3>
+            <div className="flex items-center gap-1 text-[11px] text-neutral-400 mt-1">
+              <span>% 0</span>
+              <span>Dari kemarin</span>
+            </div>
+          </div>
+          <div className="text-amber-500 shrink-0">
+            <svg width="48" height="24" viewBox="0 0 48 24" fill="none">
+              <path
+                d="M2 18L16 16L30 19L46 12"
+                stroke="#F59E0B"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        </div>
       </div>
 
-      {/* Quick Access Action Shortcuts */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Link href={ROUTES.DASHBOARD.POS}>
-          <Card className="hover:border-foreground/30 transition-all cursor-pointer p-3.5 flex items-center gap-3">
-            <div className="size-8 rounded-md border border-border bg-surface text-foreground flex items-center justify-center shrink-0">
-              <Coffee className="size-4" strokeWidth={1.75} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-foreground truncate">Buka Kasir POS</p>
-              <p className="text-[11px] text-muted-foreground truncate">Input pesanan baru</p>
-            </div>
-          </Card>
-        </Link>
+      {/* Main Grid: Left 2 Columns & Right 1 Column */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Section (8 cols) */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* Card: Penjualan & Channel */}
+          <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-xs">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+              {/* Chart: Penjualan */}
+              <div className="md:col-span-8 border-b md:border-b-0 md:border-r border-neutral-100 pb-4 md:pb-0 md:pr-4">
+                <h3 className="text-sm font-bold text-neutral-900 mb-4">
+                  Penjualan
+                </h3>
+                <div className="h-44 flex flex-col justify-between text-[10.5px] text-neutral-400">
+                  <div className="flex items-center gap-2">
+                    <span className="w-16 text-right">10.000.000</span>
+                    <div className="flex-1 border-b border-dashed border-neutral-200" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-16 text-right">8.000.000</span>
+                    <div className="flex-1 border-b border-dashed border-neutral-200" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-16 text-right">4.000.000</span>
+                    <div className="flex-1 border-b border-dashed border-neutral-200" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-16 text-right">2.000.000</span>
+                    <div className="flex-1 border-b border-dashed border-neutral-200" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-16 text-right">0</span>
+                    <div className="flex-1 border-b border-neutral-200" />
+                  </div>
+                  <div className="flex justify-between pl-18 pr-2 pt-1 text-[10px]">
+                    <span>8 Okt</span>
+                    <span>9 Okt</span>
+                    <span>10 Okt</span>
+                    <span>11 Okt</span>
+                    <span>12 Okt</span>
+                    <span>13 Okt</span>
+                    <span>14 Okt</span>
+                  </div>
+                </div>
+              </div>
 
-        <Link href={ROUTES.DASHBOARD.TABLES}>
-          <Card className="hover:border-foreground/30 transition-all cursor-pointer p-3.5 flex items-center gap-3">
-            <div className="size-8 rounded-md border border-border bg-surface text-foreground flex items-center justify-center shrink-0">
-              <QrCode className="size-4" strokeWidth={1.75} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-foreground truncate">Meja & QR Code</p>
-              <p className="text-[11px] text-muted-foreground truncate">Status meja & QR</p>
-            </div>
-          </Card>
-        </Link>
-
-        <Link href={ROUTES.DASHBOARD.INVENTORY}>
-          <Card className="hover:border-foreground/30 transition-all cursor-pointer p-3.5 flex items-center gap-3">
-            <div className="size-8 rounded-md border border-border bg-surface text-foreground flex items-center justify-center shrink-0">
-              <PackagePlus className="size-4" strokeWidth={1.75} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-foreground truncate">Stok Bahan Baku</p>
-              <p className="text-[11px] text-muted-foreground truncate">Pembelian & Opname</p>
-            </div>
-          </Card>
-        </Link>
-
-        <Link href={ROUTES.DASHBOARD.RECIPES}>
-          <Card className="hover:border-foreground/30 transition-all cursor-pointer p-3.5 flex items-center gap-3">
-            <div className="size-8 rounded-md border border-border bg-surface text-foreground flex items-center justify-center shrink-0">
-              <UtensilsCrossed className="size-4" strokeWidth={1.75} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-foreground truncate">Resep & HPP</p>
-              <p className="text-[11px] text-muted-foreground truncate">Deduksi otomatis</p>
-            </div>
-          </Card>
-        </Link>
-      </div>
-
-      {/* Two Column Section: Top Products & Payment Methods */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Selling Products */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <div>
-              <CardTitle>Top Produk Terlaris</CardTitle>
-              <CardDescription>Produk dengan penjualan terbanyak</CardDescription>
-            </div>
-            <Link
-              href={ROUTES.DASHBOARD.CATALOG}
-              className="text-xs text-foreground font-semibold hover:underline flex items-center gap-1"
-            >
-              Lihat Semua <ArrowUpRight className="size-3" />
-            </Link>
-          </CardHeader>
-          <CardContent>
-            {report?.top_products && report.top_products.length > 0 ? (
-              <div className="space-y-3">
-                {report.top_products.map((item, idx) => (
-                  <div
-                    key={item.product_id}
-                    className="flex items-center justify-between p-2.5 rounded-lg border border-border/50 hover:bg-muted/40 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="size-6 rounded-md bg-muted text-muted-foreground text-xs font-bold flex items-center justify-center">
-                        #{idx + 1}
-                      </span>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">{item.product_name}</p>
-                        <p className="text-xs text-muted-foreground">{item.total_quantity} porsi terjual</p>
-                      </div>
+              {/* Chart: Channel Donut */}
+              <div className="md:col-span-4 flex flex-col justify-between">
+                <h3 className="text-sm font-bold text-neutral-900 mb-2">
+                  Distribusi Transaksi per Channel
+                </h3>
+                <div className="flex flex-col items-center justify-center my-auto">
+                  <div className="size-24 rounded-full border-8 border-neutral-200/70 flex items-center justify-center text-xs text-neutral-400 font-semibold">
+                    0%
+                  </div>
+                  <div className="flex items-center gap-4 mt-4 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <span className="size-2 rounded-full bg-emerald-500" />
+                      <span className="text-neutral-600">QR Order <strong>0%</strong></span>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-foreground">{formatRupiah(item.total_sales)}</p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="size-2 rounded-full bg-teal-500" />
+                      <span className="text-neutral-600">Delivery <strong>0%</strong></span>
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
-            ) : (
-              <div className="py-8 text-center text-muted-foreground text-sm">
-                Belum ada transaksi penjualan produk pada periode ini.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Payment Methods Breakdown */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <div>
-              <CardTitle>Distribusi Metode Pembayaran</CardTitle>
-              <CardDescription>Penerimaan kas berdasarkan kanal bayar</CardDescription>
             </div>
-            <Link
-              href={ROUTES.DASHBOARD.REPORTS}
-              className="text-xs text-foreground font-semibold hover:underline flex items-center gap-1"
-            >
-              Detail Laporan <ArrowUpRight className="size-3" />
-            </Link>
-          </CardHeader>
-          <CardContent>
-            {report?.payment_methods && report.payment_methods.length > 0 ? (
-              <div className="space-y-3">
-                {report.payment_methods.map((method) => (
-                  <div
-                    key={method.method}
-                    className="flex items-center justify-between p-2.5 rounded-lg border border-border/50 hover:bg-muted/40 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Badge
-                        variant={
-                          method.method === 'CASH'
-                            ? 'success'
-                            : method.method === 'QRIS'
-                            ? 'info'
-                            : 'secondary'
-                        }
-                        className="font-mono"
-                      >
-                        {method.method}
-                      </Badge>
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground">
-                          {method.transactions_count} transaksi ({method.percentage}%)
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-foreground">
-                        {formatRupiah(method.total_amount)}
-                      </p>
-                    </div>
+          </div>
+
+          {/* Row: Produk Terlaris Hari Ini & Stok */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Card: Produk Terlaris Hari Ini */}
+            <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-xs flex flex-col justify-between min-h-[220px]">
+              <div>
+                <h3 className="text-sm font-bold text-neutral-900">
+                  Produk Terlaris Hari Ini
+                </h3>
+              </div>
+              <div className="flex flex-col items-center justify-center my-4 text-center">
+                <p className="text-xs font-bold text-neutral-700 tracking-wide uppercase">
+                  BELUM ADA PRODUK TERJUAL
+                </p>
+                <p className="text-[11.5px] text-neutral-400 mt-1 max-w-[220px]">
+                  Produk terlaris akan muncul setelah ada penjualan.
+                </p>
+                <Link
+                  href="/dashboard/catalog"
+                  className="mt-3 px-4 py-1.5 rounded-lg border border-blue-200 bg-blue-50/60 hover:bg-blue-100/60 text-blue-600 text-xs font-semibold transition-colors"
+                >
+                  Lihat Produk
+                </Link>
+              </div>
+              <div />
+            </div>
+
+            {/* Card: Stok */}
+            <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-xs flex flex-col justify-between min-h-[220px]">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-neutral-900">Stok</h3>
+                <Link
+                  href="/dashboard/inventory"
+                  className="text-xs text-neutral-400 hover:text-neutral-700 font-medium flex items-center gap-0.5"
+                >
+                  Lihat inventori &rsaquo;
+                </Link>
+              </div>
+              <div className="flex flex-col items-center justify-center my-4 text-center">
+                <p className="text-xs font-bold text-neutral-700 tracking-wide uppercase">
+                  BELUM ADA DATA STOK
+                </p>
+                <p className="text-[11.5px] text-neutral-400 mt-1 max-w-[220px]">
+                  Tambahkan stok untuk memantau persediaan outlet.
+                </p>
+                <Link
+                  href="/dashboard/inventory"
+                  className="mt-3 px-4 py-1.5 rounded-lg border border-blue-200 bg-blue-50/60 hover:bg-blue-100/60 text-blue-600 text-xs font-semibold transition-colors"
+                >
+                  Kelola Stok
+                </Link>
+              </div>
+              <div />
+            </div>
+          </div>
+        </div>
+
+        {/* Right Section (4 cols) */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* Card: Pesanan hari ini */}
+          <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-xs">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-neutral-900">
+                Pesanan hari ini
+              </h3>
+              <ChevronRight className="size-4 text-neutral-400" />
+            </div>
+
+            <div className="space-y-3">
+              {/* Item: Baru */}
+              <div className="flex items-center justify-between p-2 rounded-xl hover:bg-neutral-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <span className="size-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center text-xs">
+                    ✦
+                  </span>
+                  <span className="text-xs font-medium text-neutral-800">
+                    Baru
+                  </span>
+                </div>
+                <span className="text-sm font-bold text-neutral-900">0</span>
+              </div>
+
+              {/* Item: Diproses */}
+              <div className="flex items-center justify-between p-2 rounded-xl hover:bg-neutral-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <span className="size-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs">
+                    ▶
+                  </span>
+                  <span className="text-xs font-medium text-neutral-800">
+                    Diproses
+                  </span>
+                </div>
+                <span className="text-sm font-bold text-neutral-900">0</span>
+              </div>
+
+              {/* Item: Siap diambil */}
+              <div className="flex items-center justify-between p-2 rounded-xl hover:bg-neutral-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <span className="size-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center text-xs">
+                    🛍️
+                  </span>
+                  <span className="text-xs font-medium text-neutral-800">
+                    Siap diambil
+                  </span>
+                </div>
+                <span className="text-sm font-bold text-neutral-900">0</span>
+              </div>
+
+              {/* Item: Selesai */}
+              <div className="flex items-center justify-between p-2 rounded-xl hover:bg-neutral-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <span className="size-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs">
+                    ✓
+                  </span>
+                  <span className="text-xs font-medium text-neutral-800">
+                    Selesai
+                  </span>
+                </div>
+                <span className="text-sm font-bold text-neutral-900">0</span>
+              </div>
+
+              {/* Item: Dibatalkan */}
+              <div className="flex items-center justify-between p-2 rounded-xl hover:bg-neutral-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <span className="size-7 rounded-lg bg-neutral-100 text-neutral-500 flex items-center justify-center text-xs">
+                    ✕
+                  </span>
+                  <span className="text-xs font-medium text-neutral-800">
+                    Dibatalkan
+                  </span>
+                </div>
+                <span className="text-sm font-bold text-neutral-900">0</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card: Fitur Terbaru */}
+          <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-xs">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-neutral-900">
+                Fitur Terbaru
+              </h3>
+              <ChevronRight className="size-4 text-neutral-400" />
+            </div>
+
+            <div className="space-y-4">
+              {/* Feature 1 */}
+              <div className="flex items-start gap-3 p-1">
+                <div className="size-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 mt-0.5">
+                  <Package className="size-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-orange-100 text-orange-600">
+                      Baru
+                    </span>
+                    <h4 className="text-xs font-semibold text-neutral-900 truncate">
+                      Pembelian stok
+                    </h4>
                   </div>
-                ))}
+                  <p className="text-[10px] text-neutral-400 mt-0.5">14 Okt 2026</p>
+                  <p className="text-[11px] text-neutral-500 leading-relaxed mt-1">
+                    Sekarang anda dapat mencatat pembelian bahan baku langsung di NemuPOS
+                  </p>
+                </div>
               </div>
-            ) : (
-              <div className="py-8 text-center text-muted-foreground text-sm">
-                Belum ada data pembayaran pada periode ini.
+
+              {/* Feature 2 */}
+              <div className="flex items-start gap-3 p-1">
+                <div className="size-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 mt-0.5">
+                  <Layers className="size-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-orange-100 text-orange-600">
+                      Baru
+                    </span>
+                    <h4 className="text-xs font-semibold text-neutral-900 truncate">
+                      Penyesuaian stok
+                    </h4>
+                  </div>
+                  <p className="text-[10px] text-neutral-400 mt-0.5">14 Okt 2026</p>
+                  <p className="text-[11px] text-neutral-500 leading-relaxed mt-1">
+                    Perbaiki selisih stok dengan fitur penyesuaian stok.
+                  </p>
+                </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Onboarding Modal: First Login / Newly Registered Tenant */}
+      <FirstLoginModal
+        isOpen={showFirstLoginModal}
+        onClose={() => setShowFirstLoginModal(false)}
+        onComplete={() => setShowFirstLoginModal(false)}
+      />
     </div>
   );
 }

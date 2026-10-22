@@ -23,6 +23,7 @@ import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { SIDEBAR_NAV_ITEMS, NAV_GROUP_ORDER, NavItem } from '@/constants/navigation';
 import { getInitials } from '@/utils';
 import { cn } from '@/lib/utils';
+import { NemuLogo } from '@/components/common/NemuLogo';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -94,11 +95,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const activeItem = accessibleItems.find(isItemActive);
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="min-h-screen flex bg-[#F8F9FA]">
       {/* Mobile Sidebar Overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden animate-in fade-in duration-150"
+          className="fixed inset-0 z-40 bg-black/60 lg:hidden animate-in fade-in duration-150"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -106,88 +107,206 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Sidebar Navigation */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-60 border-r border-sidebar-border bg-sidebar transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 w-64 bg-[#141414] text-white transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 flex flex-col',
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="h-full flex flex-col">
-          {/* Brand */}
-          <div className="h-14 flex items-center justify-between px-4">
-            <Link href={brandHomeHref} className="flex items-center gap-2.5 min-w-0">
-              <div className="size-7 rounded-md bg-primary text-primary-foreground flex items-center justify-center shrink-0">
-                <Coffee className="size-4" strokeWidth={2.25} />
+        <div className="h-full flex flex-col justify-between">
+          <div>
+            {/* Brand Header */}
+            <div className="h-16 flex items-center justify-between px-5 border-b border-neutral-800/60">
+              <Link href={brandHomeHref} className="flex items-center">
+                <NemuLogo size="md" />
+              </Link>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-1 rounded-md text-neutral-400 hover:text-white hover:bg-neutral-800"
+                aria-label="Tutup menu"
+              >
+                <MenuIcon className="size-4" />
+              </button>
+            </div>
+
+            {/* Navigation Groups */}
+            <nav className="overflow-y-auto px-3.5 py-4 space-y-5 max-h-[calc(100vh-145px)]">
+              {/* Group 1: MAIN MENU */}
+              <div>
+                <p className="px-2.5 pb-2 text-[10.5px] font-bold text-neutral-400 uppercase tracking-wider">
+                  MAIN MENU
+                </p>
+                <div className="space-y-1">
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium transition-colors',
+                      pathname === '/dashboard'
+                        ? 'bg-white/10 text-white font-semibold'
+                        : 'text-neutral-300 hover:bg-white/5 hover:text-white'
+                    )}
+                  >
+                    <span className="size-4 flex items-center justify-center shrink-0">▤</span>
+                    <span className="truncate">Dashboard</span>
+                  </Link>
+
+                  <Link
+                    href="/dashboard/pos?tab=orders"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium transition-colors',
+                      pathname === '/dashboard/pos' && currentTab === 'orders'
+                        ? 'bg-white/10 text-white font-semibold'
+                        : 'text-neutral-400 hover:bg-white/5 hover:text-white'
+                    )}
+                  >
+                    <span className="size-4 flex items-center justify-center shrink-0">📋</span>
+                    <span className="truncate">Pesanan</span>
+                  </Link>
+
+                  <Link
+                    href="/dashboard/reports"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium transition-colors',
+                      pathname === '/dashboard/reports'
+                        ? 'bg-white/10 text-white font-semibold'
+                        : 'text-neutral-400 hover:bg-white/5 hover:text-white'
+                    )}
+                  >
+                    <span className="size-4 flex items-center justify-center shrink-0">💳</span>
+                    <span className="truncate">Transaksi</span>
+                  </Link>
+
+                  <Link
+                    href="/dashboard/catalog"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium transition-colors',
+                      pathname === '/dashboard/catalog'
+                        ? 'bg-white/10 text-white font-semibold'
+                        : 'text-neutral-400 hover:bg-white/5 hover:text-white'
+                    )}
+                  >
+                    <span className="size-4 flex items-center justify-center shrink-0">☕</span>
+                    <span className="truncate">Menu</span>
+                  </Link>
+
+                  <Link
+                    href="/dashboard/tables"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium transition-colors',
+                      pathname === '/dashboard/tables'
+                        ? 'bg-white/10 text-white font-semibold'
+                        : 'text-neutral-400 hover:bg-white/5 hover:text-white'
+                    )}
+                  >
+                    <span className="size-4 flex items-center justify-center shrink-0">🪑</span>
+                    <span className="truncate">Meja</span>
+                  </Link>
+
+                  <Link
+                    href="/dashboard/tables?tab=qr"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium text-neutral-400 hover:bg-white/5 hover:text-white transition-colors"
+                  >
+                    <span className="size-4 flex items-center justify-center shrink-0">📱</span>
+                    <span className="truncate">QR Order</span>
+                  </Link>
+                </div>
               </div>
-              <span className="font-semibold text-sm tracking-tight text-foreground truncate">
-                {activeTenant?.name || 'Kopi Nusantara'}
-              </span>
-            </Link>
-            <button
-              onClick={() => setMobileMenuOpen(false)}
-              className="lg:hidden p-1 rounded-md text-muted-foreground hover:bg-accent"
-              aria-label="Tutup menu"
-            >
-              <X className="size-4" />
-            </button>
+
+              {/* Group 2: OPERASIONAL */}
+              <div>
+                <p className="px-2.5 pb-2 text-[10.5px] font-bold text-neutral-400 uppercase tracking-wider">
+                  OPERASIONAL
+                </p>
+                <div className="space-y-1">
+                  <Link
+                    href="/dashboard/inventory"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium transition-colors',
+                      pathname === '/dashboard/inventory'
+                        ? 'bg-white/10 text-white font-semibold'
+                        : 'text-neutral-400 hover:bg-white/5 hover:text-white'
+                    )}
+                  >
+                    <span className="size-4 flex items-center justify-center shrink-0">📦</span>
+                    <span className="truncate">Inventori & Stok</span>
+                  </Link>
+
+                  <Link
+                    href="/dashboard/reports"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium text-neutral-400 hover:bg-white/5 hover:text-white transition-colors"
+                  >
+                    <span className="size-4 flex items-center justify-center shrink-0">📈</span>
+                    <span className="truncate">Laporan</span>
+                  </Link>
+
+                  <Link
+                    href="/dashboard/reports?tab=finance"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium text-neutral-400 hover:bg-white/5 hover:text-white transition-colors"
+                  >
+                    <span className="size-4 flex items-center justify-center shrink-0">💰</span>
+                    <span className="truncate">Keuangan & Rekonsiliasi</span>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Group 3: DATA & PENGELOLAAN */}
+              <div>
+                <p className="px-2.5 pb-2 text-[10.5px] font-bold text-neutral-400 uppercase tracking-wider">
+                  DATA & PENGELOLAAN
+                </p>
+                <div className="space-y-1">
+                  <Link
+                    href="/dashboard/customers"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium text-neutral-400 hover:bg-white/5 hover:text-white transition-colors"
+                  >
+                    <span className="size-4 flex items-center justify-center shrink-0">👤</span>
+                    <span className="truncate">Pelanggan</span>
+                  </Link>
+
+                  <Link
+                    href="/dashboard/settings?tab=staff"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium text-neutral-400 hover:bg-white/5 hover:text-white transition-colors"
+                  >
+                    <span className="size-4 flex items-center justify-center shrink-0">👥</span>
+                    <span className="truncate">Staff & Akses</span>
+                  </Link>
+                </div>
+              </div>
+            </nav>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="flex-1 overflow-y-auto px-3 pb-4 space-y-5">
-            {NAV_GROUP_ORDER.map((group) => {
-              const items = accessibleItems.filter((i) => (i.group || 'Operasional') === group);
-              if (items.length === 0) return null;
-              return (
-                <div key={group}>
-                  <p className="px-2 pb-1.5 text-[11px] font-medium text-muted-foreground/80">{group}</p>
-                  <div className="space-y-0.5">
-                    {items.map((item) => {
-                      const Icon = item.icon;
-                      const active = isItemActive(item);
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          onClick={() => setMobileMenuOpen(false)}
-                          className={cn(
-                            'flex items-center gap-2.5 h-8 px-2 rounded-md text-[13px] transition-colors',
-                            active
-                              ? 'bg-sidebar-accent text-foreground font-medium'
-                              : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground'
-                          )}
-                        >
-                          <Icon
-                            className={cn('size-4 shrink-0', active ? 'text-foreground' : 'text-muted-foreground')}
-                            strokeWidth={1.75}
-                          />
-                          <span className="truncate">{item.label}</span>
-                        </Link>
-                      );
-                    })}
+          {/* Bottom Outlet & User Footer */}
+          <div className="p-3 border-t border-neutral-800/80 bg-[#171717]">
+            <div className="flex items-center justify-between p-2 rounded-xl bg-neutral-900 border border-neutral-800">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="size-8 rounded-full bg-[#2E2E2E] text-white flex items-center justify-center text-[11px] font-bold shrink-0">
+                  KM
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[12.5px] font-semibold text-white truncate leading-tight">
+                    {activeTenant?.name || 'Kopi Mantap'}
+                  </p>
+                  <div className="flex items-center gap-2 text-[10.5px] text-neutral-400 mt-0.5">
+                    <Link href="/dashboard/settings" className="hover:text-neutral-200">
+                      Profile
+                    </Link>
+                    <span>&bull;</span>
+                    <Link href="/dashboard/settings" className="hover:text-neutral-200">
+                      Pengaturan
+                    </Link>
                   </div>
                 </div>
-              );
-            })}
-          </nav>
-
-          {/* User Footer */}
-          <div className="border-t border-sidebar-border p-3">
-            <div className="flex items-center gap-2.5 px-1">
-              <div className="size-8 rounded-full bg-gradient-to-br from-neutral-200 to-neutral-400 dark:from-neutral-600 dark:to-neutral-800 text-foreground flex items-center justify-center text-[11px] font-semibold shrink-0">
-                {getInitials(user?.name)}
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-medium text-foreground truncate leading-tight">{user?.name}</p>
-                <p className="text-[11px] text-muted-foreground truncate leading-tight mt-0.5">
-                  {activeTenant?.role || user?.email}
-                </p>
-              </div>
-              <button
-                onClick={() => logout()}
-                title="Keluar"
-                aria-label="Keluar"
-                className="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors shrink-0"
-              >
-                <LogOut className="size-4" strokeWidth={1.75} />
-              </button>
+              <ChevronsUpDown className="size-3.5 text-neutral-400 shrink-0" />
             </div>
           </div>
         </div>
@@ -196,87 +315,73 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header */}
-        <header className="sticky top-0 z-30 h-14 border-b border-border bg-background/80 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 min-w-0">
+        <header className="sticky top-0 z-30 h-16 border-b border-neutral-800 bg-[#141414] text-white px-5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-1.5 -ml-1 rounded-md text-foreground hover:bg-accent"
+              className="lg:hidden p-1.5 -ml-1 rounded-md text-neutral-400 hover:text-white hover:bg-neutral-800"
               aria-label="Buka menu"
             >
               <MenuIcon className="size-5" />
             </button>
 
-            {/* Breadcrumb: Store switcher / current page */}
-            <div className="relative">
-              <button
-                onClick={() => setStoreDropdownOpen(!storeDropdownOpen)}
-                className="flex items-center gap-2 h-8 px-2 rounded-md text-[13px] font-medium text-foreground hover:bg-accent transition-colors"
+            {/* Quick Action Badges matching Figma screenshot: POS, KDS, Reservasi */}
+            <div className="flex items-center gap-2">
+              <Link
+                href="/dashboard/pos"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-semibold text-white transition-colors"
               >
-                <span className="size-4 rounded-full bg-gradient-to-br from-emerald-400 to-sky-500 shrink-0" />
-                <span className="truncate max-w-[160px]">
-                  {activeStore ? activeStore.name : 'Pilih Outlet'}
-                </span>
-                <ChevronsUpDown className="size-3.5 text-muted-foreground" />
-              </button>
+                <span className="text-[#FF5C38] text-sm">📠</span>
+                <span>POS</span>
+              </Link>
 
-              {storeDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-30" onClick={() => setStoreDropdownOpen(false)} />
-                  <div className="absolute left-0 mt-1.5 z-40 w-64 rounded-lg bg-popover p-1 shadow-elevated animate-in fade-in zoom-in-[0.98] duration-100">
-                    <p className="px-2 pt-1.5 pb-1 text-[11px] font-medium text-muted-foreground">
-                      Outlet ({stores.length})
-                    </p>
-                    {stores.map((store) => {
-                      const selected = activeStore?.id === store.id;
-                      return (
-                        <button
-                          key={store.id}
-                          onClick={() => {
-                            selectStore(store.id);
-                            setStoreDropdownOpen(false);
-                          }}
-                          className={cn(
-                            'w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-md text-[13px] transition-colors hover:bg-accent',
-                            selected ? 'text-foreground font-medium' : 'text-muted-foreground'
-                          )}
-                        >
-                          <div className="flex flex-col text-left min-w-0">
-                            <span className="truncate text-foreground">{store.name}</span>
-                            <span className="text-[11px] text-muted-foreground font-mono">{store.code}</span>
-                          </div>
-                          {selected && <Check className="size-4 shrink-0" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
+              <Link
+                href="/dashboard/pos?tab=orders"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-semibold text-neutral-300 hover:text-white transition-colors"
+              >
+                <span className="text-[#FF5C38] text-sm">🍳</span>
+                <span>KDS</span>
+              </Link>
+
+              <Link
+                href="/dashboard/tables"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-semibold text-neutral-300 hover:text-white transition-colors"
+              >
+                <span className="text-[#FF5C38] text-sm">🎟️</span>
+                <span>Reservasi</span>
+              </Link>
             </div>
-
-            {activeItem && (
-              <>
-                <Slash className="size-3.5 text-border -rotate-12 shrink-0 hidden sm:block" />
-                <span className="hidden sm:block text-[13px] text-muted-foreground truncate">
-                  {activeItem.label}
-                </span>
-              </>
-            )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            {userRole !== 'INVENTORY' && pathname !== '/dashboard/pos' && (
-              <Link href="/dashboard/pos">
-                <Button size="sm">
-                  <ShoppingCart className="size-3.5" /> <span className="hidden sm:inline">Buka Kasir</span>
-                </Button>
-              </Link>
-            )}
+          {/* Right Header: Notifications & User profile */}
+          <div className="flex items-center gap-3">
+            <button
+              className="size-9 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white flex items-center justify-center transition-colors"
+              title="Notifikasi"
+            >
+              <span className="text-sm">✉️</span>
+            </button>
+
+            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-neutral-900 border border-neutral-800">
+              <div className="size-6 rounded-full bg-blue-600/30 text-blue-400 flex items-center justify-center text-[10.5px] font-bold">
+                {getInitials(user?.name) || 'AP'}
+              </div>
+              <span className="text-xs font-medium text-neutral-200 hidden sm:inline">
+                {user?.name || 'Andi Pratama'}
+              </span>
+              <button
+                onClick={() => logout()}
+                title="Keluar"
+                className="text-neutral-500 hover:text-neutral-300 text-xs font-semibold ml-1"
+              >
+                ✕
+              </button>
+            </div>
           </div>
         </header>
 
         {/* Page Children Container */}
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 max-w-[1280px] w-full mx-auto">
+        <main className="flex-1 bg-[#F8F9FA] min-w-0">
           <Suspense fallback={<LoadingScreen message="Memuat halaman..." />}>{children}</Suspense>
         </main>
       </div>
