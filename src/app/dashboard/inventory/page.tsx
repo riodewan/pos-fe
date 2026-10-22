@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import {
   Package,
   Plus,
@@ -217,8 +218,17 @@ type InventoryTabKey =
   | 'stock-out'
   | 'adjustment';
 
-export default function InventoryPage() {
-  const [activeTab, setActiveTab] = useState<InventoryTabKey>('bahan');
+function InventoryContent() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab') as InventoryTabKey | null;
+
+  const [activeTab, setActiveTab] = useState<InventoryTabKey>(tabParam || 'bahan');
+
+  useEffect(() => {
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
   const [ingredients, setIngredients] = useState<InventoryIngredient[]>(INITIAL_INGREDIENTS);
   const [demoMode, setDemoMode] = useState<'populated' | 'empty'>('populated');
 
@@ -809,5 +819,13 @@ export default function InventoryPage() {
         onAdd={handleAddIngredient}
       />
     </div>
+  );
+}
+
+export default function InventoryPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-xs text-neutral-400">Memuat inventori...</div>}>
+      <InventoryContent />
+    </Suspense>
   );
 }
