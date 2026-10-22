@@ -7,76 +7,20 @@ import {
   ChevronDown,
   Upload,
   MoreVertical,
-  ChevronLeft,
-  ChevronRight,
-  QrCode,
-  Store,
   Check,
   Clock,
   X,
-  CheckSquare,
-  Square,
-  UtensilsCrossed,
 } from 'lucide-react';
-import { EmptyState } from '@/components/common/EmptyState';
+import {
+  DataTable,
+  ColumnDef,
+  ChannelBadge,
+} from '@/components/common';
 import {
   TransactionDetailsDrawer,
   DetailedTransaction,
 } from '@/components/transactions/TransactionDetailsDrawer';
 import { formatRupiah } from '@/utils';
-
-// Channel Badge Component matching Figma design
-function ChannelBadge({ channel }: { channel: string }) {
-  switch (channel) {
-    case 'QR Order':
-      return (
-        <div className="inline-flex items-center gap-2 text-xs text-neutral-800 font-normal">
-          <div className="size-6 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
-            <QrCode className="size-3.5" />
-          </div>
-          <span>QR Order</span>
-        </div>
-      );
-    case 'Kasir':
-      return (
-        <div className="inline-flex items-center gap-2 text-xs text-neutral-800 font-normal">
-          <div className="size-6 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
-            <Store className="size-3.5" />
-          </div>
-          <span>Kasir</span>
-        </div>
-      );
-    case 'GrabFood':
-      return (
-        <div className="inline-flex items-center gap-2 text-xs text-neutral-800 font-normal">
-          <div className="size-6 rounded-full bg-[#00B14F] text-white flex items-center justify-center text-[9px] font-bold shrink-0">
-            GF
-          </div>
-          <span>GrabFood</span>
-        </div>
-      );
-    case 'ShopeeFood':
-      return (
-        <div className="inline-flex items-center gap-2 text-xs text-neutral-800 font-normal">
-          <div className="size-6 rounded-full bg-[#EE4D2D] text-white flex items-center justify-center text-[9px] font-bold shrink-0">
-            SF
-          </div>
-          <span>ShopeeFood</span>
-        </div>
-      );
-    case 'GoFood':
-      return (
-        <div className="inline-flex items-center gap-2 text-xs text-neutral-800 font-normal">
-          <div className="size-6 rounded-full bg-[#ED2736] text-white flex items-center justify-center text-[9px] font-bold shrink-0">
-            GF
-          </div>
-          <span>GoFood</span>
-        </div>
-      );
-    default:
-      return <span className="text-xs text-neutral-700">{channel}</span>;
-  }
-}
 
 // Payment Status Pill Component matching Figma design
 function PaymentStatusBadge({ status }: { status: 'Lunas' | 'Sebagian' | 'Dibatalkan' }) {
@@ -396,11 +340,8 @@ export default function TransactionsPage() {
     });
   }, [demoMode, selectedChannel, selectedType, selectedPaymentStatus, searchQuery]);
 
-  const isAllSelected =
-    filteredTransactions.length > 0 && selectedIds.length === filteredTransactions.length;
-
   const toggleSelectAll = () => {
-    if (isAllSelected) {
+    if (selectedIds.length === filteredTransactions.length && filteredTransactions.length > 0) {
       setSelectedIds([]);
     } else {
       setSelectedIds(filteredTransactions.map((trx) => trx.id));
@@ -434,6 +375,95 @@ export default function TransactionsPage() {
       setSelectedTransaction(filteredTransactions[currentIndex + 1]);
     }
   };
+
+  // Column definitions for the reusable DataTable
+  const columns: ColumnDef<DetailedTransaction>[] = [
+    {
+      key: 'transactionNumber',
+      header: 'No. Transaksi',
+      render: (trx) => (
+        <span className="font-normal text-neutral-800 tracking-tight">
+          {trx.transactionNumber}
+        </span>
+      ),
+    },
+    {
+      key: 'waktu',
+      header: 'Waktu',
+      render: (trx) => (
+        <span className="text-neutral-500 font-normal">
+          {trx.dateTime.split(', ')[1]}
+        </span>
+      ),
+    },
+    {
+      key: 'channel',
+      header: 'Channel',
+      render: (trx) => <ChannelBadge channel={trx.channel} />,
+    },
+    {
+      key: 'diningType',
+      header: 'Tipe',
+      render: (trx) => (
+        <span className="text-neutral-600 font-normal">
+          {trx.diningType === 'Takeaway' ? 'Takeway' : trx.diningType}
+        </span>
+      ),
+    },
+    {
+      key: 'tableOrCustomer',
+      header: 'Pelanggan / Meja',
+      render: (trx) => (
+        <span className="text-neutral-800 font-normal">
+          {trx.tableOrCustomer}
+        </span>
+      ),
+    },
+    {
+      key: 'items',
+      header: 'Item',
+      render: (trx) => <span className="text-neutral-600">{trx.items.length} Item</span>,
+    },
+    {
+      key: 'total',
+      header: 'Total',
+      render: (trx) => (
+        <span className="font-medium text-neutral-900">
+          {formatRupiah(trx.total)}
+        </span>
+      ),
+    },
+    {
+      key: 'paymentMethod',
+      header: 'Metode',
+      render: (trx) => (
+        <span className="font-normal text-neutral-700">
+          {trx.paymentMethod}
+        </span>
+      ),
+    },
+    {
+      key: 'paymentStatus',
+      header: 'Pembayaran',
+      render: (trx) => <PaymentStatusBadge status={trx.paymentStatus} />,
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      render: (trx) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleOpenTransaction(trx);
+          }}
+          className="p-1 rounded-md text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+        >
+          <MoreVertical className="size-4" />
+        </button>
+      ),
+    },
+  ];
 
   return (
     <div className="p-6 lg:p-8 space-y-4 max-w-[1600px] mx-auto">
@@ -560,177 +590,20 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {/* Main Table Container matching Screenshot 2 */}
-      <div className="bg-white rounded-xl border border-neutral-200/90 shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            {/* Table Header */}
-            <thead>
-              <tr className="border-b border-neutral-200/80 bg-white text-neutral-500 font-medium text-[12.5px]">
-                <th className="py-3.5 px-3.5 w-10">
-                  <button
-                    onClick={toggleSelectAll}
-                    className="text-neutral-300 hover:text-neutral-600 transition-colors flex items-center"
-                  >
-                    {isAllSelected ? (
-                      <CheckSquare className="size-4 text-blue-600" />
-                    ) : (
-                      <Square className="size-4" />
-                    )}
-                  </button>
-                </th>
-                <th className="py-3.5 px-3.5">No. Transaksi</th>
-                <th className="py-3.5 px-3.5">Waktu</th>
-                <th className="py-3.5 px-3.5">Channel</th>
-                <th className="py-3.5 px-3.5">Tipe</th>
-                <th className="py-3.5 px-3.5">Pelanggan / Meja</th>
-                <th className="py-3.5 px-3.5">Item</th>
-                <th className="py-3.5 px-3.5">Total</th>
-                <th className="py-3.5 px-3.5">Metode</th>
-                <th className="py-3.5 px-3.5">Pembayaran</th>
-                <th className="py-3.5 px-3.5 w-10 text-right"></th>
-              </tr>
-            </thead>
-
-            {/* Table Body */}
-            <tbody>
-              {filteredTransactions.length > 0 ? (
-                filteredTransactions.map((trx) => {
-                  const isChecked = selectedIds.includes(trx.id);
-                  return (
-                    <tr
-                      key={trx.id}
-                      onClick={() => handleOpenTransaction(trx)}
-                      className={`border-b border-neutral-100 hover:bg-neutral-50/70 transition-colors cursor-pointer ${
-                        isChecked ? 'bg-blue-50/20' : ''
-                      }`}
-                    >
-                      {/* Checkbox */}
-                      <td className="py-3.5 px-3.5">
-                        <button
-                          onClick={(e) => toggleSelectRow(trx.id, e)}
-                          className="text-neutral-300 hover:text-neutral-600 transition-colors flex items-center"
-                        >
-                          {isChecked ? (
-                            <CheckSquare className="size-4 text-blue-600" />
-                          ) : (
-                            <Square className="size-4" />
-                          )}
-                        </button>
-                      </td>
-
-                      {/* No. Transaksi: Clean normal weight font */}
-                      <td className="py-3.5 px-3.5 font-normal text-neutral-800 tracking-tight">
-                        {trx.transactionNumber}
-                      </td>
-
-                      {/* Waktu */}
-                      <td className="py-3.5 px-3.5 text-neutral-500 font-normal">
-                        {trx.dateTime.split(', ')[1]}
-                      </td>
-
-                      {/* Channel */}
-                      <td className="py-3.5 px-3.5">
-                        <ChannelBadge channel={trx.channel} />
-                      </td>
-
-                      {/* Tipe */}
-                      <td className="py-3.5 px-3.5 text-neutral-600 font-normal">
-                        {trx.diningType === 'Takeaway' ? 'Takeway' : trx.diningType}
-                      </td>
-
-                      {/* Pelanggan / Meja: Clean regular text */}
-                      <td className="py-3.5 px-3.5 text-neutral-800 font-normal">
-                        {trx.tableOrCustomer}
-                      </td>
-
-                      {/* Item */}
-                      <td className="py-3.5 px-3.5 text-neutral-600">{trx.items.length} Item</td>
-
-                      {/* Total */}
-                      <td className="py-3.5 px-3.5 font-medium text-neutral-900">
-                        {formatRupiah(trx.total)}
-                      </td>
-
-                      {/* Metode */}
-                      <td className="py-3.5 px-3.5 font-normal text-neutral-700">
-                        {trx.paymentMethod}
-                      </td>
-
-                      {/* Status Pembayaran */}
-                      <td className="py-3.5 px-3.5">
-                        <PaymentStatusBadge status={trx.paymentStatus} />
-                      </td>
-
-                      {/* More Menu */}
-                      <td className="py-3.5 px-3.5 text-right">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenTransaction(trx);
-                          }}
-                          className="p-1 rounded-md text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
-                        >
-                          <MoreVertical className="size-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                /* Empty State Row matching Screenshot 3 */
-                <tr>
-                  <td colSpan={11} className="py-20 text-center">
-                    <EmptyState
-                      title="BELUM ADA TRANSAKSI"
-                      description="Transaksi penjualan akan muncul di sini setelah pembayaran dilakukan."
-                    />
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Footer Pagination & Counter matching Screenshot 2 */}
-        <div className="p-3.5 border-t border-neutral-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-500 bg-white">
-          <div>
-            Menampilkan 1 - {filteredTransactions.length} dari {filteredTransactions.length}{' '}
-            pesanan
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <button
-              disabled
-              className="size-8 rounded-lg border border-neutral-200 text-neutral-300 flex items-center justify-center cursor-not-allowed"
-            >
-              <ChevronLeft className="size-4" />
-            </button>
-            <button className="size-8 rounded-lg border border-[#E5484D] bg-[#FFF5F5] text-[#E5484D] font-medium flex items-center justify-center text-xs shadow-2xs">
-              1
-            </button>
-            <button
-              disabled
-              className="size-8 rounded-lg border border-neutral-200 text-neutral-300 flex items-center justify-center cursor-not-allowed"
-            >
-              <ChevronRight className="size-4" />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span>Tampilkan</span>
-            <div className="relative">
-              <select className="h-8 pl-2.5 pr-7 rounded-lg border border-neutral-200 bg-white text-xs text-neutral-700 appearance-none cursor-pointer focus:outline-none">
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-              </select>
-              <ChevronDown className="size-3 text-neutral-400 absolute right-2 top-2.5 pointer-events-none" />
-            </div>
-            <span>per halaman</span>
-          </div>
-        </div>
-      </div>
+      {/* Global Reusable DataTable matching Screenshot 2 & 3 */}
+      <DataTable
+        columns={columns}
+        data={filteredTransactions}
+        keyExtractor={(item) => item.id}
+        selectable
+        selectedIds={selectedIds}
+        onToggleSelect={toggleSelectRow}
+        onToggleSelectAll={toggleSelectAll}
+        onRowClick={handleOpenTransaction}
+        emptyTitle="BELUM ADA TRANSAKSI"
+        emptyDescription="Transaksi penjualan akan muncul di sini setelah pembayaran dilakukan."
+        entityName="pesanan"
+      />
 
       {/* Slide-over Transaction Details Drawer */}
       <TransactionDetailsDrawer

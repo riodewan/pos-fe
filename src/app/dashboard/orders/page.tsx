@@ -19,8 +19,13 @@ import {
   RefreshCw,
   UtensilsCrossed,
 } from 'lucide-react';
-import { StatusBadge } from '@/components/common/StatusBadge';
-import { EmptyState } from '@/components/common/EmptyState';
+import {
+  StatusBadge,
+  EmptyState,
+  DataTable,
+  ColumnDef,
+  ChannelBadge,
+} from '@/components/common';
 import { OrderDetailsDrawer, DetailedOrder } from '@/components/orders/OrderDetailsDrawer';
 import { formatRupiah } from '@/utils';
 
@@ -348,58 +353,122 @@ export default function OrdersPage() {
     }
   };
 
-  // Helper for Channel Icons matching Figma
-  const renderChannelBadge = (channel: DetailedOrder['channel']) => {
-    switch (channel) {
-      case 'QR Order':
-        return (
-          <div className="flex items-center gap-1.5 font-medium text-neutral-800">
-            <div className="size-6 rounded-md bg-blue-50 text-blue-600 border border-blue-200/60 flex items-center justify-center shrink-0">
-              <QrCode className="size-3.5" />
-            </div>
-            <span>QR Order</span>
-          </div>
-        );
-      case 'Kasir':
-        return (
-          <div className="flex items-center gap-1.5 font-medium text-neutral-800">
-            <div className="size-6 rounded-md bg-amber-50 text-amber-600 border border-amber-200/60 flex items-center justify-center shrink-0">
-              <Store className="size-3.5" />
-            </div>
-            <span>Kasir</span>
-          </div>
-        );
-      case 'GrabFood':
-        return (
-          <div className="flex items-center gap-1.5 font-medium text-neutral-800">
-            <div className="size-6 rounded-md bg-emerald-600 text-white font-bold text-[8px] flex items-center justify-center shrink-0 tracking-tighter">
-              GRAB
-            </div>
-            <span>GrabFood</span>
-          </div>
-        );
-      case 'ShopeeFood':
-        return (
-          <div className="flex items-center gap-1.5 font-medium text-neutral-800">
-            <div className="size-6 rounded-md bg-[#EE4D2D] text-white font-bold text-[8px] flex items-center justify-center shrink-0 tracking-tighter">
-              SPF
-            </div>
-            <span>ShopeeFood</span>
-          </div>
-        );
-      case 'GoFood':
-        return (
-          <div className="flex items-center gap-1.5 font-medium text-neutral-800">
-            <div className="size-6 rounded-md bg-[#ED2724] text-white font-bold text-[8px] flex items-center justify-center shrink-0 tracking-tighter">
-              GOF
-            </div>
-            <span>GoFood</span>
-          </div>
-        );
-      default:
-        return <span>{channel}</span>;
-    }
-  };
+  // Column definitions for the reusable DataTable
+  const columns: ColumnDef<DetailedOrder>[] = [
+    {
+      key: 'orderNumber',
+      header: 'No. Pesanan',
+      render: (ord) => (
+        <span className="font-semibold text-neutral-900 whitespace-nowrap">
+          {ord.orderNumber}
+        </span>
+      ),
+    },
+    {
+      key: 'waktu',
+      header: 'Waktu',
+      render: (ord) => (
+        <span className="text-neutral-500 whitespace-nowrap">
+          {ord.dateTime.split(', ')[1] || '09:40'}
+        </span>
+      ),
+    },
+    {
+      key: 'channel',
+      header: 'Channel',
+      render: (ord) => <ChannelBadge channel={ord.channel} />,
+    },
+    {
+      key: 'diningType',
+      header: 'Tipe',
+      render: (ord) => (
+        <span className="text-neutral-600 whitespace-nowrap">{ord.diningType}</span>
+      ),
+    },
+    {
+      key: 'tableOrCustomer',
+      header: 'Pelanggan / Meja',
+      render: (ord) => (
+        <span className="font-semibold text-neutral-800 whitespace-nowrap">
+          {ord.tableOrCustomer}
+        </span>
+      ),
+    },
+    {
+      key: 'items',
+      header: 'Item',
+      render: (ord) => {
+        const totalItemsCount = ord.items.reduce((sum, i) => sum + i.qty, 0);
+        return <span className="text-neutral-600 whitespace-nowrap">{totalItemsCount} Item</span>;
+      },
+    },
+    {
+      key: 'total',
+      header: 'Total',
+      render: (ord) => (
+        <span className="font-bold text-neutral-900 whitespace-nowrap">
+          {formatRupiah(ord.total)}
+        </span>
+      ),
+    },
+    {
+      key: 'paymentStatus',
+      header: 'Pembayaran',
+      render: (ord) => {
+        if (ord.paymentStatus === 'Lunas') {
+          return (
+            <StatusBadge variant="success" icon={<Check className="size-3 stroke-[2.5]" />}>
+              Lunas
+            </StatusBadge>
+          );
+        }
+        if (ord.paymentStatus === 'Menunggu') {
+          return (
+            <StatusBadge variant="warning" dot>
+              Menunggu
+            </StatusBadge>
+          );
+        }
+        return <StatusBadge variant="neutral">Dibatalkan</StatusBadge>;
+      },
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (ord) => {
+        switch (ord.status) {
+          case 'Baru':
+            return <StatusBadge variant="danger" dot>Baru</StatusBadge>;
+          case 'Diproses':
+            return <StatusBadge variant="warning" dot>Diproses</StatusBadge>;
+          case 'Siap diambil':
+            return <StatusBadge variant="info" dot>Siap diambil</StatusBadge>;
+          case 'Selesai':
+            return <StatusBadge variant="success" dot>Selesai</StatusBadge>;
+          default:
+            return <StatusBadge variant="neutral" dot>Dibatalkan</StatusBadge>;
+        }
+      },
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      render: (ord) => (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleRowClick(ord);
+          }}
+          className="p-1 rounded-md text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+          aria-label="Aksi"
+        >
+          <MoreVertical className="size-4" />
+        </button>
+      ),
+    },
+  ];
 
   return (
     <div className="p-5 sm:p-6 lg:p-7 space-y-5 max-w-[1520px] mx-auto animate-in fade-in duration-200">
@@ -609,229 +678,21 @@ export default function OrdersPage() {
       </div>
 
       {/* ======================================================== */}
-      {/* 4. ORDERS DATA TABLE (Screenshot 3 & 4)                  */}
+      {/* 4. ORDERS DATA TABLE (Reused Global DataTable)           */}
       {/* ======================================================== */}
-      <div className="rounded-2xl border border-neutral-200/80 bg-white shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            {/* Table Header matching Figma */}
-            <thead>
-              <tr className="border-b border-neutral-200 bg-neutral-50/60 text-neutral-500 font-semibold select-none">
-                <th className="py-3 px-4 w-10">
-                  <input
-                    type="checkbox"
-                    checked={
-                      filteredOrders.length > 0 &&
-                      selectedRowIds.length === filteredOrders.length
-                    }
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="size-4 rounded border-neutral-300 text-blue-600 focus:ring-0 cursor-pointer"
-                  />
-                </th>
-                <th className="py-3 px-3 whitespace-nowrap">No. Pesanan</th>
-                <th className="py-3 px-3 whitespace-nowrap">Waktu</th>
-                <th className="py-3 px-4 whitespace-nowrap">Channel</th>
-                <th className="py-3 px-3 whitespace-nowrap">Tipe</th>
-                <th className="py-3 px-4 whitespace-nowrap">Pelanggan / Meja</th>
-                <th className="py-3 px-3 whitespace-nowrap">Item</th>
-                <th className="py-3 px-4 whitespace-nowrap">Total</th>
-                <th className="py-3 px-3 whitespace-nowrap">Pembayaran</th>
-                <th className="py-3 px-3 whitespace-nowrap">Status</th>
-                <th className="py-3 px-3 w-10 text-center"></th>
-              </tr>
-            </thead>
-
-            {/* Table Body */}
-            <tbody>
-              {filteredOrders.length > 0 ? (
-                filteredOrders.map((ord) => {
-                  const isChecked = selectedRowIds.includes(ord.id);
-                  const totalItemsCount = ord.items.reduce(
-                    (sum, i) => sum + i.qty,
-                    0
-                  );
-
-                  return (
-                    <tr
-                      key={ord.id}
-                      onClick={() => handleRowClick(ord)}
-                      className={`border-b border-neutral-100 hover:bg-neutral-50/80 cursor-pointer transition-colors ${
-                        isChecked ? 'bg-blue-50/40' : ''
-                      }`}
-                    >
-                      {/* Checkbox */}
-                      <td
-                        className="py-3.5 px-4"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => handleSelectRow(ord.id)}
-                          className="size-4 rounded border-neutral-300 text-blue-600 focus:ring-0 cursor-pointer"
-                        />
-                      </td>
-
-                      {/* No. Pesanan */}
-                      <td className="py-3.5 px-3 font-semibold text-neutral-900 whitespace-nowrap">
-                        {ord.orderNumber}
-                      </td>
-
-                      {/* Waktu */}
-                      <td className="py-3.5 px-3 text-neutral-500 whitespace-nowrap">
-                        {ord.dateTime.split(', ')[1] || '09:40'}
-                      </td>
-
-                      {/* Channel */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        {renderChannelBadge(ord.channel)}
-                      </td>
-
-                      {/* Tipe */}
-                      <td className="py-3.5 px-3 text-neutral-600 whitespace-nowrap">
-                        {ord.diningType}
-                      </td>
-
-                      {/* Pelanggan / Meja */}
-                      <td className="py-3.5 px-4 font-semibold text-neutral-800 whitespace-nowrap">
-                        {ord.tableOrCustomer}
-                      </td>
-
-                      {/* Item */}
-                      <td className="py-3.5 px-3 text-neutral-600 whitespace-nowrap">
-                        {totalItemsCount} Item
-                      </td>
-
-                      {/* Total */}
-                      <td className="py-3.5 px-4 font-bold text-neutral-900 whitespace-nowrap">
-                        {formatRupiah(ord.total)}
-                      </td>
-
-                      {/* Pembayaran Badge */}
-                      <td className="py-3.5 px-3 whitespace-nowrap">
-                        {ord.paymentStatus === 'Lunas' ? (
-                          <StatusBadge
-                            variant="success"
-                            icon={<Check className="size-3 stroke-[2.5]" />}
-                          >
-                            Lunas
-                          </StatusBadge>
-                        ) : ord.paymentStatus === 'Menunggu' ? (
-                          <StatusBadge variant="warning" dot>
-                            Menunggu
-                          </StatusBadge>
-                        ) : (
-                          <StatusBadge variant="neutral">
-                            Dibatalkan
-                          </StatusBadge>
-                        )}
-                      </td>
-
-                      {/* Status Badge */}
-                      <td className="py-3.5 px-3 whitespace-nowrap">
-                        {ord.status === 'Baru' ? (
-                          <StatusBadge variant="danger" dot>
-                            Baru
-                          </StatusBadge>
-                        ) : ord.status === 'Diproses' ? (
-                          <StatusBadge variant="warning" dot>
-                            Diproses
-                          </StatusBadge>
-                        ) : ord.status === 'Siap diambil' ? (
-                          <StatusBadge variant="info" dot>
-                            Siap diambil
-                          </StatusBadge>
-                        ) : ord.status === 'Selesai' ? (
-                          <StatusBadge variant="success" dot>
-                            Selesai
-                          </StatusBadge>
-                        ) : (
-                          <StatusBadge variant="neutral" dot>
-                            Dibatalkan
-                          </StatusBadge>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td
-                        className="py-3.5 px-3 text-right"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          type="button"
-                          className="p-1 rounded-md text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
-                          aria-label="Aksi"
-                        >
-                          <MoreVertical className="size-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                /* Empty state matching Screenshot 4 */
-                <tr>
-                  <td colSpan={11} className="py-16">
-                    <EmptyState
-                      title="BELUM ADA PESANAN"
-                      description="Pesanan yang masuk akan muncul di sini."
-                    />
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* ======================================================== */}
-        {/* 5. TABLE FOOTER / PAGINATION (Screenshot 3)              */}
-        {/* ======================================================== */}
-        <div className="p-4 border-t border-neutral-100 bg-white flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-500">
-          <div>
-            <span>
-              Menampilkan {filteredOrders.length > 0 ? '1 - 10' : '0'} dari{' '}
-              {filteredOrders.length} pesanan
-            </span>
-          </div>
-
-          {/* Page numbers */}
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              disabled
-              className="size-7 rounded-lg border border-neutral-200 text-neutral-300 flex items-center justify-center cursor-not-allowed"
-            >
-              <ChevronLeft className="size-3.5" />
-            </button>
-
-            <span className="size-7 rounded-lg border border-red-400 text-red-500 bg-red-50/50 font-bold flex items-center justify-center">
-              1
-            </span>
-
-            <button
-              type="button"
-              disabled
-              className="size-7 rounded-lg border border-neutral-200 text-neutral-300 flex items-center justify-center cursor-not-allowed"
-            >
-              <ChevronRight className="size-3.5" />
-            </button>
-          </div>
-
-          {/* Per page dropdown */}
-          <div className="flex items-center gap-2">
-            <span>Tampilkan</span>
-            <div className="relative">
-              <select className="appearance-none bg-white border border-neutral-200/90 rounded-lg px-2.5 py-1 pr-6 font-semibold text-neutral-800 hover:bg-neutral-50 cursor-pointer focus:outline-none">
-                <option>10</option>
-                <option>25</option>
-                <option>50</option>
-              </select>
-              <ChevronDown className="size-3 text-neutral-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-            <span>per halaman</span>
-          </div>
-        </div>
-      </div>
+      <DataTable
+        columns={columns}
+        data={filteredOrders}
+        keyExtractor={(item) => item.id}
+        selectable
+        selectedIds={selectedRowIds}
+        onToggleSelect={(id) => handleSelectRow(id)}
+        onToggleSelectAll={() => handleSelectAll(selectedRowIds.length !== filteredOrders.length)}
+        onRowClick={handleRowClick}
+        emptyTitle="BELUM ADA PESANAN"
+        emptyDescription="Pesanan yang masuk akan muncul di sini."
+        entityName="pesanan"
+      />
 
       {/* ======================================================== */}
       {/* 6. SLIDE-OVER ORDER DETAILS DRAWER (Screenshots 1 & 2)   */}

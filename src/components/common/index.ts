@@ -11,3 +11,5 @@ export * from './KpiCard';
 export * from './DashboardWidgetCard';
 export * from './StatusBadge';
 export * from './OrderTimeline';
+export * from './ChannelBadge';
+export * from './DataTable';
