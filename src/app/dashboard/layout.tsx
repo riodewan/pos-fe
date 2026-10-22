@@ -350,9 +350,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </Link>
 
                   <Link
-                    href="/dashboard/settings?tab=staff"
+                    href="/dashboard/staff"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium text-neutral-400 hover:bg-white/5 hover:text-white transition-colors"
+                    className={cn(
+                      'flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium transition-colors',
+                      pathname.startsWith('/dashboard/staff') || (pathname === '/dashboard/settings' && currentTab === 'staff')
+                        ? 'bg-white/10 text-white font-semibold'
+                        : 'text-neutral-400 hover:bg-white/5 hover:text-white'
+                    )}
                   >
                     <ShieldCheck className="size-4 shrink-0 text-neutral-400" />
                     <span className="truncate">Staff & Akses</span>
