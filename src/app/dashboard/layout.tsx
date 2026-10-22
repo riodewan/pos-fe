@@ -27,6 +27,7 @@ import {
   Ticket,
   Mail,
   ChevronDown,
+  Calendar,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
@@ -238,6 +239,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   >
                     <QrCode className="size-4 shrink-0 text-neutral-400" />
                     <span className="truncate">QR Order</span>
+                  </Link>
+
+                  <Link
+                    href="/dashboard/reservations"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium transition-colors',
+                      pathname === '/dashboard/reservations' || pathname === '/dashboard/reservasi'
+                        ? 'bg-white/10 text-white font-semibold'
+                        : 'text-neutral-400 hover:bg-white/5 hover:text-white'
+                    )}
+                  >
+                    <Calendar className="size-4 shrink-0 text-neutral-400" />
+                    <span className="truncate">Reservasi</span>
                   </Link>
                 </div>
               </div>
@@ -482,10 +497,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </Link>
 
               <Link
-                href="/dashboard/tables"
+                href="/dashboard/reservations"
                 className={cn(
                   'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
-                  pathname === '/dashboard/tables'
+                  pathname === '/dashboard/reservations' ||
+                    pathname === '/dashboard/reservasi'
                     ? 'bg-[#FF5C38] text-white shadow-xs'
                     : 'text-neutral-300 hover:text-white hover:bg-white/10'
                 )}
@@ -493,7 +509,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Ticket
                   className={cn(
                     'size-3.5',
-                    pathname === '/dashboard/tables' ? 'text-white' : 'text-[#FF5C38]'
+                    pathname === '/dashboard/reservations' ||
+                      pathname === '/dashboard/reservasi'
+                      ? 'text-white'
+                      : 'text-[#FF5C38]'
                   )}
                 />
                 <span>Reservasi</span>
