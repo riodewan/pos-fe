@@ -38,6 +38,7 @@ export interface DataTableProps<T> {
   pageSizeOptions?: number[];
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
+  totalItems?: number;
   className?: string;
   showPagination?: boolean;
 }
@@ -55,10 +56,12 @@ export function DataTable<T>({
   emptyDescription = 'Data akan muncul di sini setelah transaksi dilakukan.',
   entityName = 'data',
   currentPage = 1,
+  totalPages,
   pageSize = 10,
   pageSizeOptions = [10, 25, 50],
   onPageChange,
   onPageSizeChange,
+  totalItems,
   className = '',
   showPagination = true,
 }: DataTableProps<T>) {
@@ -176,14 +179,19 @@ export function DataTable<T>({
       {showPagination && (
         <div className="p-3.5 border-t border-neutral-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-500 bg-white">
           <div>
-            Menampilkan 1 - {data.length} dari {data.length} {entityName}
+            {(() => {
+              const actualTotal = totalItems ?? data.length;
+              const from = actualTotal === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+              const to = Math.min(currentPage * pageSize, actualTotal);
+              return `Menampilkan ${from} - ${to} dari ${actualTotal} ${entityName}`;
+            })()}
           </div>
 
           <div className="flex items-center gap-1.5">
             <button
               disabled={currentPage <= 1}
               onClick={() => onPageChange?.(currentPage - 1)}
-              className="size-8 rounded-lg border border-neutral-200 text-neutral-300 flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-60 hover:bg-neutral-50"
+              className="size-8 rounded-lg border border-neutral-200 text-neutral-400 flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-40 hover:bg-neutral-50"
             >
               <ChevronLeft className="size-4" />
             </button>
@@ -193,9 +201,13 @@ export function DataTable<T>({
             </button>
 
             <button
-              disabled
+              disabled={
+                currentPage >=
+                (totalPages ??
+                  Math.ceil((totalItems ?? data.length) / (pageSize || 10)))
+              }
               onClick={() => onPageChange?.(currentPage + 1)}
-              className="size-8 rounded-lg border border-neutral-200 text-neutral-300 flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-60 hover:bg-neutral-50"
+              className="size-8 rounded-lg border border-neutral-200 text-neutral-400 flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-40 hover:bg-neutral-50"
             >
               <ChevronRight className="size-4" />
             </button>

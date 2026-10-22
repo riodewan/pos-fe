@@ -338,7 +338,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <Link
                     href="/dashboard/customers"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium text-neutral-400 hover:bg-white/5 hover:text-white transition-colors"
+                    className={cn(
+                      'flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium transition-colors',
+                      pathname === '/dashboard/customers'
+                        ? 'bg-white/10 text-white font-semibold'
+                        : 'text-neutral-400 hover:bg-white/5 hover:text-white'
+                    )}
                   >
                     <Users className="size-4 shrink-0 text-neutral-400" />
                     <span className="truncate">Pelanggan</span>
