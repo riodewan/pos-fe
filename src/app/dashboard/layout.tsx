@@ -163,11 +163,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </Link>
 
                   <Link
-                    href="/dashboard/pos?tab=orders"
+                    href="/dashboard/orders"
                     onClick={() => setMobileMenuOpen(false)}
                     className={cn(
                       'flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium transition-colors',
-                      pathname === '/dashboard/pos' && currentTab === 'orders'
+                      pathname === '/dashboard/orders' || (pathname === '/dashboard/pos' && currentTab === 'orders')
                         ? 'bg-white/10 text-white font-semibold'
                         : 'text-neutral-400 hover:bg-white/5 hover:text-white'
                     )}
