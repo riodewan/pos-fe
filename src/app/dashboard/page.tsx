@@ -4,31 +4,38 @@ import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  TrendingUp,
-  CreditCard,
-  ShoppingBag,
-  DollarSign,
   ChevronDown,
   Calendar,
   Sparkles,
-  ArrowRight,
-  ChevronRight,
+  BarChart3,
+  FileText,
+  CreditCard,
+  Coins,
   Package,
   Layers,
-  Sparkle,
-  BarChart3,
-  ShoppingCart,
-  Coins,
-  Clock,
+  ShoppingBag,
   Check,
   X,
+  Play,
+  Coffee,
+  UtensilsCrossed,
+  Milk,
+  Wine,
+  CupSoda,
+  Eye,
+  RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
 import { reportsService } from '@/services';
 import { DashboardReport } from '@/types';
 import { formatRupiah, getISODateOnly, getPastDateISO } from '@/utils';
-import { FirstLoginModal } from '@/components/dashboard/FirstLoginModal';
+import { KpiCard, EmptyState, DashboardWidgetCard } from '@/components/common';
+import {
+  FirstLoginModal,
+  SalesTrendChart,
+  ChannelDistributionChart,
+} from '@/components/dashboard';
 
 export default function DashboardOverviewPage() {
   const router = useRouter();
@@ -39,6 +46,9 @@ export default function DashboardOverviewPage() {
   const [report, setReport] = useState<DashboardReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [showFirstLoginModal, setShowFirstLoginModal] = useState(false);
+
+  // Preview Mode: 'populated' matches Screenshot 1, 'empty' matches Screenshot 2
+  const [previewMode, setPreviewMode] = useState<'populated' | 'empty'>('populated');
 
   const roleName = user?.is_internal
     ? 'SUPER_ADMIN'
@@ -63,7 +73,6 @@ export default function DashboardOverviewPage() {
     if (typeof window !== 'undefined') {
       const onboarded = localStorage.getItem('nemu_tenant_onboarded');
       const forceOnboarding = searchParams?.get('onboarding') === 'true';
-      // Automatically open onboarding for new tenants or if forced
       if (!onboarded || forceOnboarding) {
         setShowFirstLoginModal(true);
       }
@@ -96,39 +105,133 @@ export default function DashboardOverviewPage() {
     }
   }, [fetchDashboardData, isLoading, isOwnerOrManager, activeStore]);
 
-  const kpis = report?.kpis || {
-    gross_sales: 0,
-    total_discounts: 0,
-    net_sales: 0,
-    tax: 0,
-    service_charge: 0,
-    total_revenue: 0,
-    total_orders: 0,
-    average_order_value: 0,
-  };
+  const isEmpty = previewMode === 'empty';
+
+  // Populated mock data matching Figma Screenshot 1
+  const populatedTopProducts = [
+    {
+      id: 1,
+      name: 'Kopi Susu Gula Aren',
+      qty: 40,
+      sales: 1200000,
+      icon: <Coffee className="size-4" />,
+      iconBg: 'bg-amber-100 text-amber-800',
+    },
+    {
+      id: 2,
+      name: 'Americano',
+      qty: 35,
+      sales: 875000,
+      icon: <Coffee className="size-4" />,
+      iconBg: 'bg-stone-200 text-stone-800',
+    },
+    {
+      id: 3,
+      name: 'Cafe Latte',
+      qty: 20,
+      sales: 700000,
+      icon: <Coffee className="size-4" />,
+      iconBg: 'bg-orange-100 text-orange-800',
+    },
+    {
+      id: 4,
+      name: 'Matcha Latte',
+      qty: 18,
+      sales: 630000,
+      icon: <Coffee className="size-4" />,
+      iconBg: 'bg-emerald-100 text-emerald-800',
+    },
+    {
+      id: 5,
+      name: 'Croissant Butter',
+      qty: 13,
+      sales: 390000,
+      icon: <UtensilsCrossed className="size-4" />,
+      iconBg: 'bg-amber-200 text-amber-900',
+    },
+  ];
+
+  const populatedLowStock = [
+    {
+      id: 1,
+      name: 'Susu Fresh',
+      remaining: '2 l',
+      status: 'Sangat Rendah',
+      isCritical: true,
+      icon: <Milk className="size-4" />,
+      iconBg: 'bg-blue-50 text-blue-600',
+    },
+    {
+      id: 2,
+      name: 'Biji Kopi Arabika',
+      remaining: '500 g',
+      status: 'Rendah',
+      isCritical: false,
+      icon: <Coffee className="size-4" />,
+      iconBg: 'bg-amber-100 text-amber-800',
+    },
+    {
+      id: 3,
+      name: 'Gula Aren',
+      remaining: '1 kg',
+      status: 'Rendah',
+      isCritical: false,
+      icon: <Package className="size-4" />,
+      iconBg: 'bg-amber-50 text-amber-800',
+    },
+    {
+      id: 4,
+      name: 'Sirup Vanilla',
+      remaining: '1 botol',
+      status: 'Rendah',
+      isCritical: false,
+      icon: <Wine className="size-4" />,
+      iconBg: 'bg-yellow-50 text-yellow-700',
+    },
+    {
+      id: 5,
+      name: 'Cup 16 oz',
+      remaining: '35 pcs',
+      status: 'Rendah',
+      isCritical: false,
+      icon: <CupSoda className="size-4" />,
+      iconBg: 'bg-neutral-100 text-neutral-600',
+    },
+  ];
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 max-w-[1440px] mx-auto">
+    <div className="p-5 sm:p-6 lg:p-7 space-y-5 max-w-[1520px] mx-auto animate-in fade-in duration-200">
       {/* Top Header Row matching Figma: Greeting, Outlet dropdown, Date Picker */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
+          <h1 className="text-2xl sm:text-[26px] font-extrabold text-[#111827] tracking-tight">
             Selamat pagi,
           </h1>
-          <p className="text-xs text-neutral-500 mt-0.5">
+          <p className="text-xs text-[#6B7280] mt-0.5 font-normal">
             Ringkasan performa outlet anda hari ini.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Mode Switcher: Populated vs Empty preview for QA/User */}
+          <button
+            type="button"
+            onClick={() => setPreviewMode(isEmpty ? 'populated' : 'empty')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-300 bg-white hover:bg-neutral-50 text-xs font-semibold text-neutral-700 transition-colors shadow-2xs"
+            title="Klik untuk berpindah antara tampilan data terisi dan kosong"
+          >
+            <Eye className="size-3.5 text-[#2563EB]" />
+            <span>Mode: {isEmpty ? 'Data Kosong' : 'Data Terisi'}</span>
+          </button>
+
           {/* Outlet Selector Dropdown Pill */}
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-neutral-200 shadow-xs text-xs font-semibold text-neutral-800 cursor-pointer hover:bg-neutral-50 transition-colors">
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-neutral-200/90 shadow-2xs text-xs font-semibold text-[#111827] cursor-pointer hover:bg-neutral-50 transition-colors">
             <span>{activeStore?.name || 'Kopi Mantap (Main Outlet)'}</span>
             <ChevronDown className="size-3.5 text-neutral-400" />
           </div>
 
           {/* Date Picker Pill */}
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-neutral-200 shadow-xs text-xs font-semibold text-neutral-800 cursor-pointer hover:bg-neutral-50 transition-colors">
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-neutral-200/90 shadow-2xs text-xs font-semibold text-[#111827] cursor-pointer hover:bg-neutral-50 transition-colors">
             <span>Today (14/10/2026)</span>
             <Calendar className="size-3.5 text-neutral-400" />
           </div>
@@ -136,7 +239,7 @@ export default function DashboardOverviewPage() {
           {/* Trigger to re-open first login modal anytime */}
           <button
             onClick={() => setShowFirstLoginModal(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-[#FF5C38] border border-orange-200 text-xs font-semibold transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-[#FF5C38] border border-orange-200 text-xs font-semibold transition-colors shadow-2xs"
             title="Buka kembali alur Profil Outlet First Login"
           >
             <Sparkles className="size-3.5" />
@@ -145,338 +248,341 @@ export default function DashboardOverviewPage() {
         </div>
       </div>
 
-      {/* Row 1: 4 Metric KPI Cards matching Figma */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* KPI 1: Total Penjualan */}
-        <div className="p-4 rounded-2xl bg-white border border-neutral-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="size-6 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <BarChart3 className="size-3.5" />
-              </div>
-              <span className="text-xs text-neutral-500 font-medium">
-                Total Penjualan
-              </span>
-            </div>
-            <h3 className="text-xl font-bold text-neutral-900 mt-2">
-              {formatRupiah(kpis.gross_sales)}
-            </h3>
-            <div className="flex items-center gap-1 text-[11px] text-neutral-400 mt-1">
-              <span>% 0</span>
-              <span>Dari kemarin</span>
-            </div>
-          </div>
-          <div className="text-emerald-500 shrink-0">
-            <svg width="48" height="24" viewBox="0 0 48 24" fill="none">
-              <path
-                d="M2 18L16 14L30 18L46 6"
-                stroke="#10B981"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-        </div>
+      {/* Main Grid Layout: Left 9 Columns & Right 3 Columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* ========================================================== */}
+        {/* LEFT SECTION (9 COLS): KPIS, CHARTS, AND DATA TABLES       */}
+        {/* ========================================================== */}
+        <div className="lg:col-span-8 xl:col-span-9 space-y-5">
+          {/* Row 1: 4 Metric KPI Cards using Global KpiCard Component */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            {/* KPI 1: Total Penjualan */}
+            <KpiCard
+              icon={<BarChart3 className="size-3.5" />}
+              iconBgColor="bg-emerald-50"
+              iconTextColor="text-emerald-600"
+              title="Total Penjualan"
+              value={isEmpty ? 'Rp0' : 'Rp12.500.000'}
+              percentage={isEmpty ? 0 : '12,5%'}
+              comparisonLabel="Dari kemarin"
+              isPositive={!isEmpty}
+              sparklineColor="#10B981"
+            />
 
-        {/* KPI 2: Total Transaksi */}
-        <div className="p-4 rounded-2xl bg-white border border-neutral-200/80 shadow-xs">
-          <div className="flex items-center gap-2">
-            <div className="size-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
-              <CreditCard className="size-3.5" />
-            </div>
-            <span className="text-xs text-neutral-500 font-medium">
-              Total Transaksi
-            </span>
-          </div>
-          <h3 className="text-xl font-bold text-neutral-900 mt-2">
-            {kpis.total_orders}
-          </h3>
-          <div className="flex items-center gap-1 text-[11px] text-neutral-400 mt-1">
-            <span>&nbsp;</span>
-          </div>
-        </div>
+            {/* KPI 2: Total Transaksi */}
+            <KpiCard
+              icon={<FileText className="size-3.5" />}
+              iconBgColor="bg-blue-50"
+              iconTextColor="text-blue-600"
+              title="Total Transaksi"
+              value={isEmpty ? 'Rp0' : '245'}
+              percentage={isEmpty ? 0 : '8,2%'}
+              comparisonLabel="Dari kemarin"
+              isPositive={!isEmpty}
+              sparklineColor="#3B82F6"
+            />
 
-        {/* KPI 3: Average Order Value (AOV) */}
-        <div className="p-4 rounded-2xl bg-white border border-neutral-200/80 shadow-xs">
-          <div className="flex items-center gap-2">
-            <div className="size-6 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center">
-              <ShoppingCart className="size-3.5" />
-            </div>
-            <span className="text-xs text-neutral-500 font-medium truncate">
-              Average Order Value (AOV)
-            </span>
-          </div>
-          <h3 className="text-xl font-bold text-neutral-900 mt-2">
-            {formatRupiah(kpis.average_order_value)}
-          </h3>
-          <div className="flex items-center gap-1 text-[11px] text-neutral-400 mt-1">
-            <span>&nbsp;</span>
-          </div>
-        </div>
+            {/* KPI 3: Average Order Value (AOV) */}
+            <KpiCard
+              icon={<CreditCard className="size-3.5" />}
+              iconBgColor="bg-purple-50"
+              iconTextColor="text-purple-600"
+              title="Average Order Value (AOV)"
+              value={isEmpty ? 'Rp0' : 'Rp51.020'}
+              percentage={isEmpty ? 0 : '3,1%'}
+              comparisonLabel="Dari kemarin"
+              isPositive={!isEmpty}
+              sparklineColor="#A855F7"
+            />
 
-        {/* KPI 4: Profit Estimasi */}
-        <div className="p-4 rounded-2xl bg-white border border-neutral-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="size-6 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center">
-                <Coins className="size-3.5" />
-              </div>
-              <span className="text-xs text-neutral-500 font-medium">
-                Profit Estimasi
-              </span>
-            </div>
-            <h3 className="text-xl font-bold text-neutral-900 mt-2">
-              {formatRupiah(kpis.net_sales)}
-            </h3>
-            <div className="flex items-center gap-1 text-[11px] text-neutral-400 mt-1">
-              <span>% 0</span>
-              <span>Dari kemarin</span>
-            </div>
+            {/* KPI 4: Profit Estimasi */}
+            <KpiCard
+              icon={<Coins className="size-3.5" />}
+              iconBgColor="bg-amber-50"
+              iconTextColor="text-amber-600"
+              title="Profit Estimasi"
+              value={isEmpty ? 'Rp0' : 'Rp4.800.000'}
+              percentage={isEmpty ? 0 : '10,4%'}
+              comparisonLabel="Dari kemarin"
+              isPositive={!isEmpty}
+              sparklineColor="#F59E0B"
+            />
           </div>
-          <div className="text-amber-500 shrink-0">
-            <svg width="48" height="24" viewBox="0 0 48 24" fill="none">
-              <path
-                d="M2 18L16 16L30 19L46 12"
-                stroke="#F59E0B"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-        </div>
-      </div>
 
-      {/* Main Grid: Left 2 Columns & Right 1 Column */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Section (8 cols) */}
-        <div className="lg:col-span-8 space-y-6">
-          {/* Card: Penjualan & Channel */}
-          <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-xs">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-              {/* Chart: Penjualan */}
-              <div className="md:col-span-8 border-b md:border-b-0 md:border-r border-neutral-100 pb-4 md:pb-0 md:pr-4">
-                <h3 className="text-sm font-bold text-neutral-900 mb-4">
-                  Penjualan
-                </h3>
-                <div className="h-44 flex flex-col justify-between text-[10.5px] text-neutral-400">
-                  <div className="flex items-center gap-2">
-                    <span className="w-16 text-right">10.000.000</span>
-                    <div className="flex-1 border-b border-dashed border-neutral-200" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-16 text-right">8.000.000</span>
-                    <div className="flex-1 border-b border-dashed border-neutral-200" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-16 text-right">4.000.000</span>
-                    <div className="flex-1 border-b border-dashed border-neutral-200" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-16 text-right">2.000.000</span>
-                    <div className="flex-1 border-b border-dashed border-neutral-200" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-16 text-right">0</span>
-                    <div className="flex-1 border-b border-neutral-200" />
-                  </div>
-                  <div className="flex justify-between pl-18 pr-2 pt-1 text-[10px]">
-                    <span>8 Okt</span>
-                    <span>9 Okt</span>
-                    <span>10 Okt</span>
-                    <span>11 Okt</span>
-                    <span>12 Okt</span>
-                    <span>13 Okt</span>
-                    <span>14 Okt</span>
-                  </div>
-                </div>
-              </div>
+          {/* Row 2: Charts (Penjualan Bar + Donut Distribusi per Channel) */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+            {/* Chart 1: Penjualan Dual-Axis Bar & Line Chart */}
+            <div className="md:col-span-7 xl:col-span-8">
+              <SalesTrendChart isEmpty={isEmpty} />
+            </div>
 
-              {/* Chart: Channel Donut */}
-              <div className="md:col-span-4 flex flex-col justify-between">
-                <h3 className="text-sm font-bold text-neutral-900 mb-2">
-                  Distribusi Transaksi per Channel
-                </h3>
-                <div className="flex flex-col items-center justify-center my-auto">
-                  <div className="size-24 rounded-full border-8 border-neutral-200/70 flex items-center justify-center text-xs text-neutral-400 font-semibold">
-                    0%
-                  </div>
-                  <div className="flex items-center gap-4 mt-4 text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <span className="size-2 rounded-full bg-emerald-500" />
-                      <span className="text-neutral-600">QR Order <strong>0%</strong></span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="size-2 rounded-full bg-teal-500" />
-                      <span className="text-neutral-600">Delivery <strong>0%</strong></span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            {/* Chart 2: Distribusi Transaksi per Channel Donut */}
+            <div className="md:col-span-5 xl:col-span-4">
+              <ChannelDistributionChart isEmpty={isEmpty} />
             </div>
           </div>
 
-          {/* Row: Produk Terlaris Hari Ini & Stok */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Card: Produk Terlaris Hari Ini */}
-            <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-xs flex flex-col justify-between min-h-[220px]">
-              <div>
-                <h3 className="text-sm font-bold text-neutral-900">
+          {/* Row 3: Produk Terlaris Hari Ini & Stok Tipis */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Card 1: Produk Terlaris Hari Ini */}
+            <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-xs flex flex-col justify-between min-h-[300px]">
+              <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+                <h3 className="text-sm font-bold text-neutral-900 tracking-tight">
                   Produk Terlaris Hari Ini
                 </h3>
-              </div>
-              <div className="flex flex-col items-center justify-center my-4 text-center">
-                <p className="text-xs font-bold text-neutral-700 tracking-wide uppercase">
-                  BELUM ADA PRODUK TERJUAL
-                </p>
-                <p className="text-[11.5px] text-neutral-400 mt-1 max-w-[220px]">
-                  Produk terlaris akan muncul setelah ada penjualan.
-                </p>
                 <Link
                   href="/dashboard/catalog"
-                  className="mt-3 px-4 py-1.5 rounded-lg border border-blue-200 bg-blue-50/60 hover:bg-blue-100/60 text-blue-600 text-xs font-semibold transition-colors"
+                  className="text-xs text-neutral-400 hover:text-neutral-700 font-medium transition-colors"
                 >
-                  Lihat Produk
+                  Lihat semua produk &rsaquo;
                 </Link>
               </div>
-              <div />
+
+              {isEmpty ? (
+                <EmptyState
+                  title="BELUM ADA PRODUK TERJUAL"
+                  description="Produk terlaris akan muncul setelah ada penjualan."
+                  actionText="Lihat Produk"
+                  actionHref="/dashboard/catalog"
+                />
+              ) : (
+                <div className="divide-y divide-neutral-100">
+                  <div className="grid grid-cols-12 py-2 text-[10.5px] font-semibold text-neutral-400 uppercase tracking-wider">
+                    <span className="col-span-1 text-center">#</span>
+                    <span className="col-span-6">Produk</span>
+                    <span className="col-span-2 text-center">Qty Terjual</span>
+                    <span className="col-span-3 text-right">Total Penjualan</span>
+                  </div>
+                  {populatedTopProducts.map((p) => (
+                    <div
+                      key={p.id}
+                      className="grid grid-cols-12 py-2.5 items-center text-xs hover:bg-neutral-50/60 rounded-lg transition-colors px-1"
+                    >
+                      <span className="col-span-1 text-center text-neutral-400 font-medium">
+                        {p.id}
+                      </span>
+                      <div className="col-span-6 flex items-center gap-2.5 min-w-0 pr-2">
+                        <div
+                          className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${p.iconBg}`}
+                        >
+                          {p.icon}
+                        </div>
+                        <span className="font-semibold text-neutral-900 truncate">
+                          {p.name}
+                        </span>
+                      </div>
+                      <span className="col-span-2 text-center font-bold text-neutral-800">
+                        {p.qty}
+                      </span>
+                      <span className="col-span-3 text-right font-bold text-[#2563EB]">
+                        {formatRupiah(p.sales)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Card: Stok */}
-            <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-xs flex flex-col justify-between min-h-[220px]">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-neutral-900">Stok</h3>
+            {/* Card 2: Stok Tipis */}
+            <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-xs flex flex-col justify-between min-h-[300px]">
+              <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+                <h3 className="text-sm font-bold text-neutral-900 tracking-tight">
+                  Stok Tipis
+                </h3>
                 <Link
                   href="/dashboard/inventory"
-                  className="text-xs text-neutral-400 hover:text-neutral-700 font-medium flex items-center gap-0.5"
+                  className="text-xs text-neutral-400 hover:text-neutral-700 font-medium transition-colors"
                 >
-                  Lihat inventori &rsaquo;
+                  Lihat Inventori &rsaquo;
                 </Link>
               </div>
-              <div className="flex flex-col items-center justify-center my-4 text-center">
-                <p className="text-xs font-bold text-neutral-700 tracking-wide uppercase">
-                  BELUM ADA DATA STOK
-                </p>
-                <p className="text-[11.5px] text-neutral-400 mt-1 max-w-[220px]">
-                  Tambahkan stok untuk memantau persediaan outlet.
-                </p>
-                <Link
-                  href="/dashboard/inventory"
-                  className="mt-3 px-4 py-1.5 rounded-lg border border-blue-200 bg-blue-50/60 hover:bg-blue-100/60 text-blue-600 text-xs font-semibold transition-colors"
-                >
-                  Kelola Stok
-                </Link>
-              </div>
-              <div />
+
+              {isEmpty ? (
+                <EmptyState
+                  title="BELUM ADA DATA STOK"
+                  description="Tambahkan stok untuk memantau persediaan outlet."
+                  actionText="Kelola Stok"
+                  actionHref="/dashboard/inventory"
+                />
+              ) : (
+                <div className="divide-y divide-neutral-100">
+                  <div className="grid grid-cols-12 py-2 text-[10.5px] font-semibold text-neutral-400 uppercase tracking-wider">
+                    <span className="col-span-1 text-center">#</span>
+                    <span className="col-span-6">Produk</span>
+                    <span className="col-span-2 text-center">Sisa</span>
+                    <span className="col-span-3 text-right">Status</span>
+                  </div>
+                  {populatedLowStock.map((s) => (
+                    <div
+                      key={s.id}
+                      className="grid grid-cols-12 py-2.5 items-center text-xs hover:bg-neutral-50/60 rounded-lg transition-colors px-1"
+                    >
+                      <span className="col-span-1 text-center text-neutral-400 font-medium">
+                        {s.id}
+                      </span>
+                      <div className="col-span-6 flex items-center gap-2.5 min-w-0 pr-2">
+                        <div
+                          className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${s.iconBg}`}
+                        >
+                          {s.icon}
+                        </div>
+                        <span className="font-semibold text-neutral-900 truncate">
+                          {s.name}
+                        </span>
+                      </div>
+                      <span className="col-span-2 text-center font-bold text-red-500">
+                        {s.remaining}
+                      </span>
+                      <div className="col-span-3 flex justify-end">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                            s.isCritical
+                              ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}
+                        >
+                          {s.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Right Section (4 cols) */}
-        <div className="lg:col-span-4 space-y-6">
-          {/* Card: Pesanan hari ini */}
-          <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-xs">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-neutral-900">
-                Pesanan hari ini
-              </h3>
-              <ChevronRight className="size-4 text-neutral-400" />
-            </div>
-
+        {/* ========================================================== */}
+        {/* RIGHT SECTION (3 COLS): PESANAN HARI INI & FITUR TERBARU   */}
+        {/* ========================================================== */}
+        <div className="lg:col-span-4 xl:col-span-3 space-y-5">
+          {/* Card 1: Pesanan hari ini using Global DashboardWidgetCard */}
+          <DashboardWidgetCard
+            title="Pesanan hari ini"
+            badge={isEmpty ? 0 : 248}
+            headerHref="/dashboard/pos?tab=orders"
+          >
             <div className="space-y-3">
               {/* Item: Baru */}
-              <div className="flex items-center justify-between p-2 rounded-xl hover:bg-neutral-50 transition-colors">
+              <div className="flex items-center justify-between p-1.5 rounded-xl hover:bg-neutral-50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <span className="size-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
+                  <span className="size-7 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 shadow-2xs">
                     <Sparkles className="size-3.5" />
                   </span>
                   <span className="text-xs font-medium text-neutral-800">
                     Baru
                   </span>
                 </div>
-                <span className="text-sm font-bold text-neutral-900">0</span>
+                <span
+                  className={`text-sm font-bold ${
+                    isEmpty ? 'text-neutral-900' : 'text-[#EA580C]'
+                  }`}
+                >
+                  {isEmpty ? 0 : 12}
+                </span>
               </div>
 
               {/* Item: Diproses */}
-              <div className="flex items-center justify-between p-2 rounded-xl hover:bg-neutral-50 transition-colors">
+              <div className="flex items-center justify-between p-1.5 rounded-xl hover:bg-neutral-50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <span className="size-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-                    <Clock className="size-3.5" />
+                  <span className="size-7 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 shadow-2xs">
+                    <Play className="size-3 fill-current ml-0.5" />
                   </span>
                   <span className="text-xs font-medium text-neutral-800">
                     Diproses
                   </span>
                 </div>
-                <span className="text-sm font-bold text-neutral-900">0</span>
+                <span
+                  className={`text-sm font-bold ${
+                    isEmpty ? 'text-neutral-900' : 'text-[#D97706]'
+                  }`}
+                >
+                  {isEmpty ? 0 : 8}
+                </span>
               </div>
 
               {/* Item: Siap diambil */}
-              <div className="flex items-center justify-between p-2 rounded-xl hover:bg-neutral-50 transition-colors">
+              <div className="flex items-center justify-between p-1.5 rounded-xl hover:bg-neutral-50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <span className="size-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
+                  <span className="size-7 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs">
                     <ShoppingBag className="size-3.5" />
                   </span>
                   <span className="text-xs font-medium text-neutral-800">
                     Siap diambil
                   </span>
                 </div>
-                <span className="text-sm font-bold text-neutral-900">0</span>
+                <span
+                  className={`text-sm font-bold ${
+                    isEmpty ? 'text-neutral-900' : 'text-[#2563EB]'
+                  }`}
+                >
+                  {isEmpty ? 0 : 5}
+                </span>
               </div>
 
               {/* Item: Selesai */}
-              <div className="flex items-center justify-between p-2 rounded-xl hover:bg-neutral-50 transition-colors">
+              <div className="flex items-center justify-between p-1.5 rounded-xl hover:bg-neutral-50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <span className="size-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                    <Check className="size-3.5" />
+                  <span className="size-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs">
+                    <Check className="size-3.5 stroke-[2.5]" />
                   </span>
                   <span className="text-xs font-medium text-neutral-800">
                     Selesai
                   </span>
                 </div>
-                <span className="text-sm font-bold text-neutral-900">0</span>
+                <span
+                  className={`text-sm font-bold ${
+                    isEmpty ? 'text-neutral-900' : 'text-[#16A34A]'
+                  }`}
+                >
+                  {isEmpty ? 0 : 220}
+                </span>
               </div>
 
               {/* Item: Dibatalkan */}
-              <div className="flex items-center justify-between p-2 rounded-xl hover:bg-neutral-50 transition-colors">
+              <div className="flex items-center justify-between p-1.5 rounded-xl hover:bg-neutral-50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <span className="size-7 rounded-lg bg-neutral-100 text-neutral-500 flex items-center justify-center">
-                    <X className="size-3.5" />
+                  <span className="size-7 rounded-full bg-neutral-100 text-neutral-500 flex items-center justify-center shrink-0 shadow-2xs">
+                    <X className="size-3.5 stroke-[2.5]" />
                   </span>
                   <span className="text-xs font-medium text-neutral-800">
                     Dibatalkan
                   </span>
                 </div>
-                <span className="text-sm font-bold text-neutral-900">0</span>
+                <span className="text-sm font-bold text-neutral-900">
+                  {isEmpty ? 0 : 3}
+                </span>
               </div>
             </div>
-          </div>
+          </DashboardWidgetCard>
 
-          {/* Card: Fitur Terbaru */}
-          <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-xs">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-neutral-900">
-                Fitur Terbaru
-              </h3>
-              <ChevronRight className="size-4 text-neutral-400" />
-            </div>
-
+          {/* Card 2: Fitur Terbaru using Global DashboardWidgetCard */}
+          <DashboardWidgetCard
+            title="Fitur Terbaru"
+            badge="10"
+            headerHref="#"
+          >
             <div className="space-y-4">
               {/* Feature 1 */}
-              <div className="flex items-start gap-3 p-1">
+              <div className="flex items-start gap-3 p-1 hover:bg-neutral-50/60 rounded-xl transition-colors cursor-pointer">
                 <div className="size-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 mt-0.5">
                   <Package className="size-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-orange-100 text-orange-600">
-                      Baru
-                    </span>
-                    <h4 className="text-xs font-semibold text-neutral-900 truncate">
-                      Pembelian stok
-                    </h4>
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-orange-100 text-orange-600 shrink-0">
+                        Baru
+                      </span>
+                      <h4 className="text-xs font-semibold text-neutral-900 truncate">
+                        Pembelian stok
+                      </h4>
+                    </div>
+                    <span className="text-neutral-400 text-xs font-medium">&rsaquo;</span>
                   </div>
-                  <p className="text-[10px] text-neutral-400 mt-0.5">14 Okt 2026</p>
+                  <p className="text-[10px] text-neutral-400 mt-0.5 font-normal">
+                    14 Okt 2026
+                  </p>
                   <p className="text-[11px] text-neutral-500 leading-relaxed mt-1">
                     Sekarang anda dapat mencatat pembelian bahan baku langsung di NemuPOS
                   </p>
@@ -484,27 +590,32 @@ export default function DashboardOverviewPage() {
               </div>
 
               {/* Feature 2 */}
-              <div className="flex items-start gap-3 p-1">
+              <div className="flex items-start gap-3 p-1 hover:bg-neutral-50/60 rounded-xl transition-colors cursor-pointer">
                 <div className="size-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 mt-0.5">
                   <Layers className="size-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-orange-100 text-orange-600">
-                      Baru
-                    </span>
-                    <h4 className="text-xs font-semibold text-neutral-900 truncate">
-                      Penyesuaian stok
-                    </h4>
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-orange-100 text-orange-600 shrink-0">
+                        Baru
+                      </span>
+                      <h4 className="text-xs font-semibold text-neutral-900 truncate">
+                        Penyesuaian stok
+                      </h4>
+                    </div>
+                    <span className="text-neutral-400 text-xs font-medium">&rsaquo;</span>
                   </div>
-                  <p className="text-[10px] text-neutral-400 mt-0.5">14 Okt 2026</p>
+                  <p className="text-[10px] text-neutral-400 mt-0.5 font-normal">
+                    14 Okt 2026
+                  </p>
                   <p className="text-[11px] text-neutral-500 leading-relaxed mt-1">
                     Perbaiki selisih stok dengan fitur penyesuaian stok.
                   </p>
                 </div>
               </div>
             </div>
-          </div>
+          </DashboardWidgetCard>
         </div>
       </div>
 
