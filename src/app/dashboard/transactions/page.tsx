@@ -11,18 +11,13 @@ import {
   ChevronRight,
   QrCode,
   Store,
-  Truck,
   Check,
   Clock,
-  Ban,
+  X,
   CheckSquare,
   Square,
-  Printer,
-  Send,
-  Eye,
-  FileSpreadsheet,
+  UtensilsCrossed,
 } from 'lucide-react';
-import { StatusBadge } from '@/components/common/StatusBadge';
 import { EmptyState } from '@/components/common/EmptyState';
 import {
   TransactionDetailsDrawer,
@@ -30,13 +25,13 @@ import {
 } from '@/components/transactions/TransactionDetailsDrawer';
 import { formatRupiah } from '@/utils';
 
-// Channel Badge Component
+// Channel Badge Component matching Figma design
 function ChannelBadge({ channel }: { channel: string }) {
   switch (channel) {
     case 'QR Order':
       return (
-        <div className="inline-flex items-center gap-1.5 text-xs text-neutral-800 font-medium">
-          <div className="size-6 rounded-md bg-blue-100 flex items-center justify-center text-blue-600">
+        <div className="inline-flex items-center gap-2 text-xs text-neutral-800 font-normal">
+          <div className="size-6 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
             <QrCode className="size-3.5" />
           </div>
           <span>QR Order</span>
@@ -44,8 +39,8 @@ function ChannelBadge({ channel }: { channel: string }) {
       );
     case 'Kasir':
       return (
-        <div className="inline-flex items-center gap-1.5 text-xs text-neutral-800 font-medium">
-          <div className="size-6 rounded-md bg-amber-100 flex items-center justify-center text-amber-700">
+        <div className="inline-flex items-center gap-2 text-xs text-neutral-800 font-normal">
+          <div className="size-6 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
             <Store className="size-3.5" />
           </div>
           <span>Kasir</span>
@@ -53,27 +48,27 @@ function ChannelBadge({ channel }: { channel: string }) {
       );
     case 'GrabFood':
       return (
-        <div className="inline-flex items-center gap-1.5 text-xs text-neutral-800 font-medium">
-          <div className="size-6 rounded-md bg-emerald-100 flex items-center justify-center text-emerald-700">
-            <Truck className="size-3.5" />
+        <div className="inline-flex items-center gap-2 text-xs text-neutral-800 font-normal">
+          <div className="size-6 rounded-full bg-[#00B14F] text-white flex items-center justify-center text-[9px] font-bold shrink-0">
+            GF
           </div>
           <span>GrabFood</span>
         </div>
       );
     case 'ShopeeFood':
       return (
-        <div className="inline-flex items-center gap-1.5 text-xs text-neutral-800 font-medium">
-          <div className="size-6 rounded-md bg-orange-100 flex items-center justify-center text-orange-700">
-            <Truck className="size-3.5" />
+        <div className="inline-flex items-center gap-2 text-xs text-neutral-800 font-normal">
+          <div className="size-6 rounded-full bg-[#EE4D2D] text-white flex items-center justify-center text-[9px] font-bold shrink-0">
+            SF
           </div>
           <span>ShopeeFood</span>
         </div>
       );
     case 'GoFood':
       return (
-        <div className="inline-flex items-center gap-1.5 text-xs text-neutral-800 font-medium">
-          <div className="size-6 rounded-md bg-rose-100 flex items-center justify-center text-rose-700">
-            <Truck className="size-3.5" />
+        <div className="inline-flex items-center gap-2 text-xs text-neutral-800 font-normal">
+          <div className="size-6 rounded-full bg-[#ED2736] text-white flex items-center justify-center text-[9px] font-bold shrink-0">
+            GF
           </div>
           <span>GoFood</span>
         </div>
@@ -83,34 +78,40 @@ function ChannelBadge({ channel }: { channel: string }) {
   }
 }
 
-// Payment Status Pill Component
+// Payment Status Pill Component matching Figma design
 function PaymentStatusBadge({ status }: { status: 'Lunas' | 'Sebagian' | 'Dibatalkan' }) {
   switch (status) {
     case 'Lunas':
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-          <Check className="size-3 text-emerald-600" />
-          Lunas
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#E8F5E9] text-[#2E7D32]">
+          <span className="size-3.5 rounded-full bg-[#2E7D32] text-white flex items-center justify-center text-[8px] font-bold">
+            <Check className="size-2.5 stroke-[3]" />
+          </span>
+          <span>Lunas</span>
         </span>
       );
     case 'Sebagian':
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-          <Clock className="size-3 text-amber-600" />
-          Sebagian
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#FFF8E1] text-[#B78103]">
+          <span className="size-3.5 rounded-full bg-[#F59E0B] text-white flex items-center justify-center text-[8px] font-bold">
+            <Clock className="size-2.5 stroke-[3]" />
+          </span>
+          <span>Sebagian</span>
         </span>
       );
     case 'Dibatalkan':
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-neutral-100 text-neutral-600 border border-neutral-300">
-          <Ban className="size-3 text-neutral-500" />
-          Dibatalkan
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#ECEFF1] text-[#546E7A]">
+          <span className="size-3.5 rounded-full bg-[#78909C] text-white flex items-center justify-center text-[8px] font-bold">
+            <X className="size-2.5 stroke-[3]" />
+          </span>
+          <span>Dibatalkan</span>
         </span>
       );
   }
 }
 
-// Mock Transactions data matching design screenshot exactly
+// 10 Records matching Screenshot 2 exactly
 const INITIAL_TRANSACTIONS: DetailedTransaction[] = [
   {
     id: 'trx-10',
@@ -168,6 +169,7 @@ const INITIAL_TRANSACTIONS: DetailedTransaction[] = [
     items: [
       { id: 'item-3', name: 'Caramel Macchiato', qty: 2, variant: 'Regular', price: 56000 },
       { id: 'item-4', name: 'Croissant Butter', qty: 1, variant: 'Warm', price: 20000 },
+      { id: 'item-4b', name: 'Espresso Single', qty: 1, variant: 'Hot', price: 20000 },
     ],
   },
   {
@@ -328,6 +330,7 @@ const INITIAL_TRANSACTIONS: DetailedTransaction[] = [
     items: [
       { id: 'item-16', name: 'Cold Brew Signature', qty: 2, variant: 'Bottle 250ml', price: 50000 },
       { id: 'item-17', name: 'Bagel Smoked Beef', qty: 1, variant: 'Warm', price: 42000 },
+      { id: 'item-17b', name: 'Croissant', qty: 1, variant: 'Warm', price: 22000 },
     ],
   },
   {
@@ -377,14 +380,10 @@ export default function TransactionsPage() {
     if (demoMode === 'empty') return [];
 
     return INITIAL_TRANSACTIONS.filter((trx) => {
-      // Channel filter
       if (selectedChannel !== 'all' && trx.channel !== selectedChannel) return false;
-      // Type filter
       if (selectedType !== 'all' && trx.diningType !== selectedType) return false;
-      // Payment status filter
       if (selectedPaymentStatus !== 'all' && trx.paymentStatus !== selectedPaymentStatus)
         return false;
-      // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchNumber = trx.transactionNumber.toLowerCase().includes(q);
@@ -397,7 +396,6 @@ export default function TransactionsPage() {
     });
   }, [demoMode, selectedChannel, selectedType, selectedPaymentStatus, searchQuery]);
 
-  // Bulk select handling
   const isAllSelected =
     filteredTransactions.length > 0 && selectedIds.length === filteredTransactions.length;
 
@@ -437,21 +435,17 @@ export default function TransactionsPage() {
     }
   };
 
-  const handleExport = () => {
-    showToast('Mengekspor data transaksi ke file Excel/CSV...');
-  };
-
   return (
-    <div className="space-y-5 pb-10">
+    <div className="p-6 lg:p-8 space-y-4 max-w-[1600px] mx-auto">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-5 right-5 z-50 bg-neutral-900 text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 border border-neutral-700 animate-in fade-in slide-in-from-top-2">
+        <div className="fixed top-20 right-6 z-50 bg-neutral-900 text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 border border-neutral-700 animate-in fade-in slide-in-from-top-2">
           <Check className="size-4 text-emerald-400" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Top Header */}
+      {/* Top Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Transaksi</h1>
@@ -460,36 +454,35 @@ export default function TransactionsPage() {
           </p>
         </div>
 
-        {/* Demo Switcher & Export Button */}
+        {/* Right Header: Export Button & Discrete State Switcher */}
         <div className="flex items-center gap-3">
-          {/* Demo Switcher */}
-          <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-xl border border-neutral-200">
+          {/* Subtle switcher for testing empty state per screenshot 3 */}
+          <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-lg border border-neutral-200 text-xs">
             <button
               onClick={() => setDemoMode('populated')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
                 demoMode === 'populated'
-                  ? 'bg-white text-neutral-900 shadow-sm font-semibold'
-                  : 'text-neutral-500 hover:text-neutral-900'
+                  ? 'bg-white text-neutral-800 shadow-2xs font-semibold'
+                  : 'text-neutral-500 hover:text-neutral-800'
               }`}
             >
               Data Terisi
             </button>
             <button
               onClick={() => setDemoMode('empty')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
                 demoMode === 'empty'
-                  ? 'bg-white text-neutral-900 shadow-sm font-semibold'
-                  : 'text-neutral-500 hover:text-neutral-900'
+                  ? 'bg-white text-neutral-800 shadow-2xs font-semibold'
+                  : 'text-neutral-500 hover:text-neutral-800'
               }`}
             >
               Belum Ada Transaksi
             </button>
           </div>
 
-          {/* Export Button matching Figma */}
           <button
-            onClick={handleExport}
-            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl border border-[#E5484D] text-[#E5484D] hover:bg-red-50 text-xs font-semibold transition-colors shadow-sm"
+            onClick={() => showToast('Mengekspor data transaksi...')}
+            className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-[#E5484D] text-[#E5484D] bg-white hover:bg-red-50 text-xs font-semibold transition-colors shadow-2xs"
           >
             <span>Export</span>
             <Upload className="size-3.5" />
@@ -497,14 +490,12 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {/* Filters Bar */}
-      <div className="bg-white p-3 rounded-2xl border border-neutral-200/80 shadow-sm flex flex-wrap items-center gap-3">
+      {/* Filters Bar: Clean individual pill elements directly on background */}
+      <div className="flex flex-wrap items-center gap-3">
         {/* Date Filter */}
-        <div className="relative">
-          <div className="h-9 px-3.5 rounded-xl border border-neutral-200 bg-white text-xs font-medium text-neutral-800 flex items-center gap-2 cursor-pointer hover:bg-neutral-50">
-            <span>Hari ini (14/10/2026)</span>
-            <Calendar className="size-3.5 text-neutral-400" />
-          </div>
+        <div className="h-9 px-3.5 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 flex items-center gap-2 shadow-2xs cursor-pointer hover:bg-neutral-50">
+          <span>Hari ini (14/10/2026)</span>
+          <Calendar className="size-3.5 text-neutral-400" />
         </div>
 
         {/* Channel Filter */}
@@ -512,7 +503,7 @@ export default function TransactionsPage() {
           <select
             value={selectedChannel}
             onChange={(e) => setSelectedChannel(e.target.value)}
-            className="h-9 pl-3 pr-8 rounded-xl border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-neutral-400 hover:bg-neutral-50"
+            className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
           >
             <option value="all">Semua channel</option>
             <option value="QR Order">QR Order</option>
@@ -529,7 +520,7 @@ export default function TransactionsPage() {
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
-            className="h-9 pl-3 pr-8 rounded-xl border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-neutral-400 hover:bg-neutral-50"
+            className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
           >
             <option value="all">Semua tipe</option>
             <option value="Dine-in">Dine-in</option>
@@ -544,7 +535,7 @@ export default function TransactionsPage() {
           <select
             value={selectedPaymentStatus}
             onChange={(e) => setSelectedPaymentStatus(e.target.value)}
-            className="h-9 pl-3 pr-8 rounded-xl border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-neutral-400 hover:bg-neutral-50"
+            className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
           >
             <option value="all">Semua pembayaran</option>
             <option value="Lunas">Lunas</option>
@@ -555,29 +546,31 @@ export default function TransactionsPage() {
         </div>
 
         {/* Search Input */}
-        <div className="relative flex-1 min-w-[220px]">
+        <div className="relative flex-1 min-w-[260px]">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cari nomor transaksi, Nomor p..."
-            className="w-full h-9 pl-3 pr-8 rounded-xl border border-neutral-200 bg-white text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+            className="w-full h-9 pl-3.5 pr-9 rounded-lg border border-neutral-200 bg-white text-xs text-neutral-900 placeholder:text-neutral-400 shadow-2xs focus:outline-none focus:border-neutral-400"
           />
-          <Search className="size-3.5 text-neutral-400 absolute right-3 top-3 pointer-events-none" />
+          <div className="absolute right-2.5 top-2 size-5 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-400">
+            <Search className="size-3" />
+          </div>
         </div>
       </div>
 
-      {/* Main Table Container */}
-      <div className="bg-white rounded-2xl border border-neutral-200/80 shadow-sm overflow-hidden flex flex-col">
+      {/* Main Table Container matching Screenshot 2 */}
+      <div className="bg-white rounded-xl border border-neutral-200/90 shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             {/* Table Header */}
             <thead>
-              <tr className="border-b border-neutral-200 bg-neutral-50/60 text-neutral-500 font-semibold">
-                <th className="py-3 px-4 w-10">
+              <tr className="border-b border-neutral-200/80 bg-white text-neutral-500 font-medium text-[12.5px]">
+                <th className="py-3.5 px-3.5 w-10">
                   <button
                     onClick={toggleSelectAll}
-                    className="text-neutral-400 hover:text-neutral-700 transition-colors"
+                    className="text-neutral-300 hover:text-neutral-600 transition-colors flex items-center"
                   >
                     {isAllSelected ? (
                       <CheckSquare className="size-4 text-blue-600" />
@@ -586,16 +579,16 @@ export default function TransactionsPage() {
                     )}
                   </button>
                 </th>
-                <th className="py-3 px-3">No. Transaksi</th>
-                <th className="py-3 px-3">Waktu</th>
-                <th className="py-3 px-3">Channel</th>
-                <th className="py-3 px-3">Tipe</th>
-                <th className="py-3 px-3">Pelanggan / Meja</th>
-                <th className="py-3 px-3">Item</th>
-                <th className="py-3 px-3">Total</th>
-                <th className="py-3 px-3">Metode</th>
-                <th className="py-3 px-3">Pembayaran</th>
-                <th className="py-3 px-4 w-10 text-right"></th>
+                <th className="py-3.5 px-3.5">No. Transaksi</th>
+                <th className="py-3.5 px-3.5">Waktu</th>
+                <th className="py-3.5 px-3.5">Channel</th>
+                <th className="py-3.5 px-3.5">Tipe</th>
+                <th className="py-3.5 px-3.5">Pelanggan / Meja</th>
+                <th className="py-3.5 px-3.5">Item</th>
+                <th className="py-3.5 px-3.5">Total</th>
+                <th className="py-3.5 px-3.5">Metode</th>
+                <th className="py-3.5 px-3.5">Pembayaran</th>
+                <th className="py-3.5 px-3.5 w-10 text-right"></th>
               </tr>
             </thead>
 
@@ -608,15 +601,15 @@ export default function TransactionsPage() {
                     <tr
                       key={trx.id}
                       onClick={() => handleOpenTransaction(trx)}
-                      className={`border-b border-neutral-100 hover:bg-neutral-50/80 transition-colors cursor-pointer ${
-                        isChecked ? 'bg-blue-50/30' : ''
+                      className={`border-b border-neutral-100 hover:bg-neutral-50/70 transition-colors cursor-pointer ${
+                        isChecked ? 'bg-blue-50/20' : ''
                       }`}
                     >
                       {/* Checkbox */}
-                      <td className="py-3 px-4">
+                      <td className="py-3.5 px-3.5">
                         <button
                           onClick={(e) => toggleSelectRow(trx.id, e)}
-                          className="text-neutral-400 hover:text-neutral-700 transition-colors"
+                          className="text-neutral-300 hover:text-neutral-600 transition-colors flex items-center"
                         >
                           {isChecked ? (
                             <CheckSquare className="size-4 text-blue-600" />
@@ -626,55 +619,57 @@ export default function TransactionsPage() {
                         </button>
                       </td>
 
-                      {/* No. Transaksi */}
-                      <td className="py-3 px-3 font-semibold text-neutral-900 tracking-tight">
+                      {/* No. Transaksi: Clean normal weight font */}
+                      <td className="py-3.5 px-3.5 font-normal text-neutral-800 tracking-tight">
                         {trx.transactionNumber}
                       </td>
 
                       {/* Waktu */}
-                      <td className="py-3 px-3 text-neutral-600 font-medium">
+                      <td className="py-3.5 px-3.5 text-neutral-500 font-normal">
                         {trx.dateTime.split(', ')[1]}
                       </td>
 
                       {/* Channel */}
-                      <td className="py-3 px-3">
+                      <td className="py-3.5 px-3.5">
                         <ChannelBadge channel={trx.channel} />
                       </td>
 
                       {/* Tipe */}
-                      <td className="py-3 px-3 text-neutral-700 font-medium">{trx.diningType}</td>
+                      <td className="py-3.5 px-3.5 text-neutral-600 font-normal">
+                        {trx.diningType === 'Takeaway' ? 'Takeway' : trx.diningType}
+                      </td>
 
-                      {/* Pelanggan / Meja */}
-                      <td className="py-3 px-3 text-neutral-800 font-medium">
+                      {/* Pelanggan / Meja: Clean regular text */}
+                      <td className="py-3.5 px-3.5 text-neutral-800 font-normal">
                         {trx.tableOrCustomer}
                       </td>
 
                       {/* Item */}
-                      <td className="py-3 px-3 text-neutral-700">{trx.items.length} Item</td>
+                      <td className="py-3.5 px-3.5 text-neutral-600">{trx.items.length} Item</td>
 
                       {/* Total */}
-                      <td className="py-3 px-3 font-semibold text-neutral-900">
+                      <td className="py-3.5 px-3.5 font-medium text-neutral-900">
                         {formatRupiah(trx.total)}
                       </td>
 
                       {/* Metode */}
-                      <td className="py-3 px-3 font-medium text-neutral-800">
+                      <td className="py-3.5 px-3.5 font-normal text-neutral-700">
                         {trx.paymentMethod}
                       </td>
 
                       {/* Status Pembayaran */}
-                      <td className="py-3 px-3">
+                      <td className="py-3.5 px-3.5">
                         <PaymentStatusBadge status={trx.paymentStatus} />
                       </td>
 
                       {/* More Menu */}
-                      <td className="py-3 px-4 text-right">
+                      <td className="py-3.5 px-3.5 text-right">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenTransaction(trx);
                           }}
-                          className="p-1 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+                          className="p-1 rounded-md text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
                         >
                           <MoreVertical className="size-4" />
                         </button>
@@ -683,9 +678,9 @@ export default function TransactionsPage() {
                   );
                 })
               ) : (
-                /* Empty State Row */
+                /* Empty State Row matching Screenshot 3 */
                 <tr>
-                  <td colSpan={11} className="py-16 text-center">
+                  <td colSpan={11} className="py-20 text-center">
                     <EmptyState
                       title="BELUM ADA TRANSAKSI"
                       description="Transaksi penjualan akan muncul di sini setelah pembayaran dilakukan."
@@ -697,40 +692,40 @@ export default function TransactionsPage() {
           </table>
         </div>
 
-        {/* Footer Pagination & Counter */}
-        <div className="p-3.5 border-t border-neutral-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-500">
+        {/* Footer Pagination & Counter matching Screenshot 2 */}
+        <div className="p-3.5 border-t border-neutral-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-500 bg-white">
           <div>
             Menampilkan 1 - {filteredTransactions.length} dari {filteredTransactions.length}{' '}
-            transaksi
+            pesanan
           </div>
 
           <div className="flex items-center gap-1.5">
             <button
               disabled
-              className="p-1.5 rounded-lg border border-neutral-200 text-neutral-300 cursor-not-allowed"
+              className="size-8 rounded-lg border border-neutral-200 text-neutral-300 flex items-center justify-center cursor-not-allowed"
             >
-              <ChevronLeft className="size-3.5" />
+              <ChevronLeft className="size-4" />
             </button>
-            <button className="size-7 rounded-lg border border-red-500 bg-red-50 text-red-600 font-semibold flex items-center justify-center">
+            <button className="size-8 rounded-lg border border-[#E5484D] bg-[#FFF5F5] text-[#E5484D] font-medium flex items-center justify-center text-xs shadow-2xs">
               1
             </button>
             <button
               disabled
-              className="p-1.5 rounded-lg border border-neutral-200 text-neutral-300 cursor-not-allowed"
+              className="size-8 rounded-lg border border-neutral-200 text-neutral-300 flex items-center justify-center cursor-not-allowed"
             >
-              <ChevronRight className="size-3.5" />
+              <ChevronRight className="size-4" />
             </button>
           </div>
 
           <div className="flex items-center gap-2">
             <span>Tampilkan</span>
             <div className="relative">
-              <select className="h-7 pl-2.5 pr-6 rounded-lg border border-neutral-200 bg-white text-xs text-neutral-700 appearance-none cursor-pointer focus:outline-none">
+              <select className="h-8 pl-2.5 pr-7 rounded-lg border border-neutral-200 bg-white text-xs text-neutral-700 appearance-none cursor-pointer focus:outline-none">
                 <option value="10">10</option>
                 <option value="25">25</option>
                 <option value="50">50</option>
               </select>
-              <ChevronDown className="size-3 text-neutral-400 absolute right-1.5 top-2 pointer-events-none" />
+              <ChevronDown className="size-3 text-neutral-400 absolute right-2 top-2.5 pointer-events-none" />
             </div>
             <span>per halaman</span>
           </div>
@@ -742,8 +737,8 @@ export default function TransactionsPage() {
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         transaction={selectedTransaction}
-        onPrintReceipt={(id) => showToast(`Mencetak struk untuk transaksi ${id}...`)}
-        onSendReceipt={(id) => showToast(`Mengirim struk transaksi ${id} via WhatsApp/Email...`)}
+        onPrintReceipt={(id) => showToast(`Mencetak struk transaksi ${id}...`)}
+        onSendReceipt={(id) => showToast(`Mengirim struk transaksi ${id}...`)}
         onPrev={handlePrevTransaction}
         onNext={handleNextTransaction}
       />

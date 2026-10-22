@@ -104,36 +104,46 @@ export function TransactionDetailsDrawer({
     switch (transaction.channel) {
       case 'QR Order':
         return (
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-xs font-semibold border border-blue-100">
-            <QrCode className="size-3.5" />
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white text-neutral-800 text-xs font-medium border border-neutral-200 shadow-2xs">
+            <div className="size-5 rounded-md bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+              <QrCode className="size-3.5" />
+            </div>
             <span>QR Order</span>
           </div>
         );
       case 'Kasir':
         return (
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-100">
-            <Store className="size-3.5" />
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white text-neutral-800 text-xs font-medium border border-neutral-200 shadow-2xs">
+            <div className="size-5 rounded-md bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+              <Store className="size-3.5" />
+            </div>
             <span>Kasir</span>
           </div>
         );
       case 'GrabFood':
         return (
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-100">
-            <Truck className="size-3.5" />
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white text-neutral-800 text-xs font-medium border border-neutral-200 shadow-2xs">
+            <div className="size-5 rounded-full bg-[#00B14F] text-white flex items-center justify-center text-[8px] font-bold shrink-0">
+              GF
+            </div>
             <span>GrabFood</span>
           </div>
         );
       case 'ShopeeFood':
         return (
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-50 text-orange-700 text-xs font-semibold border border-orange-100">
-            <Truck className="size-3.5" />
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white text-neutral-800 text-xs font-medium border border-neutral-200 shadow-2xs">
+            <div className="size-5 rounded-full bg-[#EE4D2D] text-white flex items-center justify-center text-[8px] font-bold shrink-0">
+              SF
+            </div>
             <span>ShopeeFood</span>
           </div>
         );
       case 'GoFood':
         return (
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 text-xs font-semibold border border-rose-100">
-            <Truck className="size-3.5" />
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white text-neutral-800 text-xs font-medium border border-neutral-200 shadow-2xs">
+            <div className="size-5 rounded-full bg-[#ED2736] text-white flex items-center justify-center text-[8px] font-bold shrink-0">
+              GF
+            </div>
             <span>GoFood</span>
           </div>
         );
@@ -154,9 +164,9 @@ export function TransactionDetailsDrawer({
         <div className="p-6 pb-4 border-b border-neutral-100 relative">
           <button
             onClick={onClose}
-            className="absolute top-5 right-5 p-1 rounded-full text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+            className="absolute top-5 right-5 size-7 rounded-full bg-neutral-100 text-neutral-400 hover:text-neutral-700 flex items-center justify-center transition-colors"
           >
-            <X className="size-5" />
+            <X className="size-4" />
           </button>
 
           {/* Badges row */}
@@ -181,8 +191,10 @@ export function TransactionDetailsDrawer({
 
             <div className="flex items-center gap-2">
               {getChannelBadge()}
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-100 text-neutral-700 text-xs font-medium border border-neutral-200">
-                <User className="size-3.5 text-teal-600" />
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white text-neutral-800 text-xs font-medium border border-neutral-200 shadow-2xs">
+                <div className="size-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">
+                  <User className="size-3 text-teal-700" />
+                </div>
                 <span>{transaction.tableOrCustomer}</span>
               </div>
             </div>
@@ -417,11 +429,11 @@ export function TransactionDetailsDrawer({
           )}
         </div>
 
-        {/* Drawer Bottom Actions */}
+        {/* Drawer Bottom Actions matching Screenshot 1 */}
         <div className="p-4 border-t border-neutral-100 flex items-center justify-between gap-3 bg-white">
           <button
             onClick={onPrev}
-            className="p-2.5 rounded-xl border border-neutral-200 text-neutral-500 hover:bg-neutral-50 transition-colors"
+            className="size-10 rounded-lg border border-neutral-200 text-neutral-500 hover:bg-neutral-50 transition-colors flex items-center justify-center shadow-2xs"
           >
             <ChevronLeft className="size-4" />
           </button>
@@ -429,23 +441,21 @@ export function TransactionDetailsDrawer({
           <div className="flex-1 flex items-center gap-2.5">
             <button
               onClick={() => onPrintReceipt?.(transaction.id)}
-              className="flex-1 h-10 px-4 rounded-xl border border-[#E5484D] text-[#E5484D] hover:bg-red-50 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+              className="flex-1 h-10 px-4 rounded-lg border border-[#E5484D] text-[#E5484D] bg-white hover:bg-red-50 text-xs font-semibold transition-colors flex items-center justify-center shadow-2xs"
             >
-              <Printer className="size-3.5" />
               Cetak Struk
             </button>
             <button
               onClick={() => onSendReceipt?.(transaction.id)}
-              className="flex-1 h-10 px-4 rounded-xl bg-[#E5484D] hover:bg-[#D93D42] text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+              className="flex-1 h-10 px-4 rounded-lg bg-[#E5484D] hover:bg-[#D93D42] text-white text-xs font-semibold transition-colors flex items-center justify-center shadow-2xs"
             >
-              <Send className="size-3.5" />
               Kirim Struk
             </button>
           </div>
 
           <button
             onClick={onNext}
-            className="p-2.5 rounded-xl border border-neutral-200 text-neutral-500 hover:bg-neutral-50 transition-colors"
+            className="size-10 rounded-lg border border-neutral-200 text-neutral-500 hover:bg-neutral-50 transition-colors flex items-center justify-center shadow-2xs"
           >
             <ChevronRight className="size-4" />
           </button>

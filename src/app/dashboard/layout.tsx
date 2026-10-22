@@ -25,6 +25,8 @@ import {
   Printer,
   ChefHat,
   Ticket,
+  Mail,
+  ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
@@ -327,22 +329,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Header */}
-        <header className="sticky top-0 z-30 h-16 border-b border-neutral-800 bg-[#141414] text-white px-5 flex items-center justify-between gap-4">
+        {/* Top Header matching Figma screenshot */}
+        <header className="sticky top-0 z-30 h-16 border-b border-neutral-200/80 bg-white text-neutral-800 px-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-1.5 -ml-1 rounded-md text-neutral-400 hover:text-white hover:bg-neutral-800"
+              className="lg:hidden p-1.5 -ml-1 rounded-md text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100"
               aria-label="Buka menu"
             >
               <MenuIcon className="size-5" />
             </button>
 
             {/* Quick Action Badges matching Figma screenshot: POS, KDS, Reservasi */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-[#1A1A1A] p-1.5 rounded-xl border border-neutral-800 shadow-xs">
               <Link
                 href="/dashboard/pos"
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-semibold text-white transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/10 text-xs font-semibold text-white transition-colors"
               >
                 <Printer className="size-3.5 text-[#FF5C38]" />
                 <span>POS</span>
@@ -350,7 +352,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
               <Link
                 href="/dashboard/pos?tab=orders"
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-semibold text-neutral-300 hover:text-white transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/10 text-xs font-semibold text-neutral-300 hover:text-white transition-colors"
               >
                 <ChefHat className="size-3.5 text-[#FF5C38]" />
                 <span>KDS</span>
@@ -358,7 +360,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
               <Link
                 href="/dashboard/tables"
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-semibold text-neutral-300 hover:text-white transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/10 text-xs font-semibold text-neutral-300 hover:text-white transition-colors"
               >
                 <Ticket className="size-3.5 text-[#FF5C38]" />
                 <span>Reservasi</span>
@@ -366,29 +368,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
 
-          {/* Right Header: Notifications & User profile */}
+          {/* Right Header: Mail & User profile matching Figma screenshot */}
           <div className="flex items-center gap-3">
             <button
-              className="size-9 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white flex items-center justify-center transition-colors"
-              title="Notifikasi"
+              className="size-9 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-600 flex items-center justify-center transition-colors shadow-2xs"
+              title="Pesan & Notifikasi"
             >
-              <Bell className="size-4 text-neutral-400" />
+              <Mail className="size-4 text-neutral-600" />
             </button>
 
-            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-neutral-900 border border-neutral-800">
-              <div className="size-6 rounded-full bg-blue-600/30 text-blue-400 flex items-center justify-center text-[10.5px] font-bold">
+            <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-full border border-neutral-200 bg-white shadow-2xs cursor-pointer hover:bg-neutral-50 transition-colors">
+              <div className="size-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[11px] font-bold">
                 {getInitials(user?.name) || 'AP'}
               </div>
-              <span className="text-xs font-medium text-neutral-200 hidden sm:inline">
+              <span className="text-xs font-medium text-neutral-800 hidden sm:inline">
                 {user?.name || 'Andi Pratama'}
               </span>
-              <button
-                onClick={() => logout()}
-                title="Keluar"
-                className="text-neutral-500 hover:text-neutral-300 p-0.5 rounded transition-colors ml-1"
-              >
-                <LogOut className="size-3.5" />
-              </button>
+              <ChevronDown className="size-3 text-neutral-400" />
             </div>
           </div>
         </header>
