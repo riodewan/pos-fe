@@ -391,11 +391,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {activeTenant?.name || 'Kopi Mantap'}
                   </p>
                   <div className="flex items-center gap-2 text-[10.5px] text-neutral-400 mt-0.5">
-                    <Link href="/dashboard/settings" className="hover:text-neutral-200">
+                    <Link
+                      href="/dashboard/settings/profile"
+                      className={cn(
+                        'transition-colors',
+                        pathname === '/dashboard/settings/profile' || pathname === '/dashboard/profile'
+                          ? 'text-white font-bold underline decoration-[#FF5C38] decoration-2 underline-offset-2'
+                          : 'hover:text-neutral-200'
+                      )}
+                    >
                       Profile
                     </Link>
                     <span>&bull;</span>
-                    <Link href="/dashboard/settings" className="hover:text-neutral-200">
+                    <Link
+                      href="/dashboard/settings"
+                      className={cn(
+                        'transition-colors',
+                        pathname === '/dashboard/settings'
+                          ? 'text-white font-bold underline decoration-[#FF5C38] decoration-2 underline-offset-2'
+                          : 'hover:text-neutral-200'
+                      )}
+                    >
                       Pengaturan
                     </Link>
                   </div>

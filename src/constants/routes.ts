@@ -23,6 +23,7 @@ export const ROUTES = {
     INVENTORY: '/dashboard/inventory',
     REPORTS: '/dashboard/reports',
     SETTINGS: '/dashboard/settings',
+    PROFILE: '/dashboard/settings/profile',
   },
   PUBLIC: {
     QR_ORDER: (token: string) => `/q/${token}`,
