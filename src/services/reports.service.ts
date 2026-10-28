@@ -37,4 +37,22 @@ export const reportsService = {
     api.get<ApiResponse<any>>('/reports/reconciliation', {
       params: { start_date, end_date },
     }),
+
+  getDisbursements: () => api.get<ApiResponse<any>>('/reports/disbursements'),
+
+  createDisbursement: (data: { amount: number; bank_name: string; account_number: string }) =>
+    api.post<ApiResponse<any>>('/reports/disbursements', data),
+
+  getCashAudits: () => api.get<ApiResponse<any[]>>('/reports/cash-audits'),
+
+  createCashAudit: (data: {
+    shift_name: string;
+    shift_date?: string;
+    opening_cash: number;
+    actual_cash?: number | null;
+    notes?: string | null;
+  }) => api.post<ApiResponse<any>>('/reports/cash-audits', data),
+
+  updateCashAudit: (id: string, data: { opening_cash?: number; actual_cash?: number | null; notes?: string | null }) =>
+    api.put<ApiResponse<any>>(`/reports/cash-audits/${id}`, data),
 };

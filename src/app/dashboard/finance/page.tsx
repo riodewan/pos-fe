@@ -208,6 +208,65 @@ export default function FinancePage() {
   const [disbursements, setDisbursements] = useState<DisbursementRecord[]>(INITIAL_DISBURSEMENTS);
   const [audits, setAudits] = useState<CashierShiftAudit[]>(INITIAL_AUDITS);
   const [totals, setTotals] = useState<{ net: number; mdr: number; cash: number } | null>(null);
+  const [available, setAvailable] = useState<number | null>(null);
+  const [transferFee, setTransferFee] = useState(4500);
+
+  const loadDisbursements = async () => {
+    try {
+      const res = await reportsService.getDisbursements();
+      const data = (res as any)?.data?.data ?? (res as any)?.data;
+      if (data) {
+        setAvailable(data.available_balance ?? 0);
+        setTransferFee(data.transfer_fee ?? 4500);
+        setDisbursements(
+          (data.items || []).map((d: any) => ({
+            id: d.id,
+            batchId: d.batch_id,
+            requestDate: new Date(d.requested_at).toLocaleString('id-ID', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+            bankName: d.bank_name,
+            accountNumber: d.account_number,
+            grossAmount: d.gross_amount,
+            fee: d.fee,
+            netReceived: d.net_received,
+            status: d.status,
+          }))
+        );
+      }
+    } catch (err) {
+      console.error('Gagal memuat pencairan', err);
+    }
+  };
+
+  const loadCashAudits = async () => {
+    try {
+      const res = await reportsService.getCashAudits();
+      const data = (res as any)?.data?.data ?? (res as any)?.data;
+      if (Array.isArray(data)) {
+        setAudits(
+          data.map((a: any) => ({
+            id: a.id,
+            shiftName: a.shift_name,
+            cashierName: a.cashier_name,
+            date: a.date,
+            openingCash: a.opening_cash,
+            cashSales: a.cash_sales,
+            expectedCash: a.expected_cash,
+            actualCash: a.actual_cash,
+            variance: a.variance,
+            status: a.status,
+          }))
+        );
+      }
+    } catch (err) {
+      console.error('Gagal memuat audit kasir', err);
+    }
+  };
 
   useEffect(() => {
     const today = new Date();
@@ -253,25 +312,15 @@ export default function FinancePage() {
         const res = await reportsService.getCashierAudit(start, end);
         const data = (res as any)?.data?.data ?? (res as any)?.data;
         if (data?.cashiers) {
-          const list = data.cashiers.map((c: any, i: number) => ({
-            id: `aud-${c.user_id ?? i}`,
-            shiftName: `${c.total_orders} Pesanan Selesai`,
-            cashierName: c.user_name,
-            date: `${start} s/d ${end}`,
-            openingCash: 0,
-            cashSales: c.cash_total,
-            expectedCash: c.cash_total,
-            actualCash: c.cash_total,
-            variance: 0,
-            status: 'Sesuai',
-          })) as CashierShiftAudit[];
-          setAudits(list);
           const cash = data.cashiers.reduce((s: number, c: any) => s + (c.cash_total || 0), 0);
           setTotals((prev) => ({ net: prev?.net ?? 0, mdr: prev?.mdr ?? 0, cash }));
         }
       } catch (err) {
-        console.error('Gagal memuat audit kasir', err);
+        console.error('Gagal memuat ringkasan kasir', err);
       }
+
+      await loadDisbursements();
+      await loadCashAudits();
     };
     load();
   }, []);
@@ -287,23 +336,40 @@ export default function FinancePage() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const handleDisburseSubmit = () => {
-    const num = Number(disburseAmount) || 1000000;
-    const newRecord: DisbursementRecord = {
-      id: `dis-${Date.now()}`,
-      batchId: `DIS-20261015-00${disbursements.length + 1}`,
-      requestDate: '15 Okt 2026, 14:00',
-      bankName: 'BCA (Bank Central Asia)',
-      accountNumber: '8830192831',
-      grossAmount: num,
-      fee: 4500,
-      netReceived: num - 4500,
-      status: 'Diproses',
-    };
+  const handleDisburseSubmit = async () => {
+    const num = Number(disburseAmount) || 0;
+    const [bankName, rest] = targetBank.split(' - ');
+    const accountNumber = (rest || '').split(' ')[0];
+    try {
+      await reportsService.createDisbursement({
+        amount: num,
+        bank_name: bankName,
+        account_number: accountNumber,
+      });
+      setIsDisburseOpen(false);
+      await loadDisbursements();
+      showToast(`Permintaan pencairan dana ${formatRupiah(num)} sedang diproses oleh bank.`);
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || 'Gagal mengajukan pencairan dana.');
+    }
+  };
 
-    setDisbursements((prev) => [newRecord, ...prev]);
-    setIsDisburseOpen(false);
-    showToast(`Permintaan pencairan dana ${formatRupiah(num)} sedang diproses oleh bank.`);
+  const handleRecordCashAudit = async () => {
+    const opening = window.prompt('Modal awal kas (Rp):', '500000');
+    if (opening === null) return;
+    const actual = window.prompt('Kas fisik terhitung saat tutup shift (Rp), kosongkan jika belum:', '');
+    if (actual === null) return;
+    try {
+      await reportsService.createCashAudit({
+        shift_name: `Shift ${new Date().getHours() < 16 ? 'Pagi' : 'Malam'}`,
+        opening_cash: Number(opening) || 0,
+        actual_cash: actual.trim() === '' ? null : Number(actual),
+      });
+      await loadCashAudits();
+      showToast('Audit kas shift berhasil dicatat.');
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || 'Gagal mencatat audit kas.');
+    }
   };
 
   const channelColumns: ColumnDef<ChannelReconciliation>[] = [
@@ -535,7 +601,7 @@ export default function FinancePage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
           <p className="text-xs font-medium text-neutral-500">Dana Siap Dicairkan</p>
-          <p className="text-2xl font-bold text-neutral-900 tracking-tight">{totals ? formatRupiah(totals.net) : 'Rp18.450.000'}</p>
+          <p className="text-2xl font-bold text-neutral-900 tracking-tight">{available !== null ? formatRupiah(available) : totals ? formatRupiah(totals.net) : 'Rp18.450.000'}</p>
           <p className="text-[11px] text-emerald-600 font-medium">QRIS & Payment Gateway</p>
         </div>
 
@@ -631,6 +697,11 @@ export default function FinancePage() {
 
       {activeTab === 'cashier-audit' && (
         <div className="space-y-4">
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={handleRecordCashAudit}>
+              Catat Kas Shift
+            </Button>
+          </div>
           <DataTable<CashierShiftAudit>
             columns={auditColumns}
             data={audits}
@@ -669,7 +740,7 @@ export default function FinancePage() {
         <div className="space-y-5">
           <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 text-xs space-y-1">
             <p className="text-neutral-500">Saldo Siap Dicairkan:</p>
-            <p className="text-2xl font-bold text-neutral-900 font-mono">Rp18.450.000</p>
+            <p className="text-2xl font-bold text-neutral-900 font-mono">{available !== null ? formatRupiah(available) : 'Rp18.450.000'}</p>
             <p className="text-[11px] text-neutral-400">Batas penarikan harian: Rp50.000.000</p>
           </div>
 
@@ -693,7 +764,7 @@ export default function FinancePage() {
 
           <div className="p-3.5 rounded-xl border border-neutral-200 bg-neutral-50/50 flex items-center justify-between text-xs">
             <span className="text-neutral-500">Biaya Transfer Real-time:</span>
-            <span className="font-semibold text-neutral-900 font-mono">Rp4.500</span>
+            <span className="font-semibold text-neutral-900 font-mono">{formatRupiah(transferFee)}</span>
           </div>
         </div>
       </Drawer>
