@@ -513,12 +513,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Right Header: Mail & User profile matching Figma screenshot */}
           <div className="flex items-center gap-3">
-            <button
-              className="size-9 rounded-xl border border-neutral-800 bg-[#1E1E1E] hover:bg-neutral-800 text-neutral-300 flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
-              title="Pesan & Notifikasi"
+            <Link
+              href="/dashboard/notifications"
+              className={cn(
+                "size-9 rounded-xl border flex items-center justify-center transition-colors shadow-2xs cursor-pointer",
+                pathname.startsWith('/dashboard/notifications')
+                  ? "bg-[#FF5C38] border-[#FF5C38] text-white shadow-xs"
+                  : "border-neutral-800 bg-[#1E1E1E] hover:bg-neutral-800 text-neutral-300"
+              )}
+              title="Notifikasi"
             >
               <Mail className="size-4" />
-            </button>
+            </Link>
 
             <div className="relative">
               <button
