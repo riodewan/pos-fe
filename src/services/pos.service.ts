@@ -33,6 +33,7 @@ export const posService = {
 
   createOrder: (data: {
     table_id?: string | null;
+    channel?: 'DINE_IN' | 'TAKEAWAY' | 'DELIVERY' | 'QR_ORDER';
     customer_name?: string | null;
     customer_phone?: string | null;
     discount_amount?: number;

@@ -273,8 +273,9 @@ function PosContent() {
     change: number
   ) => {
     try {
-      await posService.createOrder({
+      const res: any = await posService.createOrder({
         table_id: selectedTable || null,
+        channel: orderType,
         customer_name: customerName,
         customer_phone: customerPhone,
         discount_amount: discountAmount,
@@ -287,6 +288,15 @@ function PosContent() {
           notes: c.notes || null,
         })),
       });
+      const created = res?.data?.data ?? res?.data;
+      const orderId = created?.id;
+      if (orderId) {
+        await posService.processPayment(orderId, {
+          method: method.toUpperCase() as any,
+          amount: Number(created?.total_amount ?? totalAmount),
+          metadata: { tendered, change },
+        });
+      }
     } catch (e) {
       // offline/mock handled gracefully
     }

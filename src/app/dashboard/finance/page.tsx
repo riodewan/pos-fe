@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Banknote,
   DollarSign,
@@ -31,6 +31,7 @@ import {
   Pagination,
 } from '@/components/common';
 import { formatRupiah } from '@/utils';
+import { reportsService } from '@/services/reports.service';
 
 // Channel Reconciliation Dataset
 interface ChannelReconciliation {
@@ -206,6 +207,74 @@ export default function FinancePage() {
   const [channels, setChannels] = useState<ChannelReconciliation[]>(INITIAL_CHANNELS);
   const [disbursements, setDisbursements] = useState<DisbursementRecord[]>(INITIAL_DISBURSEMENTS);
   const [audits, setAudits] = useState<CashierShiftAudit[]>(INITIAL_AUDITS);
+  const [totals, setTotals] = useState<{ net: number; mdr: number; cash: number } | null>(null);
+
+  useEffect(() => {
+    const today = new Date();
+    const end = today.toISOString().slice(0, 10);
+    const start = new Date(today.getFullYear(), today.getMonth(), 1)
+      .toLocaleDateString('en-CA');
+
+    const methodIcon = (m: string): ChannelReconciliation['iconType'] => {
+      const u = (m || '').toUpperCase();
+      if (u === 'QRIS') return 'qris';
+      if (u === 'CASH') return 'cash';
+      if (u.includes('CARD') || u.includes('DEBIT') || u.includes('EDC')) return 'card';
+      return 'online';
+    };
+
+    const load = async () => {
+      try {
+        const res = await reportsService.getFinanceReconciliation(start, end);
+        const data = (res as any)?.data?.data ?? (res as any)?.data;
+        if (data) {
+          const list = (data.methods_breakdown || []).map((m: any, i: number) => ({
+            id: `ch-${i}`,
+            channelName: m.method,
+            iconType: methodIcon(m.method),
+            totalTransactions: m.count,
+            grossAmount: m.gross_amount,
+            mdrFee: m.mdr_fee,
+            netSettlement: m.net_amount,
+            settlementStatus: m.mdr_fee === 0 ? 'Selesai' : 'Siap Cair',
+          })) as ChannelReconciliation[];
+          setChannels(list);
+          setTotals((prev) => ({
+            net: data.totals?.net_settlement ?? 0,
+            mdr: data.totals?.total_mdr ?? 0,
+            cash: prev?.cash ?? 0,
+          }));
+        }
+      } catch (err) {
+        console.error('Gagal memuat rekonsiliasi', err);
+      }
+
+      try {
+        const res = await reportsService.getCashierAudit(start, end);
+        const data = (res as any)?.data?.data ?? (res as any)?.data;
+        if (data?.cashiers) {
+          const list = data.cashiers.map((c: any, i: number) => ({
+            id: `aud-${c.user_id ?? i}`,
+            shiftName: `${c.total_orders} Pesanan Selesai`,
+            cashierName: c.user_name,
+            date: `${start} s/d ${end}`,
+            openingCash: 0,
+            cashSales: c.cash_total,
+            expectedCash: c.cash_total,
+            actualCash: c.cash_total,
+            variance: 0,
+            status: 'Sesuai',
+          })) as CashierShiftAudit[];
+          setAudits(list);
+          const cash = data.cashiers.reduce((s: number, c: any) => s + (c.cash_total || 0), 0);
+          setTotals((prev) => ({ net: prev?.net ?? 0, mdr: prev?.mdr ?? 0, cash }));
+        }
+      } catch (err) {
+        console.error('Gagal memuat audit kasir', err);
+      }
+    };
+    load();
+  }, []);
 
   // Drawer
   const [isDisburseOpen, setIsDisburseOpen] = useState(false);
@@ -466,19 +535,19 @@ export default function FinancePage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
           <p className="text-xs font-medium text-neutral-500">Dana Siap Dicairkan</p>
-          <p className="text-2xl font-bold text-neutral-900 tracking-tight">Rp18.450.000</p>
+          <p className="text-2xl font-bold text-neutral-900 tracking-tight">{totals ? formatRupiah(totals.net) : 'Rp18.450.000'}</p>
           <p className="text-[11px] text-emerald-600 font-medium">QRIS & Payment Gateway</p>
         </div>
 
         <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
           <p className="text-xs font-medium text-neutral-500">Total Kas Fisik Drawer</p>
-          <p className="text-2xl font-bold text-neutral-900 tracking-tight">Rp4.250.000</p>
+          <p className="text-2xl font-bold text-neutral-900 tracking-tight">{totals ? formatRupiah(totals.cash) : 'Rp4.250.000'}</p>
           <p className="text-[11px] text-neutral-500">Sesuai penutupan shift kasir</p>
         </div>
 
         <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
           <p className="text-xs font-medium text-neutral-500">Estimasi Biaya MDR (0.7%)</p>
-          <p className="text-2xl font-bold text-neutral-900 tracking-tight">Rp142.500</p>
+          <p className="text-2xl font-bold text-neutral-900 tracking-tight">{totals ? formatRupiah(totals.mdr) : 'Rp142.500'}</p>
           <p className="text-[11px] text-neutral-400">Potongan transaksi QRIS</p>
         </div>
 
