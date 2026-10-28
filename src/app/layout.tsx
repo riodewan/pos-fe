@@ -14,14 +14,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "POS Coffee & F&B — Multi-Tenant SaaS Platform",
-  description: "Point of Sale, QR Self-Ordering, Recipe & Raw Material Inventory Management for Coffee Shops and F&B Outlets.",
+  title: "NemuHUB — Sistem Operasional POS, KDS & Inventori F&B Terpadu",
+  description:
+    "Platform all-in-one Point of Sale (POS), Kitchen Display System (KDS), Reservasi, QR Self-Order, Manajemen Inventori Resep & Keuangan Multi-Outlet.",
+  icons: {
+    icon: "/img/logo/logo-nemuhub.png",
+    shortcut: "/img/logo/logo-nemuhub.png",
+    apple: "/img/logo/logo-nemuhub.png",
+  },
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+    { media: "(prefers-color-scheme: light)", color: "#FF5C38" },
+    { media: "(prefers-color-scheme: dark)", color: "#141414" },
   ],
 };
 
