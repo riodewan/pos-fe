@@ -17,154 +17,11 @@ import { Button } from '@/components/common/Button';
 export interface PosProduct {
   id: string;
   name: string;
-  category: 'Kopi' | 'Minuman Non-Kopi' | 'Makanan' | 'Snack' | 'Dessert';
-  categoryBadge: 'Kopi' | 'Pastry' | 'Makanan Berat';
   price: number;
-  imageUrl: string;
+  imageUrl?: string | null;
   isFavorite?: boolean;
 }
 
-export const INITIAL_POS_PRODUCTS: PosProduct[] = [
-  // 9 Primary items matching Screenshot 1
-  {
-    id: 'p-1',
-    name: 'Kopi Susu Gula Aren',
-    category: 'Kopi',
-    categoryBadge: 'Kopi',
-    price: 28000,
-    imageUrl: 'https://images.unsplash.com/photo-1541167760496-1628856ab772?w=300&auto=format&fit=crop&q=80',
-    isFavorite: true,
-  },
-  {
-    id: 'p-2',
-    name: 'Matcha Latte',
-    category: 'Minuman Non-Kopi',
-    categoryBadge: 'Kopi',
-    price: 30000,
-    imageUrl: 'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=300&auto=format&fit=crop&q=80',
-    isFavorite: true,
-  },
-  {
-    id: 'p-3',
-    name: 'Americano',
-    category: 'Kopi',
-    categoryBadge: 'Kopi',
-    price: 22000,
-    imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'p-4',
-    name: 'Cappucino',
-    category: 'Kopi',
-    categoryBadge: 'Kopi',
-    price: 28000,
-    imageUrl: 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=300&auto=format&fit=crop&q=80',
-    isFavorite: true,
-  },
-  {
-    id: 'p-5',
-    name: 'Latte',
-    category: 'Kopi',
-    categoryBadge: 'Kopi',
-    price: 27000,
-    imageUrl: 'https://images.unsplash.com/photo-1534778101976-62847782c213?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'p-6',
-    name: 'Croissant',
-    category: 'Snack',
-    categoryBadge: 'Pastry',
-    price: 25000,
-    imageUrl: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&auto=format&fit=crop&q=80',
-    isFavorite: true,
-  },
-  {
-    id: 'p-7',
-    name: 'Chocolate Croissant',
-    category: 'Dessert',
-    categoryBadge: 'Pastry',
-    price: 28000,
-    imageUrl: 'https://images.unsplash.com/photo-1623334044303-2510e609b7f3?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'p-8',
-    name: 'Chicken Sandwich',
-    category: 'Makanan',
-    categoryBadge: 'Makanan Berat',
-    price: 45000,
-    imageUrl: 'https://images.unsplash.com/photo-1606755962773-d324e0a13086?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'p-9',
-    name: 'Pasta Carbonara',
-    category: 'Makanan',
-    categoryBadge: 'Makanan Berat',
-    price: 48000,
-    imageUrl: 'https://images.unsplash.com/photo-1612874742237-6526221588e3?w=300&auto=format&fit=crop&q=80',
-  },
-
-  // Additional rich items for Minuman Non-Kopi, Makanan, Snack, Dessert
-  {
-    id: 'p-10',
-    name: 'Iced Lychee Tea',
-    category: 'Minuman Non-Kopi',
-    categoryBadge: 'Kopi',
-    price: 24000,
-    imageUrl: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=300&auto=format&fit=crop&q=80',
-    isFavorite: true,
-  },
-  {
-    id: 'p-11',
-    name: 'Signature Dark Chocolate',
-    category: 'Minuman Non-Kopi',
-    categoryBadge: 'Kopi',
-    price: 29000,
-    imageUrl: 'https://images.unsplash.com/photo-1542990253-0d0f5be5f0ed?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'p-12',
-    name: 'Nasi Goreng Spesial',
-    category: 'Makanan',
-    categoryBadge: 'Makanan Berat',
-    price: 42000,
-    imageUrl: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=300&auto=format&fit=crop&q=80',
-    isFavorite: true,
-  },
-  {
-    id: 'p-13',
-    name: 'Beef Cheeseburger',
-    category: 'Makanan',
-    categoryBadge: 'Makanan Berat',
-    price: 52000,
-    imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'p-14',
-    name: 'Truffle French Fries',
-    category: 'Snack',
-    categoryBadge: 'Pastry',
-    price: 28000,
-    imageUrl: 'https://images.unsplash.com/photo-1576107232684-1279f3908594?w=300&auto=format&fit=crop&q=80',
-    isFavorite: true,
-  },
-  {
-    id: 'p-15',
-    name: 'Basque Burnt Cheesecake',
-    category: 'Dessert',
-    categoryBadge: 'Pastry',
-    price: 35000,
-    imageUrl: 'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=300&auto=format&fit=crop&q=80',
-    isFavorite: true,
-  },
-  {
-    id: 'p-16',
-    name: 'Tiramisu Dessert Cup',
-    category: 'Dessert',
-    categoryBadge: 'Pastry',
-    price: 32000,
-    imageUrl: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=300&auto=format&fit=crop&q=80',
-  },
-];
 
 interface PosProductGridProps {
   products: PosProduct[];
@@ -185,39 +42,7 @@ export function PosProductGrid({
   onAddToCart,
   onResetDemoMenu,
 }: PosProductGridProps) {
-  const categories = [
-    { id: 'Semua', label: 'Semua', icon: null },
-    { id: 'Kopi', label: 'Kopi', icon: Coffee },
-    { id: 'Minuman Non-Kopi', label: 'Minuman Non-Kopi', icon: GlassWater },
-    { id: 'Makanan', label: 'Makanan', icon: UtensilsCrossed },
-    { id: 'Snack', label: 'Snack', icon: Heart },
-    { id: 'Dessert', label: 'Dessert', icon: Cake },
-  ];
-
-  const renderBadge = (badge: 'Kopi' | 'Pastry' | 'Makanan Berat') => {
-    switch (badge) {
-      case 'Kopi':
-        return (
-          <span className="inline-block bg-amber-50 text-amber-700 text-[10px] font-semibold px-2 py-0.5 rounded">
-            Kopi
-          </span>
-        );
-      case 'Pastry':
-        return (
-          <span className="inline-block bg-rose-50 text-rose-600 text-[10px] font-semibold px-2 py-0.5 rounded">
-            Pastry
-          </span>
-        );
-      case 'Makanan Berat':
-        return (
-          <span className="inline-block bg-blue-50 text-blue-600 text-[10px] font-semibold px-2 py-0.5 rounded">
-            Makanan Berat
-          </span>
-        );
-      default:
-        return null;
-    }
-  };
+  const categories = [{ id: 'Semua', label: 'Semua', icon: null as null | typeof Coffee }];
 
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-white rounded-2xl border border-neutral-200/90 shadow-2xs overflow-hidden">
@@ -288,12 +113,16 @@ export function PosProductGrid({
               >
                 {/* Product Image */}
                 <div className="relative w-full aspect-square rounded-xl bg-neutral-50/60 overflow-hidden flex items-center justify-center mb-3">
-                  <img
-                    src={item.imageUrl}
-                    alt={item.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
-                  />
+                  {item.imageUrl ? (
+                    <img
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <Coffee className="size-8 text-neutral-300" />
+                  )}
                   {/* Subtle Add Hover Overlay */}
                   <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <span className="size-7 rounded-full bg-white text-[#FF5C38] shadow-md flex items-center justify-center">
@@ -304,7 +133,6 @@ export function PosProductGrid({
 
                 {/* Details */}
                 <div className="space-y-1">
-                  <div>{renderBadge(item.categoryBadge)}</div>
                   <h4 className="text-xs font-bold text-neutral-900 line-clamp-1 leading-snug group-hover:text-[#FF5C38] transition-colors">
                     {item.name}
                   </h4>

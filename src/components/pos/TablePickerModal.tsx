@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Users,
   Check,
@@ -11,33 +11,23 @@ import {
 } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/common/Button';
+import { posService } from '@/services/pos.service';
 
 export interface PosTable {
   id: string;
   name: string;
-  area: 'Indoor' | 'Outdoor' | 'VIP';
+  area?: string;
   capacity: number;
   status: 'AVAILABLE' | 'OCCUPIED' | 'RESERVED';
   currentCustomer?: string;
 }
-
-export const MOCK_POS_TABLES: PosTable[] = [
-  { id: 't-1', name: 'Meja 1', area: 'Indoor', capacity: 2, status: 'OCCUPIED', currentCustomer: 'Budi S.' },
-  { id: 't-2', name: 'Meja 2', area: 'Indoor', capacity: 4, status: 'AVAILABLE' },
-  { id: 't-3', name: 'Meja 3', area: 'Indoor', capacity: 4, status: 'AVAILABLE' },
-  { id: 't-4', name: 'Meja 4', area: 'Indoor', capacity: 6, status: 'RESERVED', currentCustomer: 'Meeting Tim' },
-  { id: 't-5', name: 'Meja 5', area: 'Outdoor', capacity: 4, status: 'AVAILABLE' },
-  { id: 't-6', name: 'Meja 6', area: 'Outdoor', capacity: 2, status: 'AVAILABLE' },
-  { id: 't-7', name: 'Meja 7', area: 'Outdoor', capacity: 4, status: 'OCCUPIED', currentCustomer: 'Andi P.' },
-  { id: 't-8', name: 'VIP Room', area: 'VIP', capacity: 8, status: 'AVAILABLE' },
-];
 
 interface TablePickerModalProps {
   isOpen: boolean;
   selectedTable: string;
   guestCount: number;
   onClose: () => void;
-  onSelectTable: (table: string, guests: number) => void;
+  onSelectTable: (table: { id: string; name: string }, guests: number) => void;
 }
 
 export function TablePickerModal({
@@ -48,17 +38,43 @@ export function TablePickerModal({
   onSelectTable,
 }: TablePickerModalProps) {
   const [activeArea, setActiveArea] = useState<string>('ALL');
-  const [currentTable, setCurrentTable] = useState<string>(selectedTable || 'Meja 3');
+  const [tables, setTables] = useState<PosTable[]>([]);
+  const [currentTable, setCurrentTable] = useState<string>(selectedTable || '');
   const [currentGuests, setCurrentGuests] = useState<number>(guestCount || 2);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const load = async () => {
+      try {
+        const res = await posService.getTables();
+        const list = ((res as any)?.data?.data ?? (res as any)?.data ?? []) as any[];
+        setTables(
+          list
+            .filter((t) => t.status !== 'INACTIVE')
+            .map((t) => ({
+              id: t.id,
+              name: t.name,
+              capacity: t.capacity,
+              status: t.is_occupied ? 'OCCUPIED' : 'AVAILABLE',
+            }))
+        );
+      } catch {
+        setTables([]);
+      }
+    };
+    load();
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const filteredTables = MOCK_POS_TABLES.filter(
+  const filteredTables = tables.filter(
     (t) => activeArea === 'ALL' || t.area === activeArea
   );
 
   const handleConfirm = () => {
-    onSelectTable(currentTable, currentGuests);
+    const picked = tables.find((t) => t.name === currentTable);
+    if (!picked) return;
+    onSelectTable({ id: picked.id, name: picked.name }, currentGuests);
     onClose();
   };
 
@@ -113,7 +129,7 @@ export function TablePickerModal({
         {/* Area filter tabs */}
         <div className="flex items-center justify-between gap-2 border-b border-neutral-100 pb-2">
           <div className="flex items-center gap-1.5">
-            {['ALL', 'Indoor', 'Outdoor', 'VIP'].map((area) => (
+            {['ALL'].map((area) => (
               <button
                 key={area}
                 type="button"
@@ -176,7 +192,7 @@ export function TablePickerModal({
                   </div>
 
                   <p className="text-[11px] text-neutral-500 flex items-center gap-1">
-                    <Users className="size-3 text-neutral-400" /> {table.capacity} Kursi ({table.area})
+                    <Users className="size-3 text-neutral-400" /> {table.capacity} Kursi
                   </p>
                 </div>
 

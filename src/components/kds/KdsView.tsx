@@ -51,195 +51,6 @@ export interface KdsOrder {
   items: KdsItem[];
 }
 
-export const INITIAL_KDS_ORDERS: KdsOrder[] = [
-  {
-    id: 'kds-1046',
-    orderNumber: '#ORD-1046',
-    channelType: 'Delivery',
-    channelDetail: 'ShopeeFood',
-    time: '10:10',
-    timestamp: 1729606200000,
-    status: 'DI_PROSES',
-    items: [
-      {
-        id: 'i-1',
-        name: 'Aglio Olio',
-        quantity: 1,
-        notes: 'extra chili',
-        status: 'SEDANG_DISIAPKAN',
-      },
-      {
-        id: 'i-2',
-        name: 'Iced Latte',
-        quantity: 1,
-        notes: 'normal ice',
-        status: 'MENUNGGU',
-      },
-      {
-        id: 'i-3',
-        name: 'Tiramisu',
-        quantity: 1,
-        status: 'MENUNGGU',
-      },
-    ],
-  },
-  {
-    id: 'kds-1045',
-    orderNumber: '#ORD-1045',
-    channelType: 'Delivery',
-    channelDetail: 'GrabFood',
-    time: '10:09',
-    timestamp: 1729606140000,
-    status: 'BARU',
-    items: [
-      {
-        id: 'i-4',
-        name: 'Beef Burger',
-        quantity: 1,
-        notes: 'medium well',
-        status: 'MENUNGGU',
-      },
-      {
-        id: 'i-5',
-        name: 'Truffle Fries',
-        quantity: 1,
-        status: 'MENUNGGU',
-      },
-      {
-        id: 'i-6',
-        name: 'Iced Chocolate',
-        quantity: 1,
-        notes: 'less ice',
-        status: 'MENUNGGU',
-      },
-    ],
-  },
-  {
-    id: 'kds-1044',
-    orderNumber: '#ORD-1044',
-    channelType: 'Dine-in',
-    channelDetail: 'Meja 02',
-    time: '10:08',
-    timestamp: 1729606080000,
-    status: 'DI_PROSES',
-    items: [
-      {
-        id: 'i-7',
-        name: 'Chocolate Croissant',
-        quantity: 1,
-        notes: 'Placeholder text',
-        status: 'SEDANG_DISIAPKAN',
-      },
-      {
-        id: 'i-8',
-        name: 'Matcha Latte',
-        quantity: 1,
-        notes: 'oat milk',
-        status: 'SEDANG_DISIAPKAN',
-      },
-      {
-        id: 'i-9',
-        name: 'Americano',
-        quantity: 1,
-        notes: 'hot',
-        status: 'SIAP_DIANTAR',
-      },
-    ],
-  },
-  {
-    id: 'kds-1043',
-    orderNumber: '#ORD-1043',
-    channelType: 'Takeaway',
-    channelDetail: 'Shopee Food',
-    time: '10:07',
-    timestamp: 1729606020000,
-    status: 'DI_PROSES',
-    items: [
-      {
-        id: 'i-10',
-        name: 'Chicken Sandwich',
-        quantity: 1,
-        notes: 'tanpa bawang',
-        status: 'SEDANG_DISIAPKAN',
-      },
-      {
-        id: 'i-11',
-        name: 'French Fries',
-        quantity: 1,
-        notes: 'saus sambal',
-        status: 'MENUNGGU',
-      },
-      {
-        id: 'i-12',
-        name: 'Iced Lemon Tea',
-        quantity: 1,
-        notes: 'less sugar',
-        status: 'MENUNGGU',
-      },
-    ],
-  },
-  {
-    id: 'kds-1042',
-    orderNumber: '#ORD-1042',
-    channelType: 'Dine-in',
-    channelDetail: 'Meja 05',
-    time: '10:05',
-    timestamp: 1729605900000,
-    status: 'BARU',
-    items: [
-      {
-        id: 'i-13',
-        name: 'White Latte',
-        quantity: 2,
-        notes: 'Normal Ice',
-        status: 'MENUNGGU',
-      },
-      {
-        id: 'i-14',
-        name: 'Croissant',
-        quantity: 1,
-        status: 'SEDANG_DISIAPKAN',
-      },
-      {
-        id: 'i-15',
-        name: 'Pasta Carbonara',
-        quantity: 1,
-        notes: 'tanpa tambahan keju',
-        status: 'MENUNGGU',
-      },
-    ],
-  },
-  {
-    id: 'kds-1041',
-    orderNumber: '#ORD-1041',
-    channelType: 'Dine-in',
-    channelDetail: 'Meja 01',
-    time: '10:02',
-    timestamp: 1729605720000,
-    status: 'SUDAH_DIANTAR',
-    items: [
-      {
-        id: 'i-16',
-        name: 'White Latte',
-        quantity: 1,
-        notes: 'normal ice',
-        status: 'SUDAH_DIANTAR',
-      },
-      {
-        id: 'i-17',
-        name: 'Croissant',
-        quantity: 1,
-        status: 'SUDAH_DIANTAR',
-      },
-      {
-        id: 'i-18',
-        name: 'Caesar Salad',
-        quantity: 1,
-        status: 'SUDAH_DIANTAR',
-      },
-    ],
-  },
-];
 
 // Browser Audio Synthesizer for Kitchen Alert Bell
 function playKitchenChime(soundType: string, volume: number) {
@@ -288,7 +99,7 @@ function playKitchenChime(soundType: string, volume: number) {
 }
 
 export function KdsView() {
-  const [orders, setOrders] = useState<KdsOrder[]>(INITIAL_KDS_ORDERS);
+  const [orders, setOrders] = useState<KdsOrder[]>([]);
   const [channelFilter, setChannelFilter] = useState('Semua channel');
   const [sortOrder, setSortOrder] = useState('Waktu Masuk Terbaru');
   const [volume, setVolume] = useState<number>(75);
@@ -299,7 +110,7 @@ export function KdsView() {
     const fetchQueue = async () => {
       try {
         const res = await posService.getKdsQueue();
-        if (res?.data && res.data.length > 0) {
+        if (res?.data) {
           const mapped: KdsOrder[] = res.data.map((o: any) => ({
             id: o.id,
             orderNumber: o.order_number || `#ORD-${o.id.slice(-4)}`,
@@ -343,7 +154,7 @@ export function KdsView() {
           setOrders(mapped);
         }
       } catch {
-        // Fallback to initial orders
+        // Keep empty queue when the API is unreachable
       }
     };
 
@@ -431,9 +242,7 @@ export function KdsView() {
     playKitchenChime(soundType, volume);
   };
 
-  const handleResetDemo = () => {
-    setOrders(INITIAL_KDS_ORDERS);
-  };
+
 
   const handleClearAll = () => {
     setOrders([]);
@@ -454,31 +263,7 @@ export function KdsView() {
 
         {/* Top Right Actions */}
         <div className="flex items-center gap-2.5">
-          {/* Quick Demo Switcher */}
-          <div className="hidden md:flex items-center bg-white border border-neutral-200/90 rounded-xl p-1 text-[11px] font-semibold text-neutral-600 shadow-2xs">
-            <button
-              type="button"
-              onClick={handleResetDemo}
-              className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
-                orders.length > 0
-                  ? 'bg-neutral-100 text-neutral-900 font-bold'
-                  : 'hover:text-neutral-900'
-              }`}
-            >
-              Demo Aktif ({orders.length})
-            </button>
-            <button
-              type="button"
-              onClick={handleClearAll}
-              className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
-                orders.length === 0
-                  ? 'bg-neutral-100 text-neutral-900 font-bold'
-                  : 'hover:text-neutral-900'
-              }`}
-            >
-              Kosong (Empty)
-            </button>
-          </div>
+
 
           {/* Button: "Daftar Pesanan" matching Screenshot 1 */}
           <Link
@@ -697,13 +482,7 @@ export function KdsView() {
               Pesanan baru akan muncul di sini saat diteruskan dari kasir.
             </p>
 
-            <button
-              type="button"
-              onClick={handleResetDemo}
-              className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-            >
-              <span>Tambah Menu</span>
-            </button>
+
           </div>
         )}
       </div>

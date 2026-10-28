@@ -19,57 +19,6 @@ import {
 import { PaymentMethodItem } from '@/types/outlet-settings';
 import { Button } from '@/components/common/Button';
 
-// Mock Initial Payment Methods matching Screenshot 4
-const INITIAL_PAYMENT_METHODS: PaymentMethodItem[] = [
-  {
-    id: 'pm-1',
-    name: 'Tunai',
-    type: 'Tunai',
-    description: 'Pembayaran menggunakan uang tunai.',
-    isActive: true,
-    iconType: 'cash',
-  },
-  {
-    id: 'pm-2',
-    name: 'QRIS',
-    type: 'E - Wallet',
-    description: 'Pembayaran menggunakan QRIS.',
-    isActive: true,
-    iconType: 'qris',
-  },
-  {
-    id: 'pm-3',
-    name: 'OVO',
-    type: 'E - Wallet',
-    description: 'Pembayaran menggunakan GoPay.',
-    isActive: true,
-    iconType: 'ovo',
-  },
-  {
-    id: 'pm-4',
-    name: 'DANA',
-    type: 'E - Wallet',
-    description: 'Pembayaran menggunakan Dana.',
-    isActive: true,
-    iconType: 'dana',
-  },
-  {
-    id: 'pm-5',
-    name: 'ShopeePay',
-    type: 'E - Wallet',
-    description: 'Pembayaran menggunakan ShopeePay.',
-    isActive: true,
-    iconType: 'shopeepay',
-  },
-  {
-    id: 'pm-6',
-    name: 'Kartu Debit/Kredit',
-    type: 'Kartu',
-    description: 'Pembayaran menggunakan Kartu Debit/Kredit.',
-    isActive: true,
-    iconType: 'card',
-  },
-];
 
 interface PaymentMethodsTabProps {
   onOpenAddModal: () => void;
@@ -380,4 +329,4 @@ export function PaymentMethodsTab({
   );
 }
 
-export { INITIAL_PAYMENT_METHODS };
+

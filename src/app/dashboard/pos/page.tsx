@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import {
   PosProduct,
-  INITIAL_POS_PRODUCTS,
   PosProductGrid,
 } from '@/components/pos/PosProductGrid';
 import {
@@ -46,6 +45,7 @@ import { Select } from '@/components/common/Select';
 import { SearchInput } from '@/components/common/SearchInput';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { catalogService, posService } from '@/services';
+import { tenantService } from '@/services/tenant.service';
 import { useStore } from '@/context/StoreContext';
 
 type OrderType = 'DINE_IN' | 'TAKEAWAY' | 'DELIVERY' | 'QR_ORDER';
@@ -77,41 +77,31 @@ function PosContent() {
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 
-  // Products state (defaults to rich menu with 9 primary items matching Screenshot 1)
-  const [products, setProducts] = useState<PosProduct[]>(INITIAL_POS_PRODUCTS);
+  // Products and cart are loaded from / sent to the backend
+  const [products, setProducts] = useState<PosProduct[]>([]);
+  const [cart, setCart] = useState<PosCartItem[]>([]);
 
-  // Initial cart matching Screenshot 1:
-  // Item 1: 1x Kopi Susu Gula Aren (Rp28.000)
-  // Item 2: 2x Matcha Latte (Rp30.000 -> Rp60.000)
-  const [cart, setCart] = useState<PosCartItem[]>([
-    {
-      product: INITIAL_POS_PRODUCTS[0], // Kopi Susu Gula Aren
-      quantity: 1,
-      notes: '',
-    },
-    {
-      product: INITIAL_POS_PRODUCTS[1], // Matcha Latte
-      quantity: 2,
-      notes: '',
-    },
-  ]);
+  // Active taxes & fees configured in Pengaturan Outlet
+  const [taxFees, setTaxFees] = useState<any[]>([]);
+  const [lastOrderNumber, setLastOrderNumber] = useState('');
 
-  // Customer & Table matching Screenshot 1
-  const [customerName, setCustomerName] = useState('Marshanda');
-  const [customerPhone, setCustomerPhone] = useState('081245678909');
-  const [selectedTable, setSelectedTable] = useState('Meja 3');
+  // Customer & Table
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [selectedTable, setSelectedTable] = useState('');
+  const [selectedTableId, setSelectedTableId] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [discountAmount, setDiscountAmount] = useState(0);
 
   // Workflow Details for Dine-in, Takeaway, Delivery, and QR Order
   const [guestCount, setGuestCount] = useState(2);
-  const [takeawayQueue, setTakeawayQueue] = useState('TA-014');
+  const [takeawayQueue, setTakeawayQueue] = useState('');
   const [packagingFee, setPackagingFee] = useState(0);
-  const [packagingOption, setPackagingOption] = useState('Paper Bag Ramah Lingkungan');
+  const [packagingOption, setPackagingOption] = useState('');
   const [courierName, setCourierName] = useState<'GoSend' | 'GrabExpress' | 'Kurir Toko'>('GoSend');
-  const [deliveryAddress, setDeliveryAddress] = useState('Jl. Melati No. 25, Menteng, Jakarta Pusat');
-  const [deliveryFee, setDeliveryFee] = useState(15000);
-  const [deliveryNotes, setDeliveryNotes] = useState('Titip ke pos satpam atau telepon saat sampai.');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryFee, setDeliveryFee] = useState(0);
+  const [deliveryNotes, setDeliveryNotes] = useState('');
 
   // Workflow Modals & Drawers state
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
@@ -123,52 +113,58 @@ function PosContent() {
   const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false);
   const [isQrIncomingOpen, setIsQrIncomingOpen] = useState(false);
 
-  // Try to load real products if available
+  // Load real products and tax/fee configuration
   useEffect(() => {
     async function fetchCatalog() {
       try {
         const res = await catalogService.getProducts();
-        if (res.data && res.data.length > 0) {
+        if (res.data) {
           const mapped: PosProduct[] = res.data.map((p) => ({
             id: p.id,
             name: p.name,
-            category: 'Kopi',
-            categoryBadge: 'Kopi',
             price: Number(p.selling_price),
-            imageUrl:
-              p.image_url ||
-              'https://images.unsplash.com/photo-1541167760496-1628856ab772?w=300&auto=format&fit=crop&q=80',
+            imageUrl: p.image_url || null,
           }));
           setProducts(mapped);
         }
       } catch (e) {
-        // Fallback to high-fidelity mock products matching Figma
+        setProducts([]);
+      }
+    }
+    async function fetchTaxFees() {
+      try {
+        const res: any = await tenantService.getTaxesFees();
+        const list = (res?.data?.data ?? res?.data ?? []) as any[];
+        setTaxFees(list.filter((t) => t.is_active));
+      } catch {
+        setTaxFees([]);
       }
     }
     fetchCatalog();
+    fetchTaxFees();
   }, [activeStore]);
 
   // Handle switching order type
   const handleSelectOrderType = (type: OrderType) => {
     setOrderType(type);
     if (type === 'DINE_IN') {
-      if (!selectedTable || selectedTable === 'Takeaway' || selectedTable === 'Delivery') {
-        setSelectedTable('Meja 3');
+      if (selectedTable === 'Takeaway' || selectedTable === 'Delivery') {
+        setSelectedTable('');
+        setSelectedTableId('');
       }
     } else if (type === 'TAKEAWAY') {
       setSelectedTable('Takeaway');
-      if (packagingFee === 0) setPackagingFee(2000);
+      setSelectedTableId('');
     } else if (type === 'DELIVERY') {
       setSelectedTable('Delivery');
-      if (deliveryFee === 0) setDeliveryFee(15000);
-    } else if (type === 'QR_ORDER') {
-      setSelectedTable('Meja 5 (QR)');
+      setSelectedTableId('');
     }
   };
 
   // Workflow Confirmation Handlers
-  const handleConfirmTable = (table: string, guests: number) => {
-    setSelectedTable(table);
+  const handleConfirmTable = (table: { id: string; name: string }, guests: number) => {
+    setSelectedTable(table.name);
+    setSelectedTableId(table.id);
     setGuestCount(guests);
     setIsTablePickerOpen(false);
   };
@@ -207,9 +203,8 @@ function PosContent() {
       const q = menuSearch.toLowerCase().trim();
       const matchSearch = !q || p.name.toLowerCase().includes(q);
 
-      // Category
-      const matchCat =
-        selectedCategory === 'Semua' || p.category === selectedCategory;
+      // Category (products carry no category data from the backend)
+      const matchCat = true;
 
       // Favorites
       const matchFav = !showOnlyFavorites || Boolean(p.isFavorite);
@@ -258,8 +253,23 @@ function PosContent() {
     (sum, item) => sum + item.product.price * item.quantity,
     0
   );
-  const tax = Math.round(subtotal * 0.1);
-  const nesosFee = cart.length > 0 ? 1910 : 0;
+  // Taxes and fees come from the outlet configuration (database)
+  const parseAmount = (value: string) => Number(String(value).replace(/[^0-9.,]/g, '').replace(',', '.')) || 0;
+  const calcFee = (type: 'Pajak' | 'Biaya') =>
+    Math.round(
+      taxFees
+        .filter((t) => t.type === type)
+        .reduce(
+          (sum, t) =>
+            sum +
+            (t.value_type === 'percent'
+              ? (subtotal * parseAmount(t.value)) / 100
+              : parseAmount(t.value)),
+          0
+        )
+    );
+  const tax = cart.length > 0 ? calcFee('Pajak') : 0;
+  const nesosFee = cart.length > 0 ? calcFee('Biaya') : 0;
   const deliveryCost = orderType === 'DELIVERY' ? deliveryFee : 0;
   const packagingCost = orderType === 'TAKEAWAY' ? packagingFee : 0;
   const totalAmount = Math.max(
@@ -274,10 +284,10 @@ function PosContent() {
   ) => {
     try {
       const res: any = await posService.createOrder({
-        table_id: selectedTable || null,
+        table_id: selectedTableId || null,
         channel: orderType,
-        customer_name: customerName,
-        customer_phone: customerPhone,
+        customer_name: customerName || null,
+        customer_phone: customerPhone || null,
         discount_amount: discountAmount,
         tax_amount: tax,
         service_charge: nesosFee,
@@ -296,44 +306,18 @@ function PosContent() {
           amount: Number(created?.total_amount ?? totalAmount),
           metadata: { tendered, change },
         });
+        setLastOrderNumber(created?.order_number || '');
       }
-    } catch (e) {
-      // offline/mock handled gracefully
+    } catch (e: any) {
+      window.alert(e?.response?.data?.message || 'Gagal menyimpan pesanan. Silakan coba lagi.');
+      return;
     }
 
     setIsPaymentOpen(false);
     setIsBillPrintOpen(true);
   };
 
-  // Demo switchers
-  const setPopulatedDemo = () => {
-    setProducts(INITIAL_POS_PRODUCTS);
-    setCart([
-      {
-        product: INITIAL_POS_PRODUCTS[0],
-        quantity: 1,
-        notes: '',
-      },
-      {
-        product: INITIAL_POS_PRODUCTS[1],
-        quantity: 2,
-        notes: '',
-      },
-    ]);
-    setCustomerName('Marshanda');
-    setCustomerPhone('081245678909');
-    setSelectedTable('Meja 3');
-  };
 
-  const setEmptyDemo = () => {
-    setProducts([]);
-    setCart([]);
-    setCustomerName('');
-    setCustomerPhone('');
-    setSelectedTable('');
-    setDiscountAmount(0);
-    setOrderNotes('');
-  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-5">
@@ -356,33 +340,7 @@ function PosContent() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          {/* Quick Demo Switcher (when on register view) */}
-          {activeView === 'register' && (
-            <div className="hidden md:flex items-center border border-neutral-200 rounded-lg p-0.5 bg-neutral-50 text-[11px]">
-              <button
-                type="button"
-                onClick={setPopulatedDemo}
-                className={`px-2.5 py-1 rounded-md transition-colors ${
-                  cart.length > 0 && products.length > 0
-                    ? 'bg-white text-neutral-900 font-semibold shadow-2xs'
-                    : 'text-neutral-500 hover:text-neutral-800'
-                }`}
-              >
-                Ada Pesanan (Screenshot 1)
-              </button>
-              <button
-                type="button"
-                onClick={setEmptyDemo}
-                className={`px-2.5 py-1 rounded-md transition-colors ${
-                  cart.length === 0 && products.length === 0
-                    ? 'bg-white text-neutral-900 font-semibold shadow-2xs'
-                    : 'text-neutral-500 hover:text-neutral-800'
-                }`}
-              >
-                Kosong (Screenshot 2)
-              </button>
-            </div>
-          )}
+
 
           {/* Toggle View: Kasir POS vs Daftar Pesanan */}
           {activeView === 'register' ? (
@@ -537,7 +495,7 @@ function PosContent() {
               showOnlyFavorites={showOnlyFavorites}
               onToggleFavorites={() => setShowOnlyFavorites((prev) => !prev)}
               onAddToCart={handleAddToCart}
-              onResetDemoMenu={setPopulatedDemo}
+
             />
 
             {/* Right Column: Order Summary / Cart Panel matching Screenshot 1 */}
@@ -599,7 +557,7 @@ function PosContent() {
       {/* Bill Print Modal */}
       <BillPrintModal
         isOpen={isBillPrintOpen}
-        orderNumber="ORD-2026-0042"
+        orderNumber={lastOrderNumber}
         cart={cart}
         customerName={customerName}
         customerPhone={customerPhone}

@@ -44,90 +44,6 @@ export interface PosOrder {
   elapsedMinutes: number;
 }
 
-export const INITIAL_ORDERS_LIST: PosOrder[] = [
-  {
-    id: 'ord-1',
-    orderNumber: 'ORD-2026-0042',
-    table: 'Meja 3',
-    customerName: 'Marshanda',
-    customerPhone: '081245678909',
-    items: [
-      { name: 'Kopi Susu Gula Aren', quantity: 1, price: 28000, notes: 'Less sugar 50%' },
-      { name: 'Matcha Latte', quantity: 2, price: 30000, notes: 'Es sedikit' },
-    ],
-    totalAmount: 98710,
-    source: 'POS',
-    status: 'PREPARING',
-    paymentStatus: 'PAID',
-    createdAt: '15:10',
-    elapsedMinutes: 8,
-  },
-  {
-    id: 'ord-2',
-    orderNumber: 'ORD-2026-0041',
-    table: 'Meja 1',
-    customerName: 'Budi Santoso',
-    customerPhone: '081234567890',
-    items: [
-      { name: 'Americano', quantity: 1, price: 22000 },
-      { name: 'Croissant', quantity: 1, price: 25000, notes: 'Dihangatkan' },
-    ],
-    totalAmount: 47000,
-    source: 'QR',
-    status: 'READY',
-    paymentStatus: 'PAID',
-    createdAt: '15:02',
-    elapsedMinutes: 16,
-  },
-  {
-    id: 'ord-3',
-    orderNumber: 'ORD-2026-0040',
-    table: 'Meja 5',
-    customerName: 'Dewi Lestari',
-    customerPhone: '081298765432',
-    items: [
-      { name: 'Cappucino', quantity: 2, price: 28000 },
-      { name: 'Chocolate Croissant', quantity: 2, price: 28000 },
-    ],
-    totalAmount: 112000,
-    source: 'QR',
-    status: 'PENDING',
-    paymentStatus: 'UNPAID',
-    createdAt: '14:55',
-    elapsedMinutes: 23,
-  },
-  {
-    id: 'ord-4',
-    orderNumber: 'ORD-2026-0039',
-    table: 'Takeaway',
-    customerName: 'Rizky Maulan',
-    items: [
-      { name: 'Chicken Sandwich', quantity: 1, price: 45000, notes: 'Saus dipisah' },
-    ],
-    totalAmount: 45000,
-    source: 'POS',
-    status: 'COMPLETED',
-    paymentStatus: 'PAID',
-    createdAt: '14:40',
-    elapsedMinutes: 38,
-  },
-  {
-    id: 'ord-5',
-    orderNumber: 'ORD-2026-0038',
-    table: 'Meja 2',
-    customerName: 'Siti Rahma',
-    items: [
-      { name: 'Pasta Carbonara', quantity: 1, price: 48000 },
-      { name: 'Iced Lychee Tea', quantity: 1, price: 24000 },
-    ],
-    totalAmount: 72000,
-    source: 'POS',
-    status: 'COMPLETED',
-    paymentStatus: 'PAID',
-    createdAt: '14:20',
-    elapsedMinutes: 58,
-  },
-];
 
 interface PosOrdersTabProps {
   onBackToRegister: () => void;
@@ -135,7 +51,7 @@ interface PosOrdersTabProps {
 }
 
 export function PosOrdersTab({ onBackToRegister, onPrintBill }: PosOrdersTabProps) {
-  const [orders, setOrders] = useState<PosOrder[]>(INITIAL_ORDERS_LIST);
+  const [orders, setOrders] = useState<PosOrder[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [sourceFilter, setSourceFilter] = useState<'ALL' | 'POS' | 'QR'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');

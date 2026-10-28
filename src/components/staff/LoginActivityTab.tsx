@@ -14,71 +14,9 @@ import { LoginActivity } from '@/types/staff';
 import { DataTable, ColumnDef } from '@/components/common/DataTable';
 import { SearchInput } from '@/components/common/SearchInput';
 
-const INITIAL_LOGS: LoginActivity[] = [
-  {
-    id: 'log-1',
-    staffName: 'Siti Nurhaliza',
-    role: 'Owner',
-    email: 'siti@kopimantap.id',
-    device: 'Chrome on MacOS (MacBook Pro)',
-    ipAddress: '182.253.14.92',
-    timestamp: '7 Okt 2026, 15:00',
-    status: 'Berhasil',
-  },
-  {
-    id: 'log-2',
-    staffName: 'Andi Pratama',
-    role: 'Manager',
-    email: 'andi@kopimantap.id',
-    device: 'POS Terminal Tab (Samsung Galaxy Tab A8)',
-    ipAddress: '192.168.1.105',
-    timestamp: '7 Okt 2026, 14:45',
-    status: 'Berhasil',
-  },
-  {
-    id: 'log-3',
-    staffName: 'Dewi Lestari',
-    role: 'Kasir',
-    email: 'dewi@kopimantap.id',
-    device: 'POS Terminal Kasir 1 (Windows 11)',
-    ipAddress: '192.168.1.101',
-    timestamp: '7 Okt 2026, 08:00',
-    status: 'Berhasil',
-  },
-  {
-    id: 'log-4',
-    staffName: 'Rizky Maulan',
-    role: 'Kasir',
-    email: 'rizky@kopimantap.id',
-    device: 'POS Terminal Kasir 2 (Windows 11)',
-    ipAddress: '192.168.1.102',
-    timestamp: '7 Okt 2026, 07:55',
-    status: 'Berhasil',
-  },
-  {
-    id: 'log-5',
-    staffName: 'Budi Santoso',
-    role: 'Dapur',
-    email: 'budi@kopimantap.id',
-    device: 'Firefox on Android (Xiaomi Redmi Note 10)',
-    ipAddress: '180.252.88.19',
-    timestamp: '6 Okt 2026, 22:10',
-    status: 'Gagal',
-  },
-  {
-    id: 'log-6',
-    staffName: 'Ana Fitri',
-    role: 'Barista',
-    email: 'ana@kopimantap.id',
-    device: 'KDS Barista Screen (Android TV Box)',
-    ipAddress: '192.168.1.110',
-    timestamp: '6 Okt 2026, 10:15',
-    status: 'Berhasil',
-  },
-];
 
 export function LoginActivityTab() {
-  const [logs, setLogs] = useState<LoginActivity[]>(INITIAL_LOGS);
+  const [logs, setLogs] = useState<LoginActivity[]>([]);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   QrCode,
   Clock,
@@ -13,8 +13,8 @@ import {
 import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/common/Button';
 import { PosCartItem } from './PosCartPanel';
-import { INITIAL_POS_PRODUCTS } from './PosProductGrid';
 import { formatRupiah } from '@/utils';
+import { posService } from '@/services/pos.service';
 
 export interface QrIncomingOrder {
   id: string;
@@ -28,35 +28,7 @@ export interface QrIncomingOrder {
   timeAgo: string;
 }
 
-export const MOCK_QR_INCOMING_ORDERS: QrIncomingOrder[] = [
-  {
-    id: 'qr-1',
-    orderNumber: 'QR-2026-0044',
-    table: 'Meja 4',
-    customerName: 'Rian Perdana',
-    customerPhone: '081299887766',
-    items: [
-      { product: INITIAL_POS_PRODUCTS[3], quantity: 1, notes: 'Hot, extra shot' }, // Cappucino
-      { product: INITIAL_POS_PRODUCTS[5], quantity: 1, notes: 'Hangatkan' }, // Croissant
-    ],
-    paymentStatus: 'PAY_AT_CASHIER',
-    totalAmount: 53000,
-    timeAgo: '2 menit lalu',
-  },
-  {
-    id: 'qr-2',
-    orderNumber: 'QR-2026-0043',
-    table: 'Meja 2',
-    customerName: 'Siti Rahma',
-    customerPhone: '081434357890',
-    items: [
-      { product: INITIAL_POS_PRODUCTS[1], quantity: 2, notes: 'Es sedikit' }, // Matcha Latte
-    ],
-    paymentStatus: 'PAID_QRIS',
-    totalAmount: 60000,
-    timeAgo: '5 menit lalu',
-  },
-];
+
 
 interface QrIncomingOrdersModalProps {
   isOpen: boolean;
@@ -71,6 +43,50 @@ export function QrIncomingOrdersModal({
   onLoadOrderToCart,
   onDirectConfirmToKitchen,
 }: QrIncomingOrdersModalProps) {
+  const [orders, setOrders] = useState<QrIncomingOrder[]>([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const timeAgo = (iso?: string) => {
+      if (!iso) return '-';
+      const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+      return mins < 1 ? 'Baru saja' : `${mins} menit lalu`;
+    };
+    const load = async () => {
+      try {
+        const res = await posService.getOrders({ source: 'QR', status: 'PENDING' });
+        const list = ((res as any)?.data?.data ?? (res as any)?.data ?? []) as any[];
+        setOrders(
+          list.map((o) => ({
+            id: o.id,
+            orderNumber: o.order_number,
+            table: o.table?.name || '-',
+            customerName: o.customer_name || 'Pelanggan',
+            customerPhone: o.customer_phone || undefined,
+            items: (o.order_items || []).map((it: any) => ({
+              product: {
+                id: it.product_id,
+                name: it.product_name || it.product?.name || '-',
+                price: Number(it.unit_price),
+                imageUrl: it.product?.image_url || null,
+              },
+              quantity: Number(it.quantity),
+              notes: it.notes || '',
+            })),
+            paymentStatus: (o.payments || []).some((p: any) => p.status === 'SUCCESS')
+              ? 'PAID_QRIS'
+              : 'PAY_AT_CASHIER',
+            totalAmount: Number(o.total_amount),
+            timeAgo: timeAgo(o.created_at),
+          }))
+        );
+      } catch {
+        setOrders([]);
+      }
+    };
+    load();
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -93,7 +109,12 @@ export function QrIncomingOrdersModal({
         </p>
 
         <div className="space-y-3">
-          {MOCK_QR_INCOMING_ORDERS.map((order) => (
+          {orders.length === 0 && (
+            <p className="text-xs text-neutral-400 text-center py-6">
+              Belum ada pesanan masuk dari QR meja.
+            </p>
+          )}
+          {orders.map((order) => (
             <div
               key={order.id}
               className="p-3.5 rounded-xl border border-neutral-200/90 bg-white hover:border-neutral-300 transition-all shadow-2xs space-y-2.5"

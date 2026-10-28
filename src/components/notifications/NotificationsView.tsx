@@ -23,115 +23,13 @@ import {
 import { Button } from '@/components/common/Button';
 import { tenantService } from '@/services/tenant.service';
 
-// Initial Mock Notifications matching Screenshot 1
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: 'notif-1',
-    title: 'Pesanan baru diterima',
-    subtitle: 'Pesanan #ORD-0018 dari Dine-in • Meja 3',
-    category: 'Pesanan',
-    isRead: false,
-    dateGroup: 'Hari Ini',
-    time: '10:24',
-    targetUrl: '/dashboard/orders',
-  },
-  {
-    id: 'notif-2',
-    title: 'Reservasi baru masuk',
-    subtitle: 'Budi Santoso • 4 orang • Pukul 19:00',
-    category: 'Reservasi',
-    isRead: false,
-    dateGroup: 'Hari Ini',
-    time: '10:18',
-    targetUrl: '/dashboard/reservations',
-  },
-  {
-    id: 'notif-3',
-    title: 'Stok bahan menipis',
-    subtitle: 'Daging Sapi tersisa 2 kg. Segera lakukan restock.',
-    category: 'Inventori',
-    isRead: false,
-    dateGroup: 'Hari Ini',
-    time: '10:05',
-    targetUrl: '/dashboard/inventory',
-  },
-  {
-    id: 'notif-4',
-    title: 'Sinkronisasi POS berhasil',
-    subtitle: 'Data transaksi berhasil disinkronkan.',
-    category: 'Sistem',
-    isRead: true,
-    dateGroup: 'Hari Ini',
-    time: '09:52',
-  },
-  {
-    id: 'notif-5',
-    title: 'Pesanan siap disajikan',
-    subtitle: 'Pesanan #ORD-0012 • Meja 5 siap diantar.',
-    category: 'Pesanan',
-    isRead: true,
-    dateGroup: 'Hari Ini',
-    time: '09:40',
-    targetUrl: '/dashboard/orders',
-  },
-  {
-    id: 'notif-6',
-    title: 'Pesanan baru diterima',
-    subtitle: 'Pesanan #ORD-0015 dari Dine-in • Meja 2',
-    category: 'Pesanan',
-    isRead: true,
-    dateGroup: 'Kemarin',
-    time: '20:15',
-    targetUrl: '/dashboard/orders',
-  },
-  {
-    id: 'notif-7',
-    title: 'Reservasi dikonfirmasi',
-    subtitle: 'Reservasi #RSV-0021 atas nama Siti Rahma • 2 orang',
-    category: 'Reservasi',
-    isRead: true,
-    dateGroup: 'Kemarin',
-    time: '19:42',
-    targetUrl: '/dashboard/reservations',
-  },
-  {
-    id: 'notif-8',
-    title: 'Pengguna baru ditambahkan',
-    subtitle: 'Rina Putri telah ditambahkan sebagai staf kasir.',
-    category: 'Sistem',
-    isRead: true,
-    dateGroup: 'Kemarin',
-    time: '17:30',
-    targetUrl: '/dashboard/staff',
-  },
-  {
-    id: 'notif-9',
-    title: 'Pesanan dibatalkan',
-    subtitle: 'Pesanan #ORD-0010 dibatalkan oleh pelanggan.',
-    category: 'Pesanan',
-    isRead: true,
-    dateGroup: 'Kemarin',
-    time: '16:48',
-    targetUrl: '/dashboard/orders',
-  },
-  {
-    id: 'notif-10',
-    title: 'Laporan harian tersedia',
-    subtitle: 'Laporan penjualan 21 Oktober 2026 siap dilihat.',
-    category: 'Sistem',
-    isRead: true,
-    dateGroup: 'Kemarin',
-    time: '15:05',
-    targetUrl: '/dashboard/reports',
-  },
-];
 
 export function NotificationsView() {
-  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<NotificationCategory>('Semua');
   const [selectedStatus, setSelectedStatus] = useState<NotificationStatusFilter>('Semua');
   const [dateFilter, setDateFilter] = useState('Hari ini (14/10/2026)');
-  const [isDemoEmpty, setIsDemoEmpty] = useState(false); // Toggle Screenshot 1 vs Screenshot 2
+  const isDemoEmpty = notifications.length === 0;
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -144,7 +42,7 @@ export function NotificationsView() {
     const fetchNotifs = async () => {
       try {
         const res = await tenantService.getNotifications();
-        if (res?.data && res.data.length > 0) {
+        if (res?.data) {
           const mapped: NotificationItem[] = res.data.map((n: any) => ({
             id: n.id,
             title: n.title,
@@ -163,7 +61,7 @@ export function NotificationsView() {
           setNotifications(mapped);
         }
       } catch {
-        // Fallback to initial notifications
+        // Keep empty list when the API is unreachable
       }
     };
 
@@ -287,14 +185,7 @@ export function NotificationsView() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Quick Demo Mode Switcher (Screenshot 1 vs Screenshot 2) */}
-          <button
-            type="button"
-            onClick={() => setIsDemoEmpty(!isDemoEmpty)}
-            className="text-[11px] font-semibold px-3 py-1.5 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-600 transition-colors cursor-pointer shadow-2xs"
-          >
-            {isDemoEmpty ? 'Mode: Kosong (Gambar 2)' : 'Mode: Ada Notifikasi (Gambar 1)'}
-          </button>
+
 
           {/* Mark All as Read button matching Screenshot 1 */}
           {!isDemoEmpty && (
@@ -329,15 +220,6 @@ export function NotificationsView() {
             Notifikasi aktivitas outlet akan muncul di sini saat ada pesanan baru, reservasi, atau pembaruan penting lainnya.
           </p>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setIsDemoEmpty(false)}
-            className="mt-6 text-xs text-neutral-600"
-          >
-            Tampilkan Contoh Notifikasi
-          </Button>
         </div>
       ) : (
         /* SCREENSHOT 1: POPULATED 2-COLUMN LAYOUT */

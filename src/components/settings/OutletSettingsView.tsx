@@ -15,8 +15,8 @@ import {
   PaymentMethodItem,
 } from '@/types/outlet-settings';
 import { PersonalizationTab } from './PersonalizationTab';
-import { TaxesFeesTab, INITIAL_TAXES_FEES } from './TaxesFeesTab';
-import { PaymentMethodsTab, INITIAL_PAYMENT_METHODS } from './PaymentMethodsTab';
+import { TaxesFeesTab } from './TaxesFeesTab';
+import { PaymentMethodsTab } from './PaymentMethodsTab';
 import { AddTaxFeeModal } from './AddTaxFeeModal';
 import { AddPaymentMethodModal } from './AddPaymentMethodModal';
 import { Button } from '@/components/common/Button';
@@ -26,12 +26,12 @@ export function OutletSettingsView() {
   const [activeTab, setActiveTab] = useState<SettingsActiveTab>('personalization');
 
   // Taxes & Fees State
-  const [taxesFeesItems, setTaxesFeesItems] = useState<TaxFeeItem[]>(INITIAL_TAXES_FEES);
+  const [taxesFeesItems, setTaxesFeesItems] = useState<TaxFeeItem[]>([]);
   const [isTaxModalOpen, setIsTaxModalOpen] = useState(false);
   const [isTaxDemoEmpty, setIsTaxDemoEmpty] = useState(false);
 
   // Payment Methods State
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodItem[]>(INITIAL_PAYMENT_METHODS);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodItem[]>([]);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isPaymentDemoEmpty, setIsPaymentDemoEmpty] = useState(false);
 
@@ -52,7 +52,7 @@ export function OutletSettingsView() {
           tenantService.getPaymentMethods(),
         ]);
 
-        if (taxesRes.status === 'fulfilled' && taxesRes.value?.data && taxesRes.value.data.length > 0) {
+        if (taxesRes.status === 'fulfilled' && taxesRes.value?.data) {
           const mappedTaxes: TaxFeeItem[] = taxesRes.value.data.map((item: any) => ({
             id: item.id,
             name: item.name,
@@ -64,7 +64,7 @@ export function OutletSettingsView() {
           setTaxesFeesItems(mappedTaxes);
         }
 
-        if (paymentsRes.status === 'fulfilled' && paymentsRes.value?.data && paymentsRes.value.data.length > 0) {
+        if (paymentsRes.status === 'fulfilled' && paymentsRes.value?.data) {
           const mappedPayments: PaymentMethodItem[] = paymentsRes.value.data.map((item: any) => ({
             id: item.id,
             name: item.name,
@@ -76,7 +76,7 @@ export function OutletSettingsView() {
           setPaymentMethods(mappedPayments);
         }
       } catch {
-        // Fallback to initialized mock values if offline
+        // Leave lists empty when the API is unreachable
       }
     };
 
@@ -99,18 +99,11 @@ export function OutletSettingsView() {
         id: res.data?.id || `tf-${Date.now()}`,
         isActive: true,
       };
-      setTaxesFeesItems((prev) => [newItem, ...prev]);
+      setIsTaxDemoEmpty(false);
+      showToast(`${item.name} berhasil ditambahkan!`);
     } catch {
-      const newItem: TaxFeeItem = {
-        ...item,
-        id: `tf-${Date.now()}`,
-        isActive: true,
-      };
-      setTaxesFeesItems((prev) => [newItem, ...prev]);
+      showToast('Gagal menambahkan pajak / biaya');
     }
-
-    setIsTaxDemoEmpty(false);
-    showToast(`${item.name} berhasil ditambahkan!`);
   };
 
   const handleToggleTaxFee = async (id: string) => {
@@ -148,17 +141,11 @@ export function OutletSettingsView() {
         isActive: true,
       };
       setPaymentMethods((prev) => [newItem, ...prev]);
+      setIsPaymentDemoEmpty(false);
+      showToast(`Metode ${item.name} berhasil ditambahkan!`);
     } catch {
-      const newItem: PaymentMethodItem = {
-        ...item,
-        id: `pm-${Date.now()}`,
-        isActive: true,
-      };
-      setPaymentMethods((prev) => [newItem, ...prev]);
+      showToast('Gagal menambahkan metode pembayaran');
     }
-
-    setIsPaymentDemoEmpty(false);
-    showToast(`Metode ${item.name} berhasil ditambahkan!`);
   };
 
   const handleTogglePaymentMethod = async (id: string) => {
@@ -270,30 +257,7 @@ export function OutletSettingsView() {
           </button>
         </div>
 
-        {/* Demo Mode switcher for Pajak / Biaya / Payment Methods empty vs populated */}
-        {activeTab === 'taxes_fees' && (
-          <button
-            type="button"
-            onClick={() => setIsTaxDemoEmpty(!isTaxDemoEmpty)}
-            className="text-[11px] font-semibold px-3 py-1.5 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-600 transition-colors cursor-pointer shadow-2xs self-start sm:self-auto"
-          >
-            {isTaxDemoEmpty
-              ? 'Tampilkan Mode: Data Terisi (Gambar 2)'
-              : 'Tampilkan Mode: Kosong (Gambar 3)'}
-          </button>
-        )}
 
-        {activeTab === 'payment_methods' && (
-          <button
-            type="button"
-            onClick={() => setIsPaymentDemoEmpty(!isPaymentDemoEmpty)}
-            className="text-[11px] font-semibold px-3 py-1.5 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-600 transition-colors cursor-pointer shadow-2xs self-start sm:self-auto"
-          >
-            {isPaymentDemoEmpty
-              ? 'Tampilkan Mode: Data Terisi (Gambar 4)'
-              : 'Tampilkan Mode: Kosong (Gambar 1)'}
-          </button>
-        )}
       </div>
 
       {/* Main Tab Contents */}

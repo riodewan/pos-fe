@@ -45,58 +45,6 @@ interface ChannelReconciliation {
   settlementStatus: 'Siap Cair' | 'Selesai' | 'Menunggu';
 }
 
-const INITIAL_CHANNELS: ChannelReconciliation[] = [
-  {
-    id: 'ch-1',
-    channelName: 'QRIS Dinamis (ShopeePay, GoPay, Dana)',
-    iconType: 'qris',
-    totalTransactions: 42,
-    grossAmount: 1850000,
-    mdrFee: 12950,
-    netSettlement: 1837050,
-    settlementStatus: 'Siap Cair',
-  },
-  {
-    id: 'ch-2',
-    channelName: 'Tunai Kasir (Cash Drawer)',
-    iconType: 'cash',
-    totalTransactions: 35,
-    grossAmount: 2150000,
-    mdrFee: 0,
-    netSettlement: 2150000,
-    settlementStatus: 'Selesai',
-  },
-  {
-    id: 'ch-3',
-    channelName: 'EDC Kartu Debit BCA / Mandiri',
-    iconType: 'card',
-    totalTransactions: 18,
-    grossAmount: 1240000,
-    mdrFee: 18600,
-    netSettlement: 1221400,
-    settlementStatus: 'Siap Cair',
-  },
-  {
-    id: 'ch-4',
-    channelName: 'GrabFood Merchant',
-    iconType: 'online',
-    totalTransactions: 12,
-    grossAmount: 780000,
-    mdrFee: 156000,
-    netSettlement: 624000,
-    settlementStatus: 'Menunggu',
-  },
-  {
-    id: 'ch-5',
-    channelName: 'ShopeeFood Merchant',
-    iconType: 'online',
-    totalTransactions: 9,
-    grossAmount: 540000,
-    mdrFee: 108000,
-    netSettlement: 432000,
-    settlementStatus: 'Menunggu',
-  },
-];
 
 // Disbursement Dataset
 interface DisbursementRecord {
@@ -111,41 +59,6 @@ interface DisbursementRecord {
   status: 'Berhasil' | 'Diproses' | 'Gagal';
 }
 
-const INITIAL_DISBURSEMENTS: DisbursementRecord[] = [
-  {
-    id: 'dis-1',
-    batchId: 'DIS-20261014-001',
-    requestDate: '14 Okt 2026, 10:00',
-    bankName: 'BCA (Bank Central Asia)',
-    accountNumber: '8830192831',
-    grossAmount: 5400000,
-    fee: 4500,
-    netReceived: 5395500,
-    status: 'Berhasil',
-  },
-  {
-    id: 'dis-2',
-    batchId: 'DIS-20261012-002',
-    requestDate: '12 Okt 2026, 17:30',
-    bankName: 'BCA (Bank Central Asia)',
-    accountNumber: '8830192831',
-    grossAmount: 8200000,
-    fee: 4500,
-    netReceived: 8195500,
-    status: 'Berhasil',
-  },
-  {
-    id: 'dis-3',
-    batchId: 'DIS-20261009-003',
-    requestDate: '09 Okt 2026, 09:15',
-    bankName: 'Mandiri',
-    accountNumber: '1370019283719',
-    grossAmount: 4850000,
-    fee: 4500,
-    netReceived: 4845500,
-    status: 'Berhasil',
-  },
-];
 
 // Cashier Audit Dataset
 interface CashierShiftAudit {
@@ -161,52 +74,14 @@ interface CashierShiftAudit {
   status: 'Sesuai' | 'Selisih Lebih' | 'Selisih Kurang';
 }
 
-const INITIAL_AUDITS: CashierShiftAudit[] = [
-  {
-    id: 'aud-1',
-    shiftName: 'Shift Pagi (08:00 - 16:00)',
-    cashierName: 'Andi Pratama',
-    date: '14 Okt 2026',
-    openingCash: 500000,
-    cashSales: 2150000,
-    expectedCash: 2650000,
-    actualCash: 2650000,
-    variance: 0,
-    status: 'Sesuai',
-  },
-  {
-    id: 'aud-2',
-    shiftName: 'Shift Malam (16:00 - 23:00)',
-    cashierName: 'Siti Rahma',
-    date: '13 Okt 2026',
-    openingCash: 500000,
-    cashSales: 3100000,
-    expectedCash: 3600000,
-    actualCash: 3600000,
-    variance: 0,
-    status: 'Sesuai',
-  },
-  {
-    id: 'aud-3',
-    shiftName: 'Shift Pagi (08:00 - 16:00)',
-    cashierName: 'Budi Santoso',
-    date: '12 Okt 2026',
-    openingCash: 500000,
-    cashSales: 1800000,
-    expectedCash: 2300000,
-    actualCash: 2305000,
-    variance: 5000,
-    status: 'Selisih Lebih',
-  },
-];
 
 type FinanceTab = 'channels' | 'disbursements' | 'cashier-audit';
 
 export default function FinancePage() {
   const [activeTab, setActiveTab] = useState<FinanceTab>('channels');
-  const [channels, setChannels] = useState<ChannelReconciliation[]>(INITIAL_CHANNELS);
-  const [disbursements, setDisbursements] = useState<DisbursementRecord[]>(INITIAL_DISBURSEMENTS);
-  const [audits, setAudits] = useState<CashierShiftAudit[]>(INITIAL_AUDITS);
+  const [channels, setChannels] = useState<ChannelReconciliation[]>([]);
+  const [disbursements, setDisbursements] = useState<DisbursementRecord[]>([]);
+  const [audits, setAudits] = useState<CashierShiftAudit[]>([]);
   const [totals, setTotals] = useState<{ net: number; mdr: number; cash: number } | null>(null);
   const [available, setAvailable] = useState<number | null>(null);
   const [transferFee, setTransferFee] = useState(4500);

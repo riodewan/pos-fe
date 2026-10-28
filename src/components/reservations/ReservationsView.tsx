@@ -27,211 +27,10 @@ import { SearchInput } from '@/components/common/SearchInput';
 import { Select } from '@/components/common/Select';
 import { posService } from '@/services/pos.service';
 
-export const INITIAL_RESERVATIONS: Reservation[] = [
-  {
-    id: 'res-1',
-    time: '09:00',
-    customerName: 'Andi Pratama',
-    customerPhone: '0812 3456 7890',
-    avatarUrl:
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    guestCount: 2,
-    table: 'Meja 1',
-    area: 'Indoor',
-    status: 'SELESAI',
-    notes: '-',
-    date: '7 Okt 2026',
-    duration: '2 jam',
-  },
-  {
-    id: 'res-2',
-    time: '10:00',
-    customerName: 'Siti Nurhaliza',
-    customerPhone: '0813 9876 5432',
-    avatarUrl:
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    guestCount: 4,
-    table: 'Meja 3',
-    area: 'Indoor',
-    status: 'DUDUK',
-    notes: 'Ulang tahun',
-    date: '7 Okt 2026',
-    duration: '2 jam',
-    activities: [
-      {
-        id: 'act-1',
-        time: '7 Okt 2026, 08:30',
-        description: 'Reservasi dibuat oleh pelanggan (Website)',
-        type: 'website',
-      },
-      {
-        id: 'act-2',
-        time: '7 Okt 2026, 09:15',
-        description: 'Konfirmasi reservasi dikirim (WhatsApp)',
-        type: 'whatsapp',
-      },
-      {
-        id: 'act-3',
-        time: '7 Okt 2026, 09:16',
-        description: 'Pelanggan mengonfirmasi',
-        type: 'system',
-      },
-    ],
-    pastReservations: [
-      { id: 'past-1', date: '12 Sep 2026', guests: '4 orang', time: '19:00', status: 'Selesai' },
-      { id: 'past-2', date: '5 Sep 2026', guests: '2 orang', time: '13:00', status: 'Selesai' },
-      { id: 'past-3', date: '20 Aug 2026', guests: '3 orang', time: '11:00', status: 'Selesai' },
-    ],
-  },
-  {
-    id: 'res-3',
-    time: '11:30',
-    customerName: 'Budi Santoso',
-    customerPhone: '0812 1122 3344',
-    guestCount: 2,
-    table: 'Meja 5',
-    area: 'Outdoor',
-    status: 'AKAN_DATANG',
-    notes: '-',
-    date: '7 Okt 2026',
-    duration: '2 jam',
-  },
-  {
-    id: 'res-4',
-    time: '12:00',
-    customerName: 'Dewi Lestari',
-    customerPhone: '0812 9988 7766',
-    avatarUrl:
-      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
-    guestCount: 6,
-    table: 'Meja 6, 7',
-    area: 'Indoor',
-    status: 'AKAN_DATANG',
-    notes: 'Meeting kantor',
-    date: '7 Okt 2026',
-    duration: '3 jam',
-  },
-  {
-    id: 'res-5',
-    time: '13:00',
-    customerName: 'Rizky Maulana',
-    customerPhone: '0819 8765 4321',
-    avatarUrl:
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    guestCount: 2,
-    table: 'Meja 2',
-    area: 'Indoor',
-    status: 'AKAN_DATANG',
-    notes: '-',
-    date: '7 Okt 2026',
-    duration: '2 jam',
-  },
-  {
-    id: 'res-6',
-    time: '14:30',
-    customerName: 'Ana Fitri',
-    customerPhone: '0812 4455 6677',
-    guestCount: 4,
-    table: 'Meja 4',
-    area: 'Outdoor',
-    status: 'AKAN_DATANG',
-    notes: 'Dengan anak',
-    date: '7 Okt 2026',
-    duration: '2 jam',
-  },
-  {
-    id: 'res-7',
-    time: '16:00',
-    customerName: 'Rina Amelia',
-    customerPhone: '0813 6677 8899',
-    avatarUrl:
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-    guestCount: 3,
-    table: 'Meja 8',
-    area: 'Indoor',
-    status: 'AKAN_DATANG',
-    notes: '-',
-    date: '7 Okt 2026',
-    duration: '2 jam',
-  },
-  {
-    id: 'res-8',
-    time: '17:30',
-    customerName: 'Tono Haryadi',
-    customerPhone: '0812 3344 5566',
-    guestCount: 2,
-    table: 'Meja 9',
-    area: 'Indoor',
-    status: 'AKAN_DATANG',
-    notes: 'Anniversary',
-    date: '7 Okt 2026',
-    duration: '2 jam',
-  },
-  {
-    id: 'res-9',
-    time: '19:00',
-    customerName: 'Muhammad Fajar',
-    customerPhone: '0812 9988 1122',
-    guestCount: 8,
-    table: 'Meja 10, 11',
-    area: 'Outdoor',
-    status: 'DUDUK',
-    notes: 'Rombongan',
-    date: '7 Okt 2026',
-    duration: '3 jam',
-  },
-  {
-    id: 'res-10',
-    time: '20:00',
-    customerName: 'Lia Kartika',
-    customerPhone: '0813 5544 3322',
-    avatarUrl:
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
-    guestCount: 2,
-    table: 'Meja 12',
-    area: 'Indoor',
-    status: 'DIBATALKAN',
-    notes: '-',
-    date: '7 Okt 2026',
-    duration: '2 jam',
-  },
-  {
-    id: 'res-11',
-    time: '21:00',
-    customerName: 'Yoga Pratama',
-    customerPhone: '0812 2233 4455',
-    avatarUrl:
-      'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80',
-    guestCount: 4,
-    table: 'Meja 13',
-    area: 'Outdoor',
-    status: 'AKAN_DATANG',
-    notes: '-',
-    date: '7 Okt 2026',
-    duration: '2 jam',
-  },
-  {
-    id: 'res-12',
-    time: '21:30',
-    customerName: 'Maya Sari',
-    customerPhone: '0813 9988 7766',
-    avatarUrl:
-      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&auto=format&fit=crop&q=80',
-    guestCount: 2,
-    table: 'Meja 14',
-    area: 'Outdoor',
-    status: 'AKAN_DATANG',
-    notes: 'Request jendela',
-    date: '7 Okt 2026',
-    duration: '2 jam',
-  },
-];
 
 export function ReservationsView() {
-  const [reservations, setReservations] = useState<Reservation[]>(INITIAL_RESERVATIONS);
-  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(
-    INITIAL_RESERVATIONS[1] // Siti Nurhaliza selected by default matching Image 1
-  );
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
 
   // Tab: 'list' (Daftar Reservasi), 'calendar' (Tampilan Kalender), 'map' (Peta Meja)
   const [activeTab, setActiveTab] = useState<'list' | 'calendar' | 'map'>('list');
@@ -251,7 +50,7 @@ export function ReservationsView() {
     const fetchReservations = async () => {
       try {
         const res = await posService.getReservations();
-        if (res?.data && res.data.length > 0) {
+        if (res?.data) {
           const mapped: Reservation[] = res.data.map((r: any) => ({
             id: r.id,
             time: r.reservation_time || '18:00',
@@ -280,7 +79,7 @@ export function ReservationsView() {
           }
         }
       } catch {
-        // Fallback to initial demo reservations
+        // Keep empty list when the API is unreachable
       }
     };
 
@@ -419,37 +218,7 @@ export function ReservationsView() {
 
         {/* Action Button & Demo Switcher */}
         <div className="flex items-center gap-2.5">
-          {/* Quick Demo Switcher */}
-          <div className="hidden md:flex items-center bg-white border border-neutral-200/90 rounded-xl p-1 text-[11px] font-semibold text-neutral-600 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => {
-                setReservations(INITIAL_RESERVATIONS);
-                setSelectedReservation(INITIAL_RESERVATIONS[1]);
-              }}
-              className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
-                reservations.length > 0
-                  ? 'bg-neutral-100 text-neutral-900 font-bold'
-                  : 'hover:text-neutral-900'
-              }`}
-            >
-              Demo Aktif ({reservations.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setReservations([]);
-                setSelectedReservation(null);
-              }}
-              className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
-                reservations.length === 0
-                  ? 'bg-neutral-100 text-neutral-900 font-bold'
-                  : 'hover:text-neutral-900'
-              }`}
-            >
-              Kosong (Empty)
-            </button>
-          </div>
+
 
           <Button
             variant="primary"

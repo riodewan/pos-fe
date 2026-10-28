@@ -228,7 +228,7 @@ export function PosCartPanel({
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <img
-                    src={item.product.imageUrl}
+                    src={item.product.imageUrl || ''}
                     alt={item.product.name}
                     className="size-11 rounded-lg object-cover bg-neutral-100 shrink-0"
                   />

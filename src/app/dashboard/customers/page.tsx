@@ -21,172 +21,9 @@ import { AddCustomerDrawer } from '@/components/customers/AddCustomerDrawer';
 import { formatRupiah } from '@/utils';
 import { tenantService } from '@/services/tenant.service';
 
-const INITIAL_CUSTOMERS: Customer[] = [
-  {
-    id: 'c-1',
-    name: 'Andi Pratama',
-    initials: 'AP',
-    joinDate: 'Bergabung 12 Jan 2024',
-    phone: '0812 3456 7890',
-    email: 'andip@gmail.com',
-    totalTransactions: 12,
-    totalSpent: 560000,
-    segmentation: 'VIP',
-    status: 'Aktif',
-    birthDate: '12 Mei 1995',
-    gender: 'Laki-laki',
-    notes:
-      'Pelanggan loyal, biasanya pesan kopi susu tanpa gula. Lebih suka duduk di area indoor dan sesekali memesan pastry.',
-    address: 'Jl. Melati No. 25, Menteng, Jakarta Pusat',
-  },
-  {
-    id: 'c-2',
-    name: 'Siti Rahma',
-    initials: 'SR',
-    joinDate: 'Bergabung 12 Jan 2024',
-    phone: '0814 3435 7890',
-    email: 'sitir@gmail.com',
-    totalTransactions: 8,
-    totalSpent: 280000,
-    segmentation: 'Regular',
-    status: 'Aktif',
-    birthDate: '24 Oktober 1997',
-    gender: 'Perempuan',
-    notes: 'Suka matcha latte dingin dengan oatmilk.',
-    address: 'Jl. Tebet Barat Dalam No. 14, Jakarta Selatan',
-  },
-  {
-    id: 'c-3',
-    name: 'Budi Santoso',
-    initials: 'BS',
-    joinDate: 'Bergabung 12 Jan 2024',
-    phone: '0812 3456 7890',
-    email: 'budis@gmail.com',
-    totalTransactions: 25,
-    totalSpent: 1250000,
-    segmentation: 'VIP',
-    status: 'Aktif',
-    birthDate: '03 Maret 1990',
-    gender: 'Laki-laki',
-    notes: 'Sering meeting di meja 4, langganan manual brew V60.',
-    address: 'Apartemen Sudirman Tower A Lt. 12, Jakarta Pusat',
-  },
-  {
-    id: 'c-4',
-    name: 'Maya Putri',
-    initials: 'MP',
-    joinDate: 'Bergabung 12 Jan 2024',
-    phone: '0812 3456 7890',
-    email: 'maput@gmail.com',
-    totalTransactions: 3,
-    totalSpent: 120000,
-    segmentation: 'Baru',
-    status: 'Aktif',
-    birthDate: '18 September 2001',
-    gender: 'Perempuan',
-    notes: 'Pelanggan baru dari program promo Instagram.',
-    address: 'Jl. Kemang Raya No. 45, Jakarta Selatan',
-  },
-  {
-    id: 'c-5',
-    name: 'Rizky Aditya',
-    initials: 'RA',
-    joinDate: 'Bergabung 12 Jan 2024',
-    phone: '0812 3456 7890',
-    email: 'riad@gmail.com',
-    totalTransactions: 6,
-    totalSpent: 210000,
-    segmentation: 'Regular',
-    status: 'Nonaktif',
-    birthDate: '11 Juli 1998',
-    gender: 'Laki-laki',
-    notes: 'Akun dinonaktifkan sementara atas permintaan pengguna.',
-    address: 'Jl. Rawamangun No. 88, Jakarta Timur',
-  },
-  {
-    id: 'c-6',
-    name: 'Dewi Lestari',
-    initials: 'DL',
-    joinDate: 'Bergabung 12 Jan 2024',
-    phone: '0812 3456 7890',
-    email: 'dele@gmail.com',
-    totalTransactions: 18,
-    totalSpent: 890000,
-    segmentation: 'VIP',
-    status: 'Aktif',
-    birthDate: '29 Desember 1992',
-    gender: 'Perempuan',
-    notes: 'Pelanggan VIP, selalu memesan pastry artisan dan cold brew.',
-    address: 'Jl. Cipete Raya No. 19, Jakarta Selatan',
-  },
-  {
-    id: 'c-7',
-    name: 'Fajar Maulana',
-    initials: 'FM',
-    joinDate: 'Bergabung 12 Jan 2024',
-    phone: '0812 3456 7890',
-    email: 'fama@gmail.com',
-    totalTransactions: 2,
-    totalSpent: 80000,
-    segmentation: 'Baru',
-    status: 'Aktif',
-    birthDate: '07 April 2002',
-    gender: 'Laki-laki',
-    notes: 'Mahasiswa, sering belajar di area smoking luar.',
-    address: 'Jl. Salemba Tengah No. 3, Jakarta Pusat',
-  },
-  {
-    id: 'c-8',
-    name: 'Lina Marlina',
-    initials: 'LM',
-    joinDate: 'Bergabung 12 Jan 2024',
-    phone: '0812 3456 7890',
-    email: 'lima@gmail.com',
-    totalTransactions: 9,
-    totalSpent: 340000,
-    segmentation: 'Regular',
-    status: 'Aktif',
-    birthDate: '14 Februari 1994',
-    gender: 'Perempuan',
-    notes: 'Penyuka latte art manis dan red velvet cake.',
-    address: 'Jl. Gandaria I No. 10, Jakarta Selatan',
-  },
-  {
-    id: 'c-9',
-    name: 'Yoga Pratama',
-    initials: 'YP',
-    joinDate: 'Bergabung 12 Jan 2024',
-    phone: '0812 3456 7890',
-    email: 'yoma@gmail.com',
-    totalTransactions: 4,
-    totalSpent: 150000,
-    segmentation: 'Regular',
-    status: 'Aktif',
-    birthDate: '22 Agustus 1999',
-    gender: 'Laki-laki',
-    notes: 'Langganan es kopi susu pandan.',
-    address: 'Jl. Senopati No. 50, Jakarta Selatan',
-  },
-  {
-    id: 'c-10',
-    name: 'Nisa Amalia',
-    initials: 'NA',
-    joinDate: 'Bergabung 12 Jan 2024',
-    phone: '0812 3456 7890',
-    email: 'nisa@gmail.com',
-    totalTransactions: 47,
-    totalSpent: 290000,
-    segmentation: 'Regular',
-    status: 'Aktif',
-    birthDate: '05 Januari 1996',
-    gender: 'Perempuan',
-    notes: 'Langganan takeaway pagi sebelum berangkat kantor.',
-    address: 'Jl. Palmerah Barat No. 12, Jakarta Barat',
-  },
-];
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSegmentation, setSelectedSegmentation] = useState<string>('ALL');
@@ -209,7 +46,7 @@ export default function CustomersPage() {
     const fetchCustomers = async () => {
       try {
         const res = await tenantService.getCustomers();
-        if (res?.data && res.data.length > 0) {
+        if (res?.data) {
           const mapped: Customer[] = res.data.map((c: any) => ({
             id: c.id,
             name: c.name,
@@ -228,15 +65,15 @@ export default function CustomersPage() {
             totalSpent: Number(c.total_spent) || 0,
             segmentation: c.tier === 'Gold' ? 'VIP' : c.tier === 'Silver' ? 'Regular' : 'Baru',
             status: 'Aktif',
-            birthDate: '12 Mei 1995',
+            birthDate: c.birth_date || '-',
             gender: 'Laki-laki',
             notes: c.points ? `Member ${c.tier} (${c.points} poin)` : 'Pelanggan terdaftar',
-            address: 'Jakarta, Indonesia',
+            address: c.address || '-',
           }));
           setCustomers(mapped);
         }
       } catch {
-        // Fallback to initial demo customers
+        // Keep empty list when the API is unreachable
       }
     };
 
@@ -537,34 +374,7 @@ export default function CustomersPage() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          {/* Quick Demo Toggle between populated data and empty state */}
-          <div className="hidden md:flex items-center border border-neutral-200 rounded-lg p-0.5 bg-neutral-50 text-[11px]">
-            <button
-              type="button"
-              onClick={() => setCustomers(INITIAL_CUSTOMERS)}
-              className={`px-2.5 py-1 rounded-md transition-colors ${
-                customers.length > 0
-                  ? 'bg-white text-neutral-900 font-semibold shadow-2xs'
-                  : 'text-neutral-500 hover:text-neutral-800'
-              }`}
-            >
-              Ada Data ({customers.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setCustomers([]);
-                setSelectedIds([]);
-              }}
-              className={`px-2.5 py-1 rounded-md transition-colors ${
-                customers.length === 0
-                  ? 'bg-white text-neutral-900 font-semibold shadow-2xs'
-                  : 'text-neutral-500 hover:text-neutral-800'
-              }`}
-            >
-              Kosong (Empty State)
-            </button>
-          </div>
+
 
           <Button
             variant="primary"

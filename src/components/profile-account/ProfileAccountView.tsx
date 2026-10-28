@@ -27,19 +27,18 @@ import { DeleteAccountModal } from './DeleteAccountModal';
 import { Button } from '@/components/common/Button';
 import { authService } from '@/services/auth.service';
 
-// Initial Mock Data matching Screenshots 1 & 2
+// Empty defaults; real values are loaded from the backend
 const INITIAL_ACCOUNT_DATA: UserAccountProfile = {
-  name: 'Bambang Sudiro',
-  email: 'owner@kopinusantara.com',
-  phone: '+62 812-3456-7890',
-  role: 'General Manager & Co-Founder',
-  avatarUrl:
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+  name: '',
+  email: '',
+  phone: '',
+  role: '',
+  avatarUrl: '',
   outletCount: 1,
-  joinedDate: '12 Jan 2024',
+  joinedDate: '-',
   lastLogin: {
-    datetime: 'Hari ini, 10:24',
-    location: 'Jakarta Selatan, Indonesia',
+    datetime: '-',
+    location: '-',
   },
   notifications: {
     orders: { email: true, inApp: true },
@@ -52,29 +51,12 @@ const INITIAL_ACCOUNT_DATA: UserAccountProfile = {
     dateFormat: 'DD/MM/YYYY',
     timezone: 'WIB (UTC+7)',
   },
-  loginActivities: [
-    {
-      id: 'login-1',
-      status: 'SUCCESS',
-      title: 'Login Berhasil',
-      device: 'MacOS • Chrome 130',
-      date: 'Hari ini',
-      time: '10:24',
-    },
-    {
-      id: 'login-2',
-      status: 'SUCCESS',
-      title: 'Login Berhasil',
-      device: 'iPhone 15 Pro • Safari',
-      date: 'Kemarin',
-      time: '14:10',
-    },
-  ],
+  loginActivities: [],
 };
 
 export function ProfileAccountView() {
   const [profile, setProfile] = useState<UserAccountProfile>(INITIAL_ACCOUNT_DATA);
-  const [hasAvatar, setHasAvatar] = useState(true);
+  const hasAvatar = Boolean(profile.avatarUrl);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [saveSuccessNotification, setSaveSuccessNotification] = useState(false);
@@ -106,7 +88,7 @@ export function ProfileAccountView() {
           }));
         }
 
-        if (activitiesRes.status === 'fulfilled' && activitiesRes.value?.data && activitiesRes.value.data.length > 0) {
+        if (activitiesRes.status === 'fulfilled' && activitiesRes.value?.data) {
           const acts = activitiesRes.value.data.map((act: any) => ({
             id: act.id,
             status: act.status || 'SUCCESS',
@@ -118,7 +100,7 @@ export function ProfileAccountView() {
           setProfile((prev) => ({ ...prev, loginActivities: acts }));
         }
       } catch {
-        // Fallback to initial account data
+        // Keep empty profile when the API is unreachable
       }
     };
 
@@ -171,9 +153,7 @@ export function ProfileAccountView() {
       showToast('Profil akun berhasil disimpan ke server!');
       setTimeout(() => setSaveSuccessNotification(false), 3000);
     } catch {
-      setSaveSuccessNotification(true);
-      showToast('Profil akun berhasil disimpan!');
-      setTimeout(() => setSaveSuccessNotification(false), 3000);
+      showToast('Gagal menyimpan profil akun');
     }
   };
 
@@ -200,13 +180,7 @@ export function ProfileAccountView() {
 
         {/* Demo Switcher & Save Button */}
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setHasAvatar(!hasAvatar)}
-            className="text-[11px] font-semibold px-3 py-1.5 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-600 transition-colors cursor-pointer shadow-2xs"
-          >
-            {hasAvatar ? 'Mode: Foto Terisi (Gambar 1)' : 'Mode: Upload Kosong (Gambar 2)'}
-          </button>
+
 
           <Button
             type="button"
@@ -237,7 +211,7 @@ export function ProfileAccountView() {
                   <div className="w-full p-4 rounded-xl border border-neutral-200/90 bg-neutral-50/30 flex flex-col items-start justify-between min-h-[180px]">
                     <div className="size-24 rounded-2xl overflow-hidden relative shadow-xs border border-neutral-200">
                       <img
-                        src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80"
+                        src={profile.avatarUrl || ''}
                         alt="Thumbnail"
                         className="w-full h-full object-cover"
                       />

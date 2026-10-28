@@ -15,57 +15,6 @@ import {
 import { TaxFeeItem } from '@/types/outlet-settings';
 import { Button } from '@/components/common/Button';
 
-// Mock Initial Items matching Screenshot 2
-const INITIAL_TAXES_FEES: TaxFeeItem[] = [
-  {
-    id: 'tf-1',
-    name: 'PPN 11%',
-    type: 'Pajak',
-    value: '11%',
-    appliesTo: 'Semua Menu',
-    isActive: true,
-  },
-  {
-    id: 'tf-2',
-    name: 'Pajak Daerah Restoran 10%',
-    type: 'Pajak',
-    value: '10%',
-    appliesTo: 'Dine-in, Takeway',
-    isActive: true,
-  },
-  {
-    id: 'tf-3',
-    name: 'PB1 5%',
-    type: 'Pajak',
-    value: '5%',
-    appliesTo: 'Minuman kemasan',
-    isActive: true,
-  },
-  {
-    id: 'tf-4',
-    name: 'Biaya Layanan',
-    type: 'Biaya',
-    value: '5%',
-    appliesTo: 'Dine-in, Takeway',
-    isActive: true,
-  },
-  {
-    id: 'tf-5',
-    name: 'Biaya Kemasan',
-    type: 'Biaya',
-    value: 'Rp2.000',
-    appliesTo: 'Takeway, Delivery',
-    isActive: true,
-  },
-  {
-    id: 'tf-6',
-    name: 'Minimum Order Delivery',
-    type: 'Biaya',
-    value: 'Rp20.000',
-    appliesTo: 'Delivery',
-    isActive: true,
-  },
-];
 
 interface TaxesFeesTabProps {
   onOpenAddModal: () => void;
@@ -335,4 +284,4 @@ export function TaxesFeesTab({
   );
 }
 
-export { INITIAL_TAXES_FEES };
+

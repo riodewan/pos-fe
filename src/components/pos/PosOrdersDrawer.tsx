@@ -29,56 +29,6 @@ export interface PosOrderQueueItem {
   createdAt: string;
 }
 
-const INITIAL_QUEUE_ORDERS: PosOrderQueueItem[] = [
-  {
-    id: 'ord-101',
-    orderNumber: 'ORD-2026-0042',
-    table: 'Meja 3',
-    customerName: 'Marshanda',
-    itemsCount: 3,
-    itemsSummary: '1x Kopi Susu Gula Aren, 2x Matcha Latte',
-    totalAmount: 98710,
-    source: 'POS',
-    status: 'PREPARING',
-    createdAt: '15:10',
-  },
-  {
-    id: 'ord-102',
-    orderNumber: 'ORD-2026-0041',
-    table: 'Meja 1',
-    customerName: 'Budi Santoso',
-    itemsCount: 2,
-    itemsSummary: '1x Americano, 1x Croissant',
-    totalAmount: 47000,
-    source: 'QR',
-    status: 'READY',
-    createdAt: '15:02',
-  },
-  {
-    id: 'ord-103',
-    orderNumber: 'ORD-2026-0040',
-    table: 'Meja 5',
-    customerName: 'Dewi Lestari',
-    itemsCount: 4,
-    itemsSummary: '2x Cappucino, 2x Chocolate Croissant',
-    totalAmount: 112000,
-    source: 'QR',
-    status: 'PENDING',
-    createdAt: '14:55',
-  },
-  {
-    id: 'ord-104',
-    orderNumber: 'ORD-2026-0039',
-    table: 'Takeaway',
-    customerName: 'Rizky Maulan',
-    itemsCount: 1,
-    itemsSummary: '1x Chicken Sandwich',
-    totalAmount: 45000,
-    source: 'POS',
-    status: 'COMPLETED',
-    createdAt: '14:40',
-  },
-];
 
 interface PosOrdersDrawerProps {
   isOpen: boolean;
@@ -86,7 +36,7 @@ interface PosOrdersDrawerProps {
 }
 
 export function PosOrdersDrawer({ isOpen, onClose }: PosOrdersDrawerProps) {
-  const [orders, setOrders] = useState<PosOrderQueueItem[]>(INITIAL_QUEUE_ORDERS);
+  const [orders, setOrders] = useState<PosOrderQueueItem[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
 
   if (!isOpen) return null;
