@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Download,
@@ -13,6 +13,9 @@ import {
   CheckCircle2,
   Bookmark,
   Info,
+  RefreshCw,
+  ExternalLink,
+  Loader2,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
@@ -31,11 +34,16 @@ import {
   Input,
   RadioGroup,
 } from '@/components/common';
+import { posService } from '@/services/pos.service';
+import { DiningTable } from '@/types';
 
 interface TableQrItem {
   id: string;
   tableNumber: number;
+  tableName: string;
+  tableCode: string;
   area: 'Indoor' | 'Outdoor' | 'VIP';
+  token: string;
   url: string;
   status: 'Aktif' | 'Nonaktif';
 }
@@ -49,58 +57,24 @@ interface DisposableQrItem {
   status: 'Aktif' | 'Selesai';
 }
 
-const INITIAL_TABLE_QRS: TableQrItem[] = [
-  {
-    id: 'tqr-1',
-    tableNumber: 1,
-    area: 'Indoor',
-    url: 'https://order.nemu.id/q/tbl-1',
-    status: 'Aktif',
-  },
-  {
-    id: 'tqr-2',
-    tableNumber: 2,
-    area: 'Indoor',
-    url: 'https://order.nemu.id/q/tbl-2',
-    status: 'Aktif',
-  },
-];
-
-const INITIAL_DISPOSABLE_QRS: DisposableQrItem[] = [
-  {
-    id: 'dqr-1',
-    name: 'Event Bazaar',
-    url: 'https://order.nemu.id/q/evt-bazaar',
-    createdAt: '12/10/2026',
-    expiredAt: '15/10/2026',
-    status: 'Aktif',
-  },
-  {
-    id: 'dqr-2',
-    name: 'Takeway hari ini',
-    url: 'https://order.nemu.id/q/tkw-today',
-    createdAt: '10/10/2026',
-    expiredAt: '10/10/2026',
-    status: 'Selesai',
-  },
-];
-
 export default function QrOrderPage() {
-  const [demoMode, setDemoMode] = useState<'populated' | 'empty'>('populated');
+  const [windowOrigin, setWindowOrigin] = useState('');
+  const [tables, setTables] = useState<DiningTable[]>([]);
+  const [isLoadingTables, setIsLoadingTables] = useState(true);
+  const [isRotatingId, setIsRotatingId] = useState<string | null>(null);
 
   // Master QR State
   const [isMasterQrActive, setIsMasterQrActive] = useState(true);
-  const masterQrUrl = 'https://qr.nemupos/kopi-mantap';
 
   // Table QR State
-  const [tableQrs, setTableQrs] = useState<TableQrItem[]>(INITIAL_TABLE_QRS);
   const [tableSearch, setTableSearch] = useState('');
   const [tableAreaFilter, setTableAreaFilter] = useState('all');
   const [tableStatusFilter, setTableStatusFilter] = useState('all');
   const [selectedTableQrIds, setSelectedTableQrIds] = useState<string[]>([]);
+  const [activeMenuTableId, setActiveMenuTableId] = useState<string | null>(null);
 
   // Disposable QR State
-  const [disposableQrs, setDisposableQrs] = useState<DisposableQrItem[]>(INITIAL_DISPOSABLE_QRS);
+  const [disposableQrs, setDisposableQrs] = useState<DisposableQrItem[]>([]);
   const [dispSearch, setDispSearch] = useState('');
   const [dispStatusFilter, setDispStatusFilter] = useState('all');
   const [selectedDispIds, setSelectedDispIds] = useState<string[]>([]);
@@ -120,33 +94,114 @@ export default function QrOrderPage() {
   // Copy Feedback Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setWindowOrigin(window.location.origin);
+    }
+  }, []);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 2500);
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   const copyToClipboard = (text: string) => {
+    if (!text) return;
     navigator.clipboard?.writeText(text);
     showToast('Tautan berhasil disalin ke clipboard!');
   };
 
+  // Fetch real tables from backend
+  const loadTables = useCallback(async () => {
+    setIsLoadingTables(true);
+    try {
+      const res = await posService.getTables();
+      const data = Array.isArray(res?.data) ? res.data : [];
+      setTables(data);
+    } catch (err) {
+      console.error('Failed to load tables:', err);
+      showToast('Gagal memuat daftar meja dari server.');
+    } finally {
+      setIsLoadingTables(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadTables();
+  }, [loadTables]);
+
+  // Rotate QR Token for table
+  const handleRotateQr = async (tableId: string, tableLabel: string) => {
+    setIsRotatingId(tableId);
+    setActiveMenuTableId(null);
+    try {
+      await posService.rotateTableQr(tableId);
+      showToast(`QR Code ${tableLabel} berhasil diperbarui!`);
+      await loadTables();
+    } catch (err: any) {
+      console.error('Failed to rotate QR:', err);
+      showToast(err?.response?.data?.message || 'Gagal memperbarui QR code.');
+    } finally {
+      setIsRotatingId(null);
+    }
+  };
+
+  // Master QR URL
+  const masterQrUrl = useMemo(() => {
+    const origin = windowOrigin || 'http://localhost:3000';
+    return `${origin}/q/menu`;
+  }, [windowOrigin]);
+
+  // Format DiningTable into TableQrItem
+  const tableQrs = useMemo<TableQrItem[]>(() => {
+    const origin = windowOrigin || 'http://localhost:3000';
+
+    return tables.map((t, index) => {
+      const match = t.code.match(/\d+/) || t.name.match(/\d+/);
+      const num = match ? parseInt(match[0], 10) : index + 1;
+      const token = t.active_qr_code?.token || t.active_qr_token || '';
+      const url = token ? `${origin}/q/${token}` : '';
+
+      let area: TableQrItem['area'] = 'Indoor';
+      if (t.code.toUpperCase().includes('OUT') || t.name.toUpperCase().includes('OUTDOOR')) {
+        area = 'Outdoor';
+      } else if (t.code.toUpperCase().includes('VIP') || t.name.toUpperCase().includes('VIP')) {
+        area = 'VIP';
+      }
+
+      return {
+        id: t.id,
+        tableNumber: num,
+        tableName: t.name || `Meja ${num}`,
+        tableCode: t.code || `T-${String(num).padStart(2, '0')}`,
+        area,
+        token,
+        url,
+        status: t.status === 'ACTIVE' ? 'Aktif' : 'Nonaktif',
+      };
+    });
+  }, [tables, windowOrigin]);
+
   // Filter Table QRs
   const filteredTableQrs = useMemo(() => {
-    if (demoMode === 'empty') return [];
     return tableQrs.filter((item) => {
       if (tableAreaFilter !== 'all' && item.area !== tableAreaFilter) return false;
       if (tableStatusFilter !== 'all' && item.status !== tableStatusFilter) return false;
       if (tableSearch.trim()) {
         const q = tableSearch.toLowerCase();
-        return item.tableNumber.toString().includes(q) || item.area.toLowerCase().includes(q);
+        return (
+          item.tableNumber.toString().includes(q) ||
+          item.tableName.toLowerCase().includes(q) ||
+          item.tableCode.toLowerCase().includes(q) ||
+          item.area.toLowerCase().includes(q)
+        );
       }
       return true;
     });
-  }, [demoMode, tableQrs, tableAreaFilter, tableStatusFilter, tableSearch]);
+  }, [tableQrs, tableAreaFilter, tableStatusFilter, tableSearch]);
 
   // Filter Disposable QRs
   const filteredDisposableQrs = useMemo(() => {
-    if (demoMode === 'empty') return [];
     return disposableQrs.filter((item) => {
       if (dispStatusFilter !== 'all' && item.status !== dispStatusFilter) return false;
       if (dispSearch.trim()) {
@@ -155,7 +210,7 @@ export default function QrOrderPage() {
       }
       return true;
     });
-  }, [demoMode, disposableQrs, dispStatusFilter, dispSearch]);
+  }, [disposableQrs, dispStatusFilter, dispSearch]);
 
   const toggleSelectTableQr = (id: string, e?: React.SyntheticEvent) => {
     e?.stopPropagation();
@@ -193,11 +248,13 @@ export default function QrOrderPage() {
       return;
     }
 
+    const origin = windowOrigin || 'http://localhost:3000';
+    const slug = formEventName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     const newQr: DisposableQrItem = {
       id: `dqr-${Date.now()}`,
       name: formEventName,
-      url: `https://order.nemu.id/q/${formEventName.toLowerCase().replace(/\s+/g, '-')}`,
-      createdAt: '12/10/2026',
+      url: `${origin}/q/evt-${slug}`,
+      createdAt: new Date().toLocaleDateString('id-ID'),
       expiredAt: formExpiryDate || '15/10/2026',
       status: isDraft ? 'Selesai' : 'Aktif',
     };
@@ -207,8 +264,88 @@ export default function QrOrderPage() {
     setShowSuccessModal(true);
   };
 
-  const downloadQr = (title: string) => {
-    showToast(`Mengunduh file QR Code untuk ${title}...`);
+  // High-Resolution PNG Card Download
+  const downloadQrCodeImage = (title: string, svgElementId: string, filename: string) => {
+    const svg = document.getElementById(svgElementId) as SVGSVGElement | null;
+    if (!svg) {
+      showToast('QR Code belum siap untuk diunduh.');
+      return;
+    }
+
+    const svgXml = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    canvas.width = 600;
+    canvas.height = 700;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const img = new Image();
+    img.onload = () => {
+      // White background card
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 600, 700);
+
+      // Card border
+      ctx.strokeStyle = '#f1f5f9';
+      ctx.lineWidth = 12;
+      ctx.strokeRect(16, 16, 568, 668);
+
+      // Top brand bar
+      ctx.fillStyle = '#E5484D';
+      ctx.fillRect(16, 16, 568, 12);
+
+      // Title
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 38px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(title.toUpperCase(), 300, 85);
+
+      // Subtitle
+      ctx.fillStyle = '#64748b';
+      ctx.font = '18px Inter, sans-serif';
+      ctx.fillText('Pindai untuk memesan menu langsung dari meja', 300, 122);
+
+      // QR Code in center
+      ctx.drawImage(img, 100, 155, 400, 400);
+
+      // Footer
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '14px Inter, sans-serif';
+      ctx.fillText('NEMU POS • Self-Service Dine In', 300, 615);
+
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `${filename}.png`;
+      link.href = dataUrl;
+      link.click();
+      showToast(`${title} berhasil diunduh!`);
+    };
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgXml)));
+  };
+
+  const handleDownloadSingleTable = (item: TableQrItem) => {
+    downloadQrCodeImage(
+      item.tableName,
+      `qr-table-svg-${item.id}`,
+      `QR-${item.tableCode || `Meja-${item.tableNumber}`}`
+    );
+  };
+
+  const handleDownloadAllTables = () => {
+    if (filteredTableQrs.length === 0) {
+      showToast('Tidak ada data QR Meja yang dapat diunduh.');
+      return;
+    }
+    filteredTableQrs.forEach((item, index) => {
+      setTimeout(() => {
+        handleDownloadSingleTable(item);
+      }, index * 300);
+    });
+    showToast(`Memulai unduhan ${filteredTableQrs.length} QR Code Meja...`);
+  };
+
+  const handleDownloadMasterQr = () => {
+    downloadQrCodeImage('Menu Utama', 'master-qr-svg', 'QR-Menu-Utama');
   };
 
   return (
@@ -221,48 +358,41 @@ export default function QrOrderPage() {
         </div>
       )}
 
-      {/* Top Page Header matching Screenshot 1 */}
+      {/* Top Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900">QR Order</h1>
           <p className="text-xs text-neutral-500 mt-1">
-            Kelola QR menu untuk meja, area, maupun sekali pakai.
+            Kelola QR menu untuk meja, area, maupun sekali pakai langsung tersinkron dengan database.
           </p>
         </div>
 
-        {/* Demo Switcher */}
-        <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-lg border border-neutral-200 text-xs">
-          <button
-            onClick={() => setDemoMode('populated')}
-            className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
-              demoMode === 'populated'
-                ? 'bg-white text-neutral-800 shadow-2xs font-semibold'
-                : 'text-neutral-500 hover:text-neutral-800'
-            }`}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<RefreshCw className={`size-3.5 ${isLoadingTables ? 'animate-spin' : ''}`} />}
+            onClick={() => loadTables()}
+            disabled={isLoadingTables}
           >
-            Data Terisi
-          </button>
-          <button
-            onClick={() => setDemoMode('empty')}
-            className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
-              demoMode === 'empty'
-                ? 'bg-white text-neutral-800 shadow-2xs font-semibold'
-                : 'text-neutral-500 hover:text-neutral-800'
-            }`}
-          >
-            Belum Ada QR
-          </button>
+            Segarkan Data
+          </Button>
+          <Link href="/dashboard/tables">
+            <Button variant="primary" size="sm" leftIcon={<Plus className="size-3.5" />}>
+              Kelola Meja
+            </Button>
+          </Link>
         </div>
       </div>
 
-      {/* Main 2-Column Responsive Layout matching Screenshot 1 */}
+      {/* Main 2-Column Responsive Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* LEFT COLUMN: QR Per Meja & QR Sekali Pakai (8 Cols ~ 68%) */}
         <div className="lg:col-span-8 space-y-6">
           {/* CARD 1: QR PER MEJA */}
           <Card
             title="QR Per Meja"
-            subtitle="QR unik untuk setiap meja. Ditempel di meja agar pelanggan bisa langsung memesan."
+            subtitle="QR unik untuk setiap meja di database. Ditempel di meja agar pelanggan bisa langsung memesan mandiri."
             className="p-5 lg:p-6"
           >
             {/* Filter Bar */}
@@ -272,7 +402,7 @@ export default function QrOrderPage() {
                   value={tableSearch}
                   onChange={(e) => setTableSearch(e.target.value)}
                   onClear={() => setTableSearch('')}
-                  placeholder="Cari nomor meja..."
+                  placeholder="Cari nomor atau nama meja..."
                   size="sm"
                 />
               </div>
@@ -304,14 +434,20 @@ export default function QrOrderPage() {
                 variant="secondary"
                 size="sm"
                 leftIcon={<Download className="size-3.5" />}
-                onClick={() => downloadQr('Semua Meja')}
+                onClick={handleDownloadAllTables}
+                disabled={filteredTableQrs.length === 0}
               >
                 Download Semua
               </Button>
             </div>
 
-            {/* Table or Empty State */}
-            {filteredTableQrs.length > 0 ? (
+            {/* Table or Loading / Empty State */}
+            {isLoadingTables ? (
+              <div className="py-16 flex flex-col items-center justify-center text-center space-y-3">
+                <Loader2 className="size-8 text-neutral-400 animate-spin" />
+                <p className="text-xs text-neutral-500">Memuat data QR meja dari database...</p>
+              </div>
+            ) : filteredTableQrs.length > 0 ? (
               <div className="space-y-4">
                 <div className="overflow-x-auto border-t border-neutral-100">
                   <table className="w-full text-left text-xs">
@@ -334,12 +470,15 @@ export default function QrOrderPage() {
                         <th className="py-3 px-3 font-semibold text-neutral-700">Tautan</th>
                         <th className="py-3 px-3 font-semibold text-neutral-700">Status</th>
                         <th className="py-3 px-3 font-semibold text-neutral-700">Unduh</th>
-                        <th className="py-3 px-2 w-8"></th>
+                        <th className="py-3 px-2 w-12 text-right">Aksi</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-100 text-neutral-800">
                       {filteredTableQrs.map((row) => {
                         const isSelected = selectedTableQrIds.includes(row.id);
+                        const isRotating = isRotatingId === row.id;
+                        const isMenuOpen = activeMenuTableId === row.id;
+
                         return (
                           <tr
                             key={row.id}
@@ -355,8 +494,9 @@ export default function QrOrderPage() {
                                 className="rounded border-neutral-300 text-orange-600 focus:ring-0 size-3.5"
                               />
                             </td>
-                            <td className="py-3 px-3 font-semibold text-neutral-900">
-                              {row.tableNumber}
+                            <td className="py-3 px-3">
+                              <div className="font-semibold text-neutral-900">{row.tableName}</div>
+                              <div className="text-[10px] text-neutral-400 font-mono">{row.tableCode}</div>
                             </td>
                             <td className="py-3 px-3">
                               <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-800 border border-amber-200/60">
@@ -365,27 +505,47 @@ export default function QrOrderPage() {
                             </td>
                             <td className="py-3 px-3">
                               <div className="p-1 rounded-md bg-white border border-neutral-200 shadow-2xs inline-flex items-center justify-center relative">
-                                <QRCodeSVG value={row.url} size={32} level="M" />
-                                <div className="absolute size-2.5 rounded-full bg-[#E5484D] border border-white" />
+                                <QRCodeSVG
+                                  id={`qr-table-svg-${row.id}`}
+                                  value={row.url || `${windowOrigin}/q/demo`}
+                                  size={34}
+                                  level="M"
+                                />
+                                <div className="absolute size-2 rounded-full bg-[#E5484D] border border-white" />
                               </div>
                             </td>
                             <td className="py-3 px-3">
-                              <div className="flex items-center gap-1.5 text-blue-600 font-mono text-[11px]">
-                                <span className="hover:underline cursor-pointer truncate max-w-[130px]">
-                                  {row.url}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => copyToClipboard(row.url)}
-                                  className="text-neutral-400 hover:text-neutral-600 transition-colors"
-                                  title="Salin Tautan"
-                                >
-                                  <Copy className="size-3" />
-                                </button>
-                              </div>
+                              {row.url ? (
+                                <div className="flex items-center gap-1.5 text-blue-600 font-mono text-[11px]">
+                                  <a
+                                    href={row.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="hover:underline truncate max-w-[130px] inline-flex items-center gap-1"
+                                    title="Buka Menu Pelanggan"
+                                  >
+                                    <span>{row.url.replace(/^https?:\/\//, '')}</span>
+                                    <ExternalLink className="size-2.5 shrink-0 opacity-60" />
+                                  </a>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyToClipboard(row.url)}
+                                    className="text-neutral-400 hover:text-neutral-600 transition-colors p-0.5"
+                                    title="Salin Tautan"
+                                  >
+                                    <Copy className="size-3" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-neutral-400 italic text-[11px]">Belum ada token</span>
+                              )}
                             </td>
                             <td className="py-3 px-3">
-                              <StatusBadge variant="success" dot size="sm">
+                              <StatusBadge
+                                variant={row.status === 'Aktif' ? 'success' : 'neutral'}
+                                dot
+                                size="sm"
+                              >
                                 {row.status}
                               </StatusBadge>
                             </td>
@@ -394,15 +554,69 @@ export default function QrOrderPage() {
                                 variant="secondary"
                                 size="xs"
                                 leftIcon={<Download className="size-3" />}
-                                onClick={() => downloadQr(`Meja ${row.tableNumber}`)}
+                                onClick={() => handleDownloadSingleTable(row)}
+                                disabled={!row.url}
                               >
                                 Download
                               </Button>
                             </td>
-                            <td className="py-3 px-2 text-right">
-                              <button className="text-neutral-400 hover:text-neutral-600 p-1">
-                                <MoreVertical className="size-4" />
+                            <td className="py-3 px-2 text-right relative">
+                              <button
+                                onClick={() => setActiveMenuTableId(isMenuOpen ? null : row.id)}
+                                className="text-neutral-400 hover:text-neutral-700 p-1 rounded-md hover:bg-neutral-100 transition-colors"
+                                title="Menu Aksi"
+                              >
+                                {isRotating ? (
+                                  <Loader2 className="size-4 animate-spin text-orange-500" />
+                                ) : (
+                                  <MoreVertical className="size-4" />
+                                )}
                               </button>
+
+                              {isMenuOpen && (
+                                <>
+                                  <div
+                                    className="fixed inset-0 z-10"
+                                    onClick={() => setActiveMenuTableId(null)}
+                                  />
+                                  <div className="absolute right-0 top-8 z-20 w-44 bg-white rounded-xl shadow-xl border border-neutral-100 py-1.5 text-xs text-left animate-in fade-in zoom-in-95">
+                                    {row.url && (
+                                      <a
+                                        href={row.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex items-center gap-2 px-3 py-2 text-neutral-700 hover:bg-neutral-50 transition-colors"
+                                        onClick={() => setActiveMenuTableId(null)}
+                                      >
+                                        <ExternalLink className="size-3.5 text-neutral-400" />
+                                        <span>Buka Menu Self-Order</span>
+                                      </a>
+                                    )}
+                                    {row.url && (
+                                      <button
+                                        type="button"
+                                        className="w-full flex items-center gap-2 px-3 py-2 text-neutral-700 hover:bg-neutral-50 transition-colors text-left"
+                                        onClick={() => {
+                                          copyToClipboard(row.url);
+                                          setActiveMenuTableId(null);
+                                        }}
+                                      >
+                                        <Copy className="size-3.5 text-neutral-400" />
+                                        <span>Salin Tautan</span>
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      className="w-full flex items-center gap-2 px-3 py-2 text-amber-700 hover:bg-amber-50 transition-colors text-left border-t border-neutral-100 mt-1 pt-1.5"
+                                      onClick={() => handleRotateQr(row.id, row.tableName)}
+                                      disabled={isRotating}
+                                    >
+                                      <RefreshCw className={`size-3.5 text-amber-600 ${isRotating ? 'animate-spin' : ''}`} />
+                                      <span>Perbarui Token QR</span>
+                                    </button>
+                                  </div>
+                                </>
+                              )}
                             </td>
                           </tr>
                         );
@@ -417,15 +631,15 @@ export default function QrOrderPage() {
                   totalItems={filteredTableQrs.length}
                   itemsPerPage={10}
                   onPageChange={() => {}}
-                  itemName="QR"
+                  itemName="QR Meja"
                 />
               </div>
             ) : (
               <div className="py-12 flex flex-col items-center justify-center text-center">
                 <EmptyState
                   title="BELUM ADA MEJA"
-                  description="Tambahkan meja dan atur tata letaknya untuk mulai mengelola pesanan dine-in di outletmu."
-                  actionLabel="Tambah Meja"
+                  description="Tambahkan meja di outletmu untuk otomatis membuatkan QR pemesanan unik untuk setiap meja."
+                  actionLabel="Tambah Meja Sekarang"
                   onAction={() => window.location.assign('/dashboard/tables')}
                 />
               </div>
@@ -455,7 +669,7 @@ export default function QrOrderPage() {
                   value={dispSearch}
                   onChange={(e) => setDispSearch(e.target.value)}
                   onClear={() => setDispSearch('')}
-                  placeholder="Cari nomor meja / catatan..."
+                  placeholder="Cari nama event / catatan..."
                   size="sm"
                 />
               </div>
@@ -482,7 +696,8 @@ export default function QrOrderPage() {
                 variant="secondary"
                 size="sm"
                 leftIcon={<Download className="size-3.5" />}
-                onClick={() => downloadQr('Semua QR Sekali Pakai')}
+                onClick={() => showToast('Mengunduh QR Sekali Pakai...')}
+                disabled={filteredDisposableQrs.length === 0}
               >
                 Download Semua
               </Button>
@@ -589,7 +804,7 @@ export default function QrOrderPage() {
               <div className="py-12 flex flex-col items-center justify-center text-center">
                 <EmptyState
                   title="BELUM ADA QR SEKALI PAKAI"
-                  description="QR untuk pesanan sekali pakai akan muncul di sini setelah kamu membuatnya. Cocok untuk event, pop-up, atau pesanan takeaway."
+                  description="QR untuk pesanan sekali pakai akan muncul di sini setelah kamu membuatnya. Cocok untuk event, pop-up booth, atau pesanan takeaway."
                   actionLabel="Generate QR Sekarang"
                   onAction={() => setIsGenerateModalOpen(true)}
                 />
@@ -600,7 +815,7 @@ export default function QrOrderPage() {
 
         {/* RIGHT COLUMN: QR Menu Utama & Pengaturan Tampilan (4 Cols ~ 32%) */}
         <div className="lg:col-span-4 space-y-6">
-          {/* CARD: QR MENU UTAMA matching Screenshot 1 */}
+          {/* CARD: QR MENU UTAMA */}
           <Card
             title="QR Menu Utama"
             subtitle="Satu QR untuk akses menu tanpa memilih meja (untuk dine-in atau general)"
@@ -619,6 +834,7 @@ export default function QrOrderPage() {
             <div className="py-6 flex flex-col items-center justify-center">
               <div className="p-4 rounded-3xl bg-white border border-neutral-200/90 shadow-sm flex items-center justify-center relative">
                 <QRCodeSVG
+                  id="master-qr-svg"
                   value={masterQrUrl}
                   size={190}
                   level="H"
@@ -650,7 +866,7 @@ export default function QrOrderPage() {
                 variant="primary"
                 size="md"
                 leftIcon={<Download className="size-4" />}
-                onClick={() => downloadQr('Menu Utama')}
+                onClick={handleDownloadMasterQr}
                 fullWidth
               >
                 Download QR

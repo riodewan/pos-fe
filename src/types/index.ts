@@ -270,8 +270,8 @@ export interface StockMovement {
 // ==========================================
 export interface DiningTable {
   id: ULID;
-  tenant_id: ULID;
-  store_id: ULID;
+  tenant_id?: ULID;
+  store_id?: ULID;
   name: string;
   code: string;
   capacity: number;
@@ -279,6 +279,7 @@ export interface DiningTable {
   is_occupied?: boolean;
   active_orders_count?: number;
   active_qr_token?: string | null;
+  active_qr_code?: QrCode | null;
   created_at?: string;
   updated_at?: string;
 }

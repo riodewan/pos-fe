@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Plus,
   Search,
@@ -11,6 +11,8 @@ import {
   MapPin,
   Check,
   Users,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import {
   TableItem,
@@ -20,137 +22,16 @@ import {
   TableCategoryManagement,
 } from '@/components/tables';
 import { EmptyState, Button, Select, SearchInput } from '@/components/common';
-
-// 12 Tables matching Screenshot 3 exactly
-const INITIAL_TABLES: TableItem[] = [
-  {
-    id: 'tbl-1',
-    tableNumber: 1,
-    area: 'Indoor',
-    capacity: 2,
-    status: 'Kosong',
-  },
-  {
-    id: 'tbl-2',
-    tableNumber: 2,
-    area: 'Indoor',
-    capacity: 2,
-    status: 'Kosong',
-  },
-  {
-    id: 'tbl-3',
-    tableNumber: 3,
-    area: 'Indoor',
-    capacity: 2,
-    status: 'Reservasi',
-    reservationTime: '15:00 WIB',
-    customer: {
-      name: 'Siti Nurhaliza',
-      phone: '081398765432',
-      initials: 'SN',
-      date: '14/10/2026',
-      time: '15:00',
-      note: 'Reservasi untuk ulang tahun',
-    },
-  },
-  {
-    id: 'tbl-4',
-    tableNumber: 4,
-    area: 'Indoor',
-    capacity: 2,
-    status: 'Kosong',
-  },
-  {
-    id: 'tbl-5',
-    tableNumber: 5,
-    area: 'Indoor',
-    capacity: 2,
-    status: 'Terisi',
-    elapsedTime: '00:13:34',
-    activeOrder: {
-      startTime: '12:00',
-      staffName: 'Budi',
-      guestCount: 2,
-      notes: '-',
-      items: [
-        {
-          id: 'item-1',
-          name: 'Kopi Susu Gula Aren',
-          variant: 'Regular, Less Ice',
-          qty: 1,
-          price: 28000,
-        },
-        {
-          id: 'item-2',
-          name: 'Matcha Latte',
-          variant: 'Regular',
-          note: 'Tanpa es untuk matcha latte ya.',
-          qty: 1,
-          price: 30000,
-        },
-      ],
-      subtotal: 58000,
-      tax: 0,
-      total: 58000,
-    },
-  },
-  {
-    id: 'tbl-6',
-    tableNumber: 6,
-    area: 'Outdoor',
-    capacity: 2,
-    status: 'Kosong',
-  },
-  {
-    id: 'tbl-7',
-    tableNumber: 7,
-    area: 'Outdoor',
-    capacity: 2,
-    status: 'Kosong',
-  },
-  {
-    id: 'tbl-8',
-    tableNumber: 8,
-    area: 'Outdoor',
-    capacity: 2,
-    status: 'Kosong',
-  },
-  {
-    id: 'tbl-9',
-    tableNumber: 9,
-    area: 'Outdoor',
-    capacity: 2,
-    status: 'Kosong',
-  },
-  {
-    id: 'tbl-10',
-    tableNumber: 10,
-    area: 'Outdoor',
-    capacity: 2,
-    status: 'Kosong',
-  },
-  {
-    id: 'tbl-11',
-    tableNumber: 11,
-    area: 'Outdoor',
-    capacity: 2,
-    status: 'Kosong',
-  },
-  {
-    id: 'tbl-12',
-    tableNumber: 12,
-    area: 'Outdoor',
-    capacity: 2,
-    status: 'Kosong',
-  },
-];
+import { posService } from '@/services/pos.service';
+import { DiningTable } from '@/types';
 
 type TablesTab = 'tables' | 'category' | 'area';
 
 export default function TablesPage() {
   const [activeTab, setActiveTab] = useState<TablesTab>('tables');
-  const [tables, setTables] = useState<TableItem[]>(INITIAL_TABLES);
-  const [demoMode, setDemoMode] = useState<'populated' | 'empty'>('populated');
+  const [tables, setTables] = useState<TableItem[]>([]);
+  const [rawTables, setRawTables] = useState<DiningTable[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Filters
   const [areaFilter, setAreaFilter] = useState('all');
@@ -169,10 +50,57 @@ export default function TablesPage() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  // Load real tables from backend
+  const loadTables = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await posService.getTables();
+      const list: DiningTable[] = Array.isArray(res?.data) ? res.data : [];
+      setRawTables(list);
+
+      const mapped: TableItem[] = list.map((t: DiningTable, idx: number) => {
+        const numMatch = t.code.match(/\d+/) || t.name.match(/\d+/);
+        const tableNumber = numMatch ? parseInt(numMatch[0], 10) : idx + 1;
+
+        let area: TableItem['area'] = 'Indoor';
+        if (t.code.toUpperCase().includes('OUT') || t.name.toUpperCase().includes('OUTDOOR')) {
+          area = 'Outdoor';
+        } else if (t.code.toUpperCase().includes('VIP') || t.name.toUpperCase().includes('VIP')) {
+          area = 'VIP';
+        }
+
+        let status: TableItem['status'] = 'Kosong';
+        if (t.status === 'INACTIVE') {
+          status = 'Diblokir';
+        } else if (t.is_occupied) {
+          status = 'Terisi';
+        }
+
+        return {
+          id: t.id,
+          tableNumber,
+          area,
+          capacity: t.capacity || 2,
+          status,
+          elapsedTime: t.is_occupied ? 'Aktif' : undefined,
+        };
+      });
+
+      setTables(mapped);
+    } catch (err) {
+      console.error('Failed to load tables:', err);
+      showToast('Gagal memuat daftar meja dari server.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadTables();
+  }, [loadTables]);
+
   // Filtered tables
   const filteredTables = useMemo(() => {
-    if (demoMode === 'empty') return [];
-
     return tables.filter((t) => {
       if (areaFilter !== 'all' && t.area !== areaFilter) return false;
       if (searchQuery.trim()) {
@@ -185,7 +113,7 @@ export default function TablesPage() {
       }
       return true;
     });
-  }, [tables, demoMode, areaFilter, searchQuery]);
+  }, [tables, areaFilter, searchQuery]);
 
   const handleOpenDetail = (table: TableItem) => {
     setSelectedTable(table);
@@ -206,9 +134,21 @@ export default function TablesPage() {
     setSelectedTable(tables[nextIndex]);
   };
 
-  const handleAddTable = (newTable: TableItem) => {
-    setTables((prev) => [...prev, newTable]);
-    showToast(`Meja ${newTable.tableNumber} berhasil ditambahkan!`);
+  // Add Table calling backend API
+  const handleAddTable = async (newTable: TableItem) => {
+    try {
+      await posService.createTable({
+        name: `Meja ${newTable.tableNumber}`,
+        code: `T-${String(newTable.tableNumber).padStart(2, '0')}`,
+        capacity: newTable.capacity,
+        status: newTable.status === 'Diblokir' ? 'INACTIVE' : 'ACTIVE',
+      });
+      await loadTables();
+      showToast(`Meja ${newTable.tableNumber} berhasil ditambahkan ke database!`);
+    } catch (err: any) {
+      console.error('Failed to create table:', err);
+      showToast(err?.response?.data?.message || 'Gagal menambahkan meja ke database');
+    }
   };
 
   const handlePay = (table: TableItem) => {
@@ -305,6 +245,13 @@ export default function TablesPage() {
     }
   };
 
+  // Next table number computation
+  const nextTableNumber = useMemo(() => {
+    if (tables.length === 0) return 1;
+    const maxNum = Math.max(...tables.map((t) => t.tableNumber), 0);
+    return maxNum + 1;
+  }, [tables]);
+
   return (
     <div className="p-6 lg:p-8 space-y-4 max-w-[1600px] mx-auto">
       {/* Toast Notification */}
@@ -315,44 +262,27 @@ export default function TablesPage() {
         </div>
       )}
 
-      {/* Top Page Header matching Screenshot 3 */}
+      {/* Top Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Meja</h1>
           <p className="text-xs text-neutral-500 mt-1">
-            Kelola meja, pantau status, dan alur tata letak outlet
+            Kelola meja, pantau status keterisian, dan alur tata letak outlet langsung dari database.
           </p>
         </div>
 
-        {/* Right Header: Discrete Switcher & + Dynamic Add Button */}
+        {/* Right Header: Refresh & Dynamic Add Button */}
         <div className="flex items-center gap-3">
-          {/* Demo Switcher (available on Table tab) */}
-          {activeTab === 'tables' && (
-            <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-lg border border-neutral-200 text-xs">
-              <button
-                onClick={() => setDemoMode('populated')}
-                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
-                  demoMode === 'populated'
-                    ? 'bg-white text-neutral-800 shadow-2xs font-semibold'
-                    : 'text-neutral-500 hover:text-neutral-800'
-                }`}
-              >
-                Data Terisi
-              </button>
-              <button
-                onClick={() => setDemoMode('empty')}
-                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
-                  demoMode === 'empty'
-                    ? 'bg-white text-neutral-800 shadow-2xs font-semibold'
-                    : 'text-neutral-500 hover:text-neutral-800'
-                }`}
-              >
-                Belum Ada Meja
-              </button>
-            </div>
-          )}
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<RefreshCw className={`size-3.5 ${isLoading ? 'animate-spin' : ''}`} />}
+            onClick={() => loadTables()}
+            disabled={isLoading}
+          >
+            Segarkan
+          </Button>
 
-          {/* Dynamic + Tambah Button */}
           <Button
             variant="primary"
             size="sm"
@@ -364,7 +294,7 @@ export default function TablesPage() {
         </div>
       </div>
 
-      {/* Navigation Tabs matching Screenshot 3: Menu (Meja), Kategori, Area */}
+      {/* Navigation Tabs: Menu (Meja), Kategori, Area */}
       <div className="flex items-center border-b border-neutral-200 text-xs gap-1">
         <button
           onClick={() => setActiveTab('tables')}
@@ -375,7 +305,7 @@ export default function TablesPage() {
           }`}
         >
           <Coffee className="size-4" />
-          <span>Menu</span>
+          <span>Meja</span>
         </button>
 
         <button
@@ -406,7 +336,7 @@ export default function TablesPage() {
       {/* TAB CONTENT: TABLES GRID */}
       {activeTab === 'tables' && (
         <div className="space-y-4">
-          {/* Status Indicators Legend & Filter Bar matching Screenshot 3 & 4 */}
+          {/* Status Indicators Legend & Filter Bar */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             {/* Status Indicator Legend */}
             <div className="flex items-center flex-wrap gap-4 text-xs font-medium text-neutral-700">
@@ -432,7 +362,7 @@ export default function TablesPage() {
               </div>
             </div>
 
-            {/* Right Filters matching Screenshot 3 & 4 */}
+            {/* Right Filters */}
             <div className="flex items-center gap-3">
               {/* Area Filter */}
               <Select
@@ -460,8 +390,13 @@ export default function TablesPage() {
             </div>
           </div>
 
-          {/* Table Cards Grid (Screenshot 3) or Empty State (Screenshot 4) */}
-          {filteredTables.length > 0 ? (
+          {/* Table Cards Grid or Loading / Empty State */}
+          {isLoading ? (
+            <div className="py-24 flex flex-col items-center justify-center text-center space-y-3">
+              <Loader2 className="size-8 text-neutral-400 animate-spin" />
+              <p className="text-xs text-neutral-500">Memuat status meja dari server...</p>
+            </div>
+          ) : filteredTables.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pt-1">
               {filteredTables.map((tbl) => {
                 const isOccupied = tbl.status === 'Terisi';
@@ -490,7 +425,7 @@ export default function TablesPage() {
                         {tbl.area}
                       </span>
 
-                      {/* Timer or Reservation Time badge matching Screenshot 3 */}
+                      {/* Timer or Reservation Time badge */}
                       {isOccupied && tbl.elapsedTime && (
                         <div className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full">
                           <Clock className="size-3" />
@@ -524,7 +459,7 @@ export default function TablesPage() {
               })}
             </div>
           ) : (
-            /* Empty State matching Screenshot 4 */
+            /* Empty State */
             <div className="py-24 flex flex-col items-center justify-center text-center">
               <EmptyState
                 title="BELUM ADA MEJA"
@@ -555,7 +490,7 @@ export default function TablesPage() {
         />
       )}
 
-      {/* Detail Slide-over Drawer (Screenshot 1 & 2) */}
+      {/* Detail Slide-over Drawer */}
       <TableDetailDrawer
         isOpen={isDetailDrawerOpen}
         onClose={() => setIsDetailDrawerOpen(false)}
@@ -574,7 +509,7 @@ export default function TablesPage() {
         isOpen={isAddTableOpen}
         onClose={() => setIsAddTableOpen(false)}
         onSave={handleAddTable}
-        nextTableNumber={tables.length + 1}
+        nextTableNumber={nextTableNumber}
       />
     </div>
   );
