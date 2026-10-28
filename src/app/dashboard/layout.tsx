@@ -49,6 +49,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [storeDropdownOpen, setStoreDropdownOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   if (isLoading || !isAuthenticated) {
     return (
@@ -519,14 +520,58 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Mail className="size-4" />
             </button>
 
-            <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-full border border-neutral-800 bg-[#1E1E1E] hover:bg-neutral-800 text-neutral-200 shadow-2xs cursor-pointer transition-colors">
-              <div className="size-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[11px] font-bold">
-                {getInitials(user?.name) || 'AP'}
-              </div>
-              <span className="text-xs font-medium hidden sm:inline">
-                {user?.name || 'Andi Pratama'}
-              </span>
-              <ChevronDown className="size-3 text-neutral-400" />
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                className="flex items-center gap-2.5 px-3 py-1.5 rounded-full border border-neutral-800 bg-[#1E1E1E] hover:bg-neutral-800 text-neutral-200 shadow-2xs cursor-pointer transition-colors"
+              >
+                <div className="size-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[11px] font-bold">
+                  {getInitials(user?.name) || 'AP'}
+                </div>
+                <span className="text-xs font-medium hidden sm:inline">
+                  {user?.name || 'Andi Pratama'}
+                </span>
+                <ChevronDown className={cn("size-3 text-neutral-400 transition-transform", userDropdownOpen && "rotate-180")} />
+              </button>
+
+              {userDropdownOpen && (
+                <div
+                  className="absolute right-0 mt-2 w-48 rounded-xl bg-[#1C1C1C] border border-neutral-800 shadow-xl py-1.5 z-50 text-xs text-neutral-200 animate-in fade-in duration-100"
+                  onClick={() => setUserDropdownOpen(false)}
+                >
+                  <div className="px-3 py-2 border-b border-neutral-800/80">
+                    <p className="font-semibold text-white truncate">{user?.name || 'Andi Pratama'}</p>
+                    <p className="text-[10px] text-neutral-400 truncate">{user?.email || 'andi.pratama@example.com'}</p>
+                  </div>
+                  <Link
+                    href="/dashboard/settings/account"
+                    className="flex items-center gap-2 px-3 py-2 hover:bg-white/5 text-neutral-200 hover:text-white transition-colors"
+                  >
+                    <span>Profile Akun</span>
+                  </Link>
+                  <Link
+                    href="/dashboard/settings/profile"
+                    className="flex items-center gap-2 px-3 py-2 hover:bg-white/5 text-neutral-200 hover:text-white transition-colors"
+                  >
+                    <span>Profile Outlet</span>
+                  </Link>
+                  <Link
+                    href="/dashboard/staff"
+                    className="flex items-center gap-2 px-3 py-2 hover:bg-white/5 text-neutral-200 hover:text-white transition-colors"
+                  >
+                    <span>Staff & Akses</span>
+                  </Link>
+                  <div className="border-t border-neutral-800/80 my-1" />
+                  <button
+                    type="button"
+                    onClick={() => logout?.()}
+                    className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                  >
+                    <span>Keluar</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>

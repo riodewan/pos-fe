@@ -24,6 +24,7 @@ export const ROUTES = {
     REPORTS: '/dashboard/reports',
     SETTINGS: '/dashboard/settings',
     PROFILE: '/dashboard/settings/profile',
+    ACCOUNT: '/dashboard/settings/account',
   },
   PUBLIC: {
     QR_ORDER: (token: string) => `/q/${token}`,
