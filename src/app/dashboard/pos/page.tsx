@@ -47,6 +47,7 @@ import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { catalogService, posService } from '@/services';
 import { tenantService } from '@/services/tenant.service';
 import { useStore } from '@/context/StoreContext';
+import { deduceProductCategory } from '@/utils';
 
 type OrderType = 'DINE_IN' | 'TAKEAWAY' | 'DELIVERY' | 'QR_ORDER';
 type PosViewMode = 'register' | 'orders';
@@ -124,6 +125,7 @@ function PosContent() {
             name: p.name,
             price: Number(p.selling_price),
             imageUrl: p.image_url || null,
+            category: deduceProductCategory(p.name, p.description || '', p.sku || ''),
           }));
           setProducts(mapped);
         }
@@ -203,8 +205,9 @@ function PosContent() {
       const q = menuSearch.toLowerCase().trim();
       const matchSearch = !q || p.name.toLowerCase().includes(q);
 
-      // Category (products carry no category data from the backend)
-      const matchCat = true;
+      // Category filter matching database catalog
+      const matchCat =
+        selectedCategory === 'Semua' || p.category === selectedCategory;
 
       // Favorites
       const matchFav = !showOnlyFavorites || Boolean(p.isFavorite);

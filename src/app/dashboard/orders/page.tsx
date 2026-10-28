@@ -1,40 +1,39 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Search,
   Calendar,
-  ChevronDown,
   Sparkles,
   Play,
   ShoppingBag,
   Check,
   X,
   MoreVertical,
-  QrCode,
-  Store,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
   RefreshCw,
-  UtensilsCrossed,
+  Clock,
+  Loader2,
 } from 'lucide-react';
 import {
   StatusBadge,
-  EmptyState,
   DataTable,
   ColumnDef,
   ChannelBadge,
-  Button,
   Select,
   SearchInput,
+  Button,
 } from '@/components/common';
 import { OrderDetailsDrawer, DetailedOrder } from '@/components/orders/OrderDetailsDrawer';
-import { formatRupiah } from '@/utils';
+import { formatRupiah, formatDateTime, formatTimeOnly } from '@/utils';
+import { posService } from '@/services/pos.service';
+import { useStore } from '@/context/StoreContext';
+import { Order, OrderStatus } from '@/types';
 
 type FilterStatus = 'Semua' | 'Baru' | 'Diproses' | 'Siap diambil' | 'Selesai' | 'Dibatalkan';
 
 export default function OrdersPage() {
+  const { activeStore } = useStore();
+
   // Filter states
   const [selectedStatusTab, setSelectedStatusTab] = useState<FilterStatus>('Semua');
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,8 +41,11 @@ export default function OrdersPage() {
   const [selectedType, setSelectedType] = useState<string>('Semua tipe');
   const [selectedPayment, setSelectedPayment] = useState<string>('Semua pembayaran');
 
-  // Preview Mode: 'populated' (Screenshot 3) vs 'empty' (Screenshot 4)
-  const [previewMode, setPreviewMode] = useState<'populated' | 'empty'>('populated');
+  // Real orders state
+  const [orders, setOrders] = useState<DetailedOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Slide-over Drawer state
   const [selectedOrder, setSelectedOrder] = useState<DetailedOrder | null>(null);
@@ -52,240 +54,162 @@ export default function OrdersPage() {
   // Selected checkbox rows
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
 
-  // Mock Orders dataset matching Screenshot 3 & Screenshots 1-2
-  const mockOrders: DetailedOrder[] = [
-    {
-      id: '1',
-      orderNumber: 'ORD-10',
-      dateTime: '14 Okt 2026, 09:40',
-      status: 'Baru',
-      paymentStatus: 'Lunas',
-      diningType: 'Dine-in',
-      channel: 'QR Order',
-      tableOrCustomer: 'Meja 04',
-      items: [
-        {
-          id: 'i1',
-          name: 'Kopi Susu Gula Aren',
-          qty: 1,
-          variant: 'Regular, Less Ice',
-          price: 28000,
-          iconBg: 'bg-amber-100 text-amber-800',
-        },
-        {
-          id: 'i2',
-          name: 'Matcha Latte',
-          qty: 1,
-          variant: 'Regular',
-          notes: 'Tanpa es untuk matcha latte ya.',
-          price: 30000,
-          iconBg: 'bg-emerald-100 text-emerald-800',
-        },
-      ],
-      subtotal: 58000,
-      tax: 0,
-      fee: 0,
-      discount: 0,
-      total: 58000,
-      notes: '-',
-      paymentMethod: 'QRIS',
-    },
-    {
-      id: '2',
-      orderNumber: 'ORD-09',
-      dateTime: '14 Okt 2026, 09:35',
-      status: 'Diproses',
-      paymentStatus: 'Menunggu',
-      diningType: 'Dine-in',
-      channel: 'Kasir',
-      tableOrCustomer: 'Meja 01',
-      items: [
-        { id: 'i3', name: 'Americano', qty: 2, variant: 'Hot', price: 50000 },
-        { id: 'i4', name: 'Croissant Butter', qty: 1, price: 26000 },
-      ],
-      subtotal: 76000,
-      tax: 0,
-      fee: 0,
-      discount: 0,
-      total: 76000,
-      notes: 'Gula dipisah',
-      paymentMethod: 'Tunai (Kasir)',
-    },
-    {
-      id: '3',
-      orderNumber: 'ORD-08',
-      dateTime: '14 Okt 2026, 09:20',
-      status: 'Siap diambil',
-      paymentStatus: 'Lunas',
-      diningType: 'Delivery',
-      channel: 'GrabFood',
-      tableOrCustomer: 'Budi Santoso',
-      items: [
-        { id: 'i5', name: 'Cafe Latte', qty: 2, price: 60000 },
-        { id: 'i6', name: 'Pain au Chocolat', qty: 1, price: 32000 },
-      ],
-      subtotal: 92000,
-      tax: 0,
-      fee: 0,
-      discount: 0,
-      total: 92000,
-      notes: 'Driver tolong antar ke lantai 3',
-      paymentMethod: 'GrabPay',
-    },
-    {
-      id: '4',
-      orderNumber: 'ORD-07',
-      dateTime: '14 Okt 2026, 09:10',
-      status: 'Selesai',
-      paymentStatus: 'Lunas',
-      diningType: 'Dine-in',
-      channel: 'QR Order',
-      tableOrCustomer: 'Meja 02',
-      items: [
-        { id: 'i7', name: 'Kopi Susu Gula Aren', qty: 2, price: 58000 },
-      ],
-      subtotal: 58000,
-      tax: 0,
-      fee: 0,
-      discount: 0,
-      total: 58000,
-      notes: '-',
-      paymentMethod: 'QRIS',
-    },
-    {
-      id: '5',
-      orderNumber: 'ORD-06',
-      dateTime: '14 Okt 2026, 08:56',
-      status: 'Dibatalkan',
-      paymentStatus: 'Dibatalkan',
-      diningType: 'Delivery',
-      channel: 'ShopeeFood',
-      tableOrCustomer: 'Andi Wijaya',
-      items: [
-        { id: 'i8', name: 'Caramel Macchiato', qty: 1, price: 35000 },
-        { id: 'i9', name: 'Donut Coklat', qty: 1, price: 23000 },
-      ],
-      subtotal: 58000,
-      tax: 0,
-      fee: 0,
-      discount: 0,
-      total: 58000,
-      notes: 'Dibatalkan oleh pelanggan',
-      paymentMethod: 'ShopeePay',
-    },
-    {
-      id: '6',
-      orderNumber: 'ORD-05',
-      dateTime: '14 Okt 2026, 08:47',
-      status: 'Selesai',
-      paymentStatus: 'Lunas',
-      diningType: 'Dine-in',
-      channel: 'QR Order',
-      tableOrCustomer: 'Meja 06',
-      items: [
-        { id: 'i10', name: 'Matcha Latte', qty: 1, price: 30000 },
-        { id: 'i11', name: 'Almond Croissant', qty: 1, price: 28000 },
-      ],
-      subtotal: 58000,
-      tax: 0,
-      fee: 0,
-      discount: 0,
-      total: 58000,
-      notes: '-',
-      paymentMethod: 'QRIS',
-    },
-    {
-      id: '7',
-      orderNumber: 'ORD-04',
-      dateTime: '14 Okt 2026, 08:45',
-      status: 'Selesai',
-      paymentStatus: 'Lunas',
-      diningType: 'Delivery',
-      channel: 'GoFood',
-      tableOrCustomer: 'Amanda',
-      items: [
-        { id: 'i12', name: 'Vanilla Latte', qty: 2, price: 56000 },
-        { id: 'i13', name: 'Cinnamon Roll', qty: 1, price: 20000 },
-      ],
-      subtotal: 76000,
-      tax: 0,
-      fee: 0,
-      discount: 0,
-      total: 76000,
-      notes: '-',
-      paymentMethod: 'GoPay',
-    },
-    {
-      id: '8',
-      orderNumber: 'ORD-03',
-      dateTime: '14 Okt 2026, 08:40',
-      status: 'Selesai',
-      paymentStatus: 'Lunas',
-      diningType: 'Dine-in',
-      channel: 'Kasir',
-      tableOrCustomer: 'Meja 08',
-      items: [
-        { id: 'i14', name: 'Es Kopi Susu', qty: 2, price: 58000 },
-      ],
-      subtotal: 58000,
-      tax: 0,
-      fee: 0,
-      discount: 0,
-      total: 58000,
-      notes: '-',
-      paymentMethod: 'Debit BCA',
-    },
-    {
-      id: '9',
-      orderNumber: 'ORD-02',
-      dateTime: '14 Okt 2026, 08:35',
-      status: 'Selesai',
-      paymentStatus: 'Lunas',
-      diningType: 'Takeaway',
-      channel: 'Kasir',
-      tableOrCustomer: 'Pelanggan umum',
-      items: [
-        { id: 'i15', name: 'Cappuccino', qty: 2, price: 60000 },
-        { id: 'i16', name: 'Brownies', qty: 2, price: 32000 },
-      ],
-      subtotal: 92000,
-      tax: 0,
-      fee: 0,
-      discount: 0,
-      total: 92000,
-      notes: 'Bungkus terpisah',
-      paymentMethod: 'QRIS',
-    },
-    {
-      id: '10',
-      orderNumber: 'ORD-01',
-      dateTime: '14 Okt 2026, 08:30',
-      status: 'Selesai',
-      paymentStatus: 'Lunas',
-      diningType: 'Dine-in',
-      channel: 'QR Order',
-      tableOrCustomer: 'Meja 09',
-      items: [
-        { id: 'i17', name: 'Kopi Susu Gula Aren', qty: 2, price: 56000 },
-        { id: 'i18', name: 'Waffle Ice Cream', qty: 1, price: 20000 },
-      ],
-      subtotal: 76000,
-      tax: 0,
-      fee: 0,
-      discount: 0,
-      total: 76000,
-      notes: '-',
-      paymentMethod: 'QRIS',
-    },
-  ];
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
-  const isEmpty = previewMode === 'empty';
+  // Helper to map DB Order to DetailedOrder
+  const mapDbOrderToDetailedOrder = useCallback((ord: any): DetailedOrder => {
+    // Status mapping
+    let mappedStatus: DetailedOrder['status'] = 'Baru';
+    switch (ord.status) {
+      case 'PENDING':
+        mappedStatus = 'Baru';
+        break;
+      case 'PREPARING':
+        mappedStatus = 'Diproses';
+        break;
+      case 'READY':
+        mappedStatus = 'Siap diambil';
+        break;
+      case 'COMPLETED':
+        mappedStatus = 'Selesai';
+        break;
+      case 'CANCELLED':
+        mappedStatus = 'Dibatalkan';
+        break;
+      default:
+        mappedStatus = 'Baru';
+    }
+
+    // Payment status mapping
+    const hasSuccessfulPayment = Array.isArray(ord.payments) && ord.payments.some((p: any) => p.status === 'SUCCESS');
+    let mappedPaymentStatus: DetailedOrder['paymentStatus'] = 'Menunggu';
+    if (hasSuccessfulPayment) {
+      mappedPaymentStatus = 'Lunas';
+    } else if (ord.status === 'CANCELLED') {
+      mappedPaymentStatus = 'Dibatalkan';
+    }
+
+    // Dining type mapping
+    let diningType: DetailedOrder['diningType'] = 'Dine-in';
+    if (ord.channel === 'TAKEAWAY') {
+      diningType = 'Takeaway';
+    } else if (ord.channel === 'DELIVERY') {
+      diningType = 'Delivery';
+    }
+
+    // Channel mapping
+    let channel: DetailedOrder['channel'] = 'Kasir';
+    if (ord.source === 'QR' || ord.channel === 'QR_ORDER') {
+      channel = 'QR Order';
+    } else if (ord.channel === 'GrabFood') {
+      channel = 'GrabFood';
+    } else if (ord.channel === 'ShopeeFood') {
+      channel = 'ShopeeFood';
+    } else if (ord.channel === 'GoFood') {
+      channel = 'GoFood';
+    }
+
+    // Table or Customer string
+    let tableOrCustomer = 'Pelanggan Umum';
+    if (ord.table?.name) {
+      const raw = ord.table.name.trim();
+      tableOrCustomer = raw.toLowerCase().startsWith('meja') ? raw : `Meja ${raw}`;
+    } else if (ord.customer_name) {
+      tableOrCustomer = ord.customer_name;
+    }
+
+    // Items mapping
+    const rawItems = ord.order_items || ord.orderItems || [];
+    const items = rawItems.map((it: any) => ({
+      id: it.id,
+      name: it.product_name || it.product?.name || 'Item Pesanan',
+      qty: Number(it.quantity || 1),
+      price: Number(it.subtotal || (Number(it.quantity || 1) * Number(it.unit_price || 0))),
+      notes: it.notes || undefined,
+      variant: it.variant || undefined,
+    }));
+
+    // Payment method string
+    const firstPayment = ord.payments?.[0];
+    let paymentMethod = '-';
+    if (firstPayment?.method === 'QRIS') {
+      paymentMethod = 'QRIS';
+    } else if (firstPayment?.method === 'CASH') {
+      paymentMethod = 'Tunai (Kasir)';
+    } else if (firstPayment?.method === 'EDC') {
+      paymentMethod = 'EDC / Kartu';
+    } else if (firstPayment?.method) {
+      paymentMethod = firstPayment.method;
+    }
+
+    return {
+      id: ord.id,
+      orderNumber: ord.order_number,
+      dateTime: formatDateTime(ord.created_at, 'id-ID'),
+      status: mappedStatus,
+      paymentStatus: mappedPaymentStatus,
+      diningType,
+      channel,
+      tableOrCustomer,
+      items,
+      subtotal: Number(ord.subtotal || 0),
+      tax: Number(ord.tax_amount || 0),
+      fee: Number(ord.service_charge || 0),
+      discount: Number(ord.discount_amount || 0),
+      total: Number(ord.total_amount || 0),
+      notes: ord.notes || '-',
+      paymentMethod,
+    };
+  }, []);
+
+  // Fetch real orders from database
+  const fetchOrders = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
+    else setRefreshing(true);
+
+    try {
+      const res: any = await posService.getOrders({ per_page: 50 });
+      const rawList = res.data?.data || res.data || [];
+      const mapped = rawList.map(mapDbOrderToDetailedOrder);
+      setOrders(mapped);
+    } catch (err: any) {
+      console.error('Failed to fetch orders:', err);
+      showToast('Gagal memuat pesanan dari database.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [mapDbOrderToDetailedOrder]);
+
+  // Load orders on mount and store change
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders, activeStore]);
+
+  // Status counts for tabs
+  const statusCounts = useMemo(() => {
+    const counts = {
+      Semua: orders.length,
+      Baru: 0,
+      Diproses: 0,
+      'Siap diambil': 0,
+      Selesai: 0,
+      Dibatalkan: 0,
+    };
+    orders.forEach((o) => {
+      if (counts[o.status] !== undefined) {
+        counts[o.status]++;
+      }
+    });
+    return counts;
+  }, [orders]);
 
   // Filtered orders list
   const filteredOrders = useMemo(() => {
-    if (isEmpty) return [];
-
-    return mockOrders.filter((ord) => {
+    return orders.filter((ord) => {
       // Tab status filter
       if (selectedStatusTab !== 'Semua' && ord.status !== selectedStatusTab) {
         return false;
@@ -312,8 +236,7 @@ export default function OrdersPage() {
       return true;
     });
   }, [
-    isEmpty,
-    mockOrders,
+    orders,
     selectedStatusTab,
     selectedChannel,
     selectedType,
@@ -356,6 +279,39 @@ export default function OrdersPage() {
     }
   };
 
+  // Status transition handlers from OrderDetailsDrawer
+  const handleAcceptOrder = async (orderId: string) => {
+    try {
+      // If status is 'Baru', move to 'PREPARING'
+      // If status is 'Diproses', move to 'READY'
+      // If status is 'Siap diambil', move to 'COMPLETED'
+      let nextStatus = 'PREPARING';
+      if (selectedOrder?.status === 'Diproses') {
+        nextStatus = 'READY';
+      } else if (selectedOrder?.status === 'Siap diambil') {
+        nextStatus = 'COMPLETED';
+      }
+
+      await posService.updateOrderStatus(orderId, nextStatus);
+      showToast(`Status pesanan ${selectedOrder?.orderNumber} berhasil diperbarui.`);
+      setDrawerOpen(false);
+      await fetchOrders(true);
+    } catch (err: any) {
+      showToast('Gagal memperbarui status pesanan.');
+    }
+  };
+
+  const handleRejectOrder = async (orderId: string) => {
+    try {
+      await posService.cancelOrder(orderId, 'Dibatalkan oleh kasir/manajemen');
+      showToast(`Pesanan ${selectedOrder?.orderNumber} telah dibatalkan.`);
+      setDrawerOpen(false);
+      await fetchOrders(true);
+    } catch (err: any) {
+      showToast('Gagal membatalkan pesanan.');
+    }
+  };
+
   // Column definitions for the reusable DataTable
   const columns: ColumnDef<DetailedOrder>[] = [
     {
@@ -372,7 +328,7 @@ export default function OrdersPage() {
       header: 'Waktu',
       render: (ord) => (
         <span className="text-neutral-500 whitespace-nowrap">
-          {ord.dateTime.split(', ')[1] || '09:40'}
+          {ord.dateTime.split(', ')[1] || ord.dateTime}
         </span>
       ),
     },
@@ -475,8 +431,16 @@ export default function OrdersPage() {
 
   return (
     <div className="p-5 sm:p-6 lg:p-7 space-y-5 max-w-[1520px] mx-auto animate-in fade-in duration-200">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-20 right-6 z-50 bg-neutral-900 text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 border border-neutral-700 animate-in fade-in slide-in-from-top-2">
+          <Check className="size-4 text-emerald-400" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* ======================================================== */}
-      {/* 1. PAGE HEADER (Screenshot 3 & 4)                        */}
+      {/* 1. PAGE HEADER                                           */}
       {/* ======================================================== */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -484,43 +448,47 @@ export default function OrdersPage() {
             Pesanan
           </h1>
           <p className="text-xs text-[#6B7280] mt-0.5">
-            Pantau dan kelola semua pesanan dari berbagai channel dalam satu tempat
+            Pantau dan kelola semua pesanan langsung dari database {activeStore?.name ? `(${activeStore.name})` : ''}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Mode Switcher: Populated vs Empty preview for QA/User */}
+          {/* Refresh Button */}
           <Button
             variant="secondary"
             size="sm"
-            leftIcon={<Eye className="size-3.5 text-[#2563EB]" />}
-            onClick={() => setPreviewMode(isEmpty ? 'populated' : 'empty')}
+            leftIcon={<RefreshCw className={`size-3.5 ${refreshing ? 'animate-spin text-orange-600' : ''}`} />}
+            onClick={() => fetchOrders(true)}
+            disabled={refreshing}
           >
-            Mode: {isEmpty ? 'Data Kosong' : 'Data Terisi'}
+            Muat Ulang
           </Button>
 
-          {/* Auto Update indicator badge matching Screenshot 3 */}
+          {/* Auto Update indicator badge */}
           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-400/80 bg-emerald-50 text-emerald-700 text-xs font-semibold shadow-2xs">
             <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Auto Update</span>
+            <span>Database Terhubung</span>
           </div>
         </div>
       </div>
 
       {/* ======================================================== */}
-      {/* 2. FILTER TABS (Screenshot 3)                            */}
+      {/* 2. FILTER TABS                                           */}
       {/* ======================================================== */}
       <div className="flex items-center border-b border-neutral-200 gap-1 overflow-x-auto text-xs no-scrollbar">
         <button
           type="button"
           onClick={() => setSelectedStatusTab('Semua')}
-          className={`px-5 py-2.5 font-bold transition-all relative ${
+          className={`px-4 py-2.5 font-bold transition-all relative flex items-center gap-1.5 ${
             selectedStatusTab === 'Semua'
               ? 'text-[#FF5C38]'
               : 'text-neutral-500 hover:text-neutral-800'
           }`}
         >
           <span>Semua</span>
+          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-neutral-100 font-semibold text-neutral-600">
+            {statusCounts.Semua}
+          </span>
           {selectedStatusTab === 'Semua' && (
             <div className="absolute inset-x-0 bottom-0 h-0.5 bg-[#FF5C38]" />
           )}
@@ -537,6 +505,11 @@ export default function OrdersPage() {
         >
           <Sparkles className="size-3.5" />
           <span>Baru</span>
+          {statusCounts.Baru > 0 && (
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-rose-100 text-rose-700 font-bold">
+              {statusCounts.Baru}
+            </span>
+          )}
           {selectedStatusTab === 'Baru' && (
             <div className="absolute inset-x-0 bottom-0 h-0.5 bg-[#FF5C38]" />
           )}
@@ -553,6 +526,11 @@ export default function OrdersPage() {
         >
           <Play className="size-3 fill-current ml-0.5" />
           <span>Diproses</span>
+          {statusCounts.Diproses > 0 && (
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 font-bold">
+              {statusCounts.Diproses}
+            </span>
+          )}
           {selectedStatusTab === 'Diproses' && (
             <div className="absolute inset-x-0 bottom-0 h-0.5 bg-[#FF5C38]" />
           )}
@@ -569,6 +547,11 @@ export default function OrdersPage() {
         >
           <ShoppingBag className="size-3.5" />
           <span>Siap diambil</span>
+          {statusCounts['Siap diambil'] > 0 && (
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-blue-100 text-blue-800 font-bold">
+              {statusCounts['Siap diambil']}
+            </span>
+          )}
           {selectedStatusTab === 'Siap diambil' && (
             <div className="absolute inset-x-0 bottom-0 h-0.5 bg-[#FF5C38]" />
           )}
@@ -585,6 +568,9 @@ export default function OrdersPage() {
         >
           <Check className="size-3.5 stroke-[2.5]" />
           <span>Selesai</span>
+          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-neutral-100 text-neutral-600 font-semibold">
+            {statusCounts.Selesai}
+          </span>
           {selectedStatusTab === 'Selesai' && (
             <div className="absolute inset-x-0 bottom-0 h-0.5 bg-[#FF5C38]" />
           )}
@@ -601,6 +587,11 @@ export default function OrdersPage() {
         >
           <X className="size-3.5 stroke-[2.5]" />
           <span>Dibatalkan</span>
+          {statusCounts.Dibatalkan > 0 && (
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-neutral-200 text-neutral-700 font-medium">
+              {statusCounts.Dibatalkan}
+            </span>
+          )}
           {selectedStatusTab === 'Dibatalkan' && (
             <div className="absolute inset-x-0 bottom-0 h-0.5 bg-[#FF5C38]" />
           )}
@@ -608,16 +599,10 @@ export default function OrdersPage() {
       </div>
 
       {/* ======================================================== */}
-      {/* 3. FILTER CONTROLS BAR (Screenshot 3)                    */}
+      {/* 3. FILTER CONTROLS BAR                                   */}
       {/* ======================================================== */}
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Date Picker */}
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-neutral-200/90 shadow-2xs font-semibold text-neutral-800 cursor-pointer hover:bg-neutral-50">
-            <span>Hari ini (14/10/2026)</span>
-            <Calendar className="size-3.5 text-neutral-400" />
-          </div>
-
           {/* Channel Dropdown */}
           <Select
             value={selectedChannel}
@@ -663,7 +648,7 @@ export default function OrdersPage() {
         {/* Search Input */}
         <div className="min-w-[260px] lg:w-72">
           <SearchInput
-            placeholder="Cari nomor pesanan, nama pel..."
+            placeholder="Cari nomor pesanan, nama meja/pelanggan..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onClear={() => setSearchQuery('')}
@@ -675,35 +660,36 @@ export default function OrdersPage() {
       {/* ======================================================== */}
       {/* 4. ORDERS DATA TABLE (Reused Global DataTable)           */}
       {/* ======================================================== */}
-      <DataTable
-        columns={columns}
-        data={filteredOrders}
-        keyExtractor={(item) => item.id}
-        selectable
-        selectedIds={selectedRowIds}
-        onToggleSelect={(id) => handleSelectRow(id)}
-        onToggleSelectAll={() => handleSelectAll(selectedRowIds.length !== filteredOrders.length)}
-        onRowClick={handleRowClick}
-        emptyTitle="BELUM ADA PESANAN"
-        emptyDescription="Pesanan yang masuk akan muncul di sini."
-        entityName="pesanan"
-      />
+      {loading ? (
+        <div className="p-16 bg-white rounded-2xl border border-neutral-200 text-center flex flex-col items-center justify-center space-y-3">
+          <Loader2 className="size-8 text-[#FF5C38] animate-spin" />
+          <p className="text-xs font-semibold text-neutral-600">Memuat daftar pesanan dari database...</p>
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={filteredOrders}
+          keyExtractor={(item) => item.id}
+          selectable
+          selectedIds={selectedRowIds}
+          onToggleSelect={(id) => handleSelectRow(id)}
+          onToggleSelectAll={() => handleSelectAll(selectedRowIds.length !== filteredOrders.length)}
+          onRowClick={handleRowClick}
+          emptyTitle="BELUM ADA PESANAN"
+          emptyDescription="Pesanan yang masuk dari kasir atau QR meja akan muncul otomatis di sini."
+          entityName="pesanan"
+        />
+      )}
 
       {/* ======================================================== */}
-      {/* 6. SLIDE-OVER ORDER DETAILS DRAWER (Screenshots 1 & 2)   */}
+      {/* 5. SLIDE-OVER ORDER DETAILS DRAWER                       */}
       {/* ======================================================== */}
       <OrderDetailsDrawer
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         order={selectedOrder}
-        onAccept={(id) => {
-          alert(`Pesanan ${selectedOrder?.orderNumber} diterima!`);
-          setDrawerOpen(false);
-        }}
-        onReject={(id) => {
-          alert(`Pesanan ${selectedOrder?.orderNumber} ditolak.`);
-          setDrawerOpen(false);
-        }}
+        onAccept={handleAcceptOrder}
+        onReject={handleRejectOrder}
         onPrev={handlePrevOrder}
         onNext={handleNextOrder}
       />

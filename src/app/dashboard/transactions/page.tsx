@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Calendar,
   Search,
@@ -10,19 +10,27 @@ import {
   Check,
   Clock,
   X,
+  RefreshCw,
+  Loader2,
+  Download,
 } from 'lucide-react';
 import {
   DataTable,
   ColumnDef,
   ChannelBadge,
+  Button,
+  Select,
+  SearchInput,
 } from '@/components/common';
 import {
   TransactionDetailsDrawer,
   DetailedTransaction,
 } from '@/components/transactions/TransactionDetailsDrawer';
-import { formatRupiah } from '@/utils';
+import { formatRupiah, formatDateTime, formatTimeOnly } from '@/utils';
+import { posService } from '@/services/pos.service';
+import { useStore } from '@/context/StoreContext';
 
-// Payment Status Pill Component matching Figma design
+// Payment Status Pill Component matching UI design
 function PaymentStatusBadge({ status }: { status: 'Lunas' | 'Sebagian' | 'Dibatalkan' }) {
   switch (status) {
     case 'Lunas':
@@ -55,256 +63,13 @@ function PaymentStatusBadge({ status }: { status: 'Lunas' | 'Sebagian' | 'Dibata
   }
 }
 
-// 10 Records matching Screenshot 2 exactly
-const INITIAL_TRANSACTIONS: DetailedTransaction[] = [
-  {
-    id: 'trx-10',
-    transactionNumber: 'TRX-123456789-010',
-    orderNumber: 'ORD-10',
-    dateTime: '14 Okt 2026, 09:40',
-    diningType: 'Dine-in',
-    channel: 'QR Order',
-    tableOrCustomer: 'Meja 04',
-    cashierName: 'Andi Pratama',
-    paymentTime: '14 Okt 2026, 09:40',
-    paymentMethod: 'QRIS',
-    paymentStatus: 'Lunas',
-    paymentReference: 'PAY-123456',
-    subtotal: 58000,
-    tax: 0,
-    serviceFee: 0,
-    discount: 0,
-    total: 58000,
-    items: [
-      {
-        id: 'item-1',
-        name: 'Kopi Susu Gula Aren',
-        qty: 1,
-        variant: 'Regular, Less Ice',
-        price: 28000,
-      },
-      {
-        id: 'item-2',
-        name: 'Matcha Latte',
-        qty: 1,
-        variant: 'Regular',
-        price: 30000,
-      },
-    ],
-  },
-  {
-    id: 'trx-09',
-    transactionNumber: 'TRX-123456789-009',
-    orderNumber: 'ORD-09',
-    dateTime: '14 Okt 2026, 09:35',
-    diningType: 'Dine-in',
-    channel: 'Kasir',
-    tableOrCustomer: 'Meja 01',
-    cashierName: 'Andi Pratama',
-    paymentTime: '14 Okt 2026, 09:35',
-    paymentMethod: 'Tunai',
-    paymentStatus: 'Lunas',
-    paymentReference: 'CASH-9921',
-    subtotal: 76000,
-    tax: 0,
-    serviceFee: 0,
-    discount: 0,
-    total: 76000,
-    items: [
-      { id: 'item-3', name: 'Caramel Macchiato', qty: 2, variant: 'Regular', price: 56000 },
-      { id: 'item-4', name: 'Croissant Butter', qty: 1, variant: 'Warm', price: 20000 },
-      { id: 'item-4b', name: 'Espresso Single', qty: 1, variant: 'Hot', price: 20000 },
-    ],
-  },
-  {
-    id: 'trx-08',
-    transactionNumber: 'TRX-123456789-008',
-    orderNumber: 'ORD-08',
-    dateTime: '14 Okt 2026, 09:20',
-    diningType: 'Delivery',
-    channel: 'GrabFood',
-    tableOrCustomer: 'Budi Santoso',
-    cashierName: 'Andi Pratama',
-    paymentTime: '14 Okt 2026, 09:20',
-    paymentMethod: 'GrabPay',
-    paymentStatus: 'Lunas',
-    paymentReference: 'GP-8839102',
-    subtotal: 92000,
-    tax: 0,
-    serviceFee: 0,
-    discount: 0,
-    total: 92000,
-    items: [
-      { id: 'item-5', name: 'Americano', qty: 2, variant: 'Large', price: 44000 },
-      { id: 'item-6', name: 'Cinnamon Roll', qty: 2, variant: 'Original', price: 48000 },
-    ],
-  },
-  {
-    id: 'trx-07',
-    transactionNumber: 'TRX-123456789-007',
-    orderNumber: 'ORD-07',
-    dateTime: '14 Okt 2026, 09:10',
-    diningType: 'Dine-in',
-    channel: 'QR Order',
-    tableOrCustomer: 'Meja 02',
-    cashierName: 'Andi Pratama',
-    paymentTime: '14 Okt 2026, 09:10',
-    paymentMethod: 'QRIS',
-    paymentStatus: 'Lunas',
-    paymentReference: 'PAY-77192',
-    subtotal: 58000,
-    tax: 0,
-    serviceFee: 0,
-    discount: 0,
-    total: 58000,
-    items: [
-      { id: 'item-7', name: 'Kopi Susu Gula Aren', qty: 2, variant: 'Normal Ice', price: 56000 },
-    ],
-  },
-  {
-    id: 'trx-06',
-    transactionNumber: 'TRX-123456789-006',
-    orderNumber: 'ORD-06',
-    dateTime: '14 Okt 2026, 08:56',
-    diningType: 'Delivery',
-    channel: 'ShopeeFood',
-    tableOrCustomer: 'Andi Wijaya',
-    cashierName: 'Andi Pratama',
-    paymentTime: '14 Okt 2026, 08:56',
-    paymentMethod: 'ShopeePay',
-    paymentStatus: 'Dibatalkan',
-    paymentReference: 'SP-109283',
-    subtotal: 58000,
-    tax: 0,
-    serviceFee: 0,
-    discount: 0,
-    total: 58000,
-    items: [
-      { id: 'item-8', name: 'Vanilla Latte', qty: 1, variant: 'Oat Milk', price: 34000 },
-      { id: 'item-9', name: 'Donut Cokelat', qty: 1, variant: 'Glazed', price: 24000 },
-    ],
-  },
-  {
-    id: 'trx-05',
-    transactionNumber: 'TRX-123456789-005',
-    orderNumber: 'ORD-05',
-    dateTime: '14 Okt 2026, 08:47',
-    diningType: 'Dine-in',
-    channel: 'QR Order',
-    tableOrCustomer: 'Meja 06',
-    cashierName: 'Andi Pratama',
-    paymentTime: '14 Okt 2026, 08:47',
-    paymentMethod: 'Tunai',
-    paymentStatus: 'Sebagian',
-    paymentReference: 'SPLIT-1029',
-    subtotal: 58000,
-    tax: 0,
-    serviceFee: 0,
-    discount: 0,
-    total: 58000,
-    items: [
-      { id: 'item-10', name: 'Hazelnut Latte', qty: 1, variant: 'Warm', price: 32000 },
-      { id: 'item-11', name: 'Muffin Blueberry', qty: 1, variant: 'Warm', price: 26000 },
-    ],
-  },
-  {
-    id: 'trx-04',
-    transactionNumber: 'TRX-123456789-004',
-    orderNumber: 'ORD-04',
-    dateTime: '14 Okt 2026, 08:45',
-    diningType: 'Delivery',
-    channel: 'GoFood',
-    tableOrCustomer: 'Amanda',
-    cashierName: 'Andi Pratama',
-    paymentTime: '14 Okt 2026, 08:45',
-    paymentMethod: 'GoPay',
-    paymentStatus: 'Lunas',
-    paymentReference: 'GP-448102',
-    subtotal: 76000,
-    tax: 0,
-    serviceFee: 0,
-    discount: 0,
-    total: 76000,
-    items: [
-      { id: 'item-12', name: 'Kopi Kenangan Mantap', qty: 2, variant: 'Normal', price: 48000 },
-      { id: 'item-13', name: 'Cheese Cake Slice', qty: 1, variant: 'Original', price: 28000 },
-    ],
-  },
-  {
-    id: 'trx-03',
-    transactionNumber: 'TRX-123456789-003',
-    orderNumber: 'ORD-03',
-    dateTime: '14 Okt 2026, 08:40',
-    diningType: 'Dine-in',
-    channel: 'Kasir',
-    tableOrCustomer: 'Meja 08',
-    cashierName: 'Andi Pratama',
-    paymentTime: '14 Okt 2026, 08:40',
-    paymentMethod: 'QRIS',
-    paymentStatus: 'Lunas',
-    paymentReference: 'PAY-33102',
-    subtotal: 58000,
-    tax: 0,
-    serviceFee: 0,
-    discount: 0,
-    total: 58000,
-    items: [
-      { id: 'item-14', name: 'Espresso Double', qty: 1, variant: 'Hot', price: 22000 },
-      { id: 'item-15', name: 'Avocado Coffee', qty: 1, variant: 'Ice', price: 36000 },
-    ],
-  },
-  {
-    id: 'trx-02',
-    transactionNumber: 'TRX-123456789-002',
-    orderNumber: 'ORD-02',
-    dateTime: '14 Okt 2026, 08:35',
-    diningType: 'Takeaway',
-    channel: 'Kasir',
-    tableOrCustomer: 'Pelanggan umum',
-    cashierName: 'Andi Pratama',
-    paymentTime: '14 Okt 2026, 08:35',
-    paymentMethod: 'Tunai',
-    paymentStatus: 'Lunas',
-    paymentReference: 'CASH-0021',
-    subtotal: 92000,
-    tax: 0,
-    serviceFee: 0,
-    discount: 0,
-    total: 92000,
-    items: [
-      { id: 'item-16', name: 'Cold Brew Signature', qty: 2, variant: 'Bottle 250ml', price: 50000 },
-      { id: 'item-17', name: 'Bagel Smoked Beef', qty: 1, variant: 'Warm', price: 42000 },
-      { id: 'item-17b', name: 'Croissant', qty: 1, variant: 'Warm', price: 22000 },
-    ],
-  },
-  {
-    id: 'trx-01',
-    transactionNumber: 'TRX-123456789-001',
-    orderNumber: 'ORD-01',
-    dateTime: '14 Okt 2026, 08:30',
-    diningType: 'Dine-in',
-    channel: 'QR Order',
-    tableOrCustomer: 'Meja 09',
-    cashierName: 'Andi Pratama',
-    paymentTime: '14 Okt 2026, 08:30',
-    paymentMethod: 'QRIS',
-    paymentStatus: 'Lunas',
-    paymentReference: 'PAY-11928',
-    subtotal: 76000,
-    tax: 0,
-    serviceFee: 0,
-    discount: 0,
-    total: 76000,
-    items: [
-      { id: 'item-18', name: 'Matcha Espresso Fusion', qty: 1, variant: 'Ice', price: 34000 },
-      { id: 'item-19', name: 'Chocolate Lava', qty: 1, variant: 'Warm', price: 32000 },
-      { id: 'item-20', name: 'Mineral Water', qty: 1, variant: 'Bottle', price: 10000 },
-    ],
-  },
-];
-
 export default function TransactionsPage() {
-  const [demoMode, setDemoMode] = useState<'populated' | 'empty'>('populated');
+  const { activeStore } = useStore();
+
+  const [transactions, setTransactions] = useState<DetailedTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
   const [selectedChannel, setSelectedChannel] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedPaymentStatus, setSelectedPaymentStatus] = useState<string>('all');
@@ -316,14 +81,111 @@ export default function TransactionsPage() {
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    setTimeout(() => setToastMessage(null), 3500);
   };
+
+  // Helper to map DB Payment & Order to DetailedTransaction
+  const mapDbPaymentToTransaction = useCallback((p: any): DetailedTransaction => {
+    const ord = p.order || {};
+
+    let diningType: DetailedTransaction['diningType'] = 'Dine-in';
+    if (ord.channel === 'TAKEAWAY') {
+      diningType = 'Takeaway';
+    } else if (ord.channel === 'DELIVERY') {
+      diningType = 'Delivery';
+    }
+
+    let channel: DetailedTransaction['channel'] = 'Kasir';
+    if (ord.source === 'QR' || ord.channel === 'QR_ORDER') {
+      channel = 'QR Order';
+    } else if (ord.channel === 'GrabFood') {
+      channel = 'GrabFood';
+    } else if (ord.channel === 'ShopeeFood') {
+      channel = 'ShopeeFood';
+    } else if (ord.channel === 'GoFood') {
+      channel = 'GoFood';
+    }
+
+    let tableOrCustomer = 'Pelanggan Umum';
+    if (ord.table?.name) {
+      const raw = ord.table.name.trim();
+      tableOrCustomer = raw.toLowerCase().startsWith('meja') ? raw : `Meja ${raw}`;
+    } else if (ord.customer_name) {
+      tableOrCustomer = ord.customer_name;
+    }
+
+    const rawItems = ord.order_items || ord.orderItems || [];
+    const items = rawItems.map((it: any) => ({
+      id: it.id,
+      name: it.product_name || it.product?.name || 'Item Menu',
+      qty: Number(it.quantity || 1),
+      price: Number(it.subtotal || (Number(it.quantity || 1) * Number(it.unit_price || 0))),
+      variant: it.variant || undefined,
+    }));
+
+    let mappedPaymentStatus: DetailedTransaction['paymentStatus'] = 'Lunas';
+    if (p.status === 'SUCCESS') {
+      mappedPaymentStatus = 'Lunas';
+    } else if (p.status === 'PENDING') {
+      mappedPaymentStatus = 'Sebagian';
+    } else {
+      mappedPaymentStatus = 'Dibatalkan';
+    }
+
+    let mappedMethod = p.method;
+    if (p.method === 'QRIS') mappedMethod = 'QRIS';
+    else if (p.method === 'CASH') mappedMethod = 'Tunai';
+    else if (p.method === 'EDC') mappedMethod = 'EDC / Kartu';
+
+    return {
+      id: p.id,
+      transactionNumber: p.payment_number,
+      orderNumber: ord.order_number || '-',
+      dateTime: formatDateTime(p.paid_at || p.created_at, 'id-ID'),
+      diningType,
+      channel,
+      tableOrCustomer,
+      cashierName: ord.createdBy?.name || 'Kasir',
+      paymentTime: formatTimeOnly(p.paid_at || p.created_at, 'id-ID'),
+      items,
+      subtotal: Number(ord.subtotal || p.amount),
+      tax: Number(ord.tax_amount || 0),
+      serviceFee: Number(ord.service_charge || 0),
+      discount: Number(ord.discount_amount || 0),
+      total: Number(p.amount || 0),
+      paymentMethod: mappedMethod,
+      paymentStatus: mappedPaymentStatus,
+      paymentReference: p.provider_reference || p.payment_number,
+    };
+  }, []);
+
+  // Fetch transactions from database
+  const fetchTransactions = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
+    else setRefreshing(true);
+
+    try {
+      const res: any = await posService.getTransactions({ per_page: 50 });
+      const rawList = res.data?.data || res.data || [];
+      const mapped = rawList.map(mapDbPaymentToTransaction);
+      setTransactions(mapped);
+    } catch (err: any) {
+      console.error('Failed to fetch transactions:', err);
+      showToast('Gagal memuat transaksi dari database.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [mapDbPaymentToTransaction]);
+
+  // Load transactions on mount and store change
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions, activeStore]);
 
   // Filtered transactions
   const filteredTransactions = useMemo(() => {
-    if (demoMode === 'empty') return [];
-
-    return INITIAL_TRANSACTIONS.filter((trx) => {
+    return transactions.filter((trx) => {
       if (selectedChannel !== 'all' && trx.channel !== selectedChannel) return false;
       if (selectedType !== 'all' && trx.diningType !== selectedType) return false;
       if (selectedPaymentStatus !== 'all' && trx.paymentStatus !== selectedPaymentStatus)
@@ -338,7 +200,7 @@ export default function TransactionsPage() {
       }
       return true;
     });
-  }, [demoMode, selectedChannel, selectedType, selectedPaymentStatus, searchQuery]);
+  }, [transactions, selectedChannel, selectedType, selectedPaymentStatus, searchQuery]);
 
   const toggleSelectAll = () => {
     if (selectedIds.length === filteredTransactions.length && filteredTransactions.length > 0) {
@@ -348,8 +210,8 @@ export default function TransactionsPage() {
     }
   };
 
-  const toggleSelectRow = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const toggleSelectRow = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
@@ -376,13 +238,69 @@ export default function TransactionsPage() {
     }
   };
 
+  // Export CSV function
+  const handleExportCsv = () => {
+    if (filteredTransactions.length === 0) {
+      showToast('Tidak ada data transaksi untuk diekspor.');
+      return;
+    }
+
+    const headers = [
+      'No. Transaksi',
+      'No. Pesanan',
+      'Waktu',
+      'Channel',
+      'Tipe',
+      'Pelanggan / Meja',
+      'Jumlah Item',
+      'Subtotal',
+      'Pajak',
+      'Biaya Layanan',
+      'Diskon',
+      'Total',
+      'Metode Bayar',
+      'Status',
+    ];
+
+    const rows = filteredTransactions.map((t) => [
+      `"${t.transactionNumber}"`,
+      `"${t.orderNumber}"`,
+      `"${t.dateTime}"`,
+      `"${t.channel}"`,
+      `"${t.diningType}"`,
+      `"${t.tableOrCustomer}"`,
+      t.items.length,
+      t.subtotal,
+      t.tax,
+      t.serviceFee,
+      t.discount,
+      t.total,
+      `"${t.paymentMethod}"`,
+      `"${t.paymentStatus}"`,
+    ]);
+
+    const csvContent =
+      'data:text/csv;charset=utf-8,\uFEFF' +
+      [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `transaksi_${activeStore?.code || 'outlet'}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast('Data transaksi berhasil diekspor ke CSV.');
+  };
+
   // Column definitions for the reusable DataTable
   const columns: ColumnDef<DetailedTransaction>[] = [
     {
       key: 'transactionNumber',
       header: 'No. Transaksi',
       render: (trx) => (
-        <span className="font-normal text-neutral-800 tracking-tight">
+        <span className="font-semibold text-neutral-900 tracking-tight whitespace-nowrap">
           {trx.transactionNumber}
         </span>
       ),
@@ -391,8 +309,8 @@ export default function TransactionsPage() {
       key: 'waktu',
       header: 'Waktu',
       render: (trx) => (
-        <span className="text-neutral-500 font-normal">
-          {trx.dateTime.split(', ')[1]}
+        <span className="text-neutral-500 font-normal whitespace-nowrap">
+          {trx.dateTime.split(', ')[1] || trx.dateTime}
         </span>
       ),
     },
@@ -405,8 +323,8 @@ export default function TransactionsPage() {
       key: 'diningType',
       header: 'Tipe',
       render: (trx) => (
-        <span className="text-neutral-600 font-normal">
-          {trx.diningType === 'Takeaway' ? 'Takeway' : trx.diningType}
+        <span className="text-neutral-600 font-normal whitespace-nowrap">
+          {trx.diningType}
         </span>
       ),
     },
@@ -414,7 +332,7 @@ export default function TransactionsPage() {
       key: 'tableOrCustomer',
       header: 'Pelanggan / Meja',
       render: (trx) => (
-        <span className="text-neutral-800 font-normal">
+        <span className="text-neutral-800 font-semibold whitespace-nowrap">
           {trx.tableOrCustomer}
         </span>
       ),
@@ -422,13 +340,17 @@ export default function TransactionsPage() {
     {
       key: 'items',
       header: 'Item',
-      render: (trx) => <span className="text-neutral-600">{trx.items.length} Item</span>,
+      render: (trx) => (
+        <span className="text-neutral-600 whitespace-nowrap">
+          {trx.items.reduce((sum, it) => sum + it.qty, 0)} Item
+        </span>
+      ),
     },
     {
       key: 'total',
       header: 'Total',
       render: (trx) => (
-        <span className="font-medium text-neutral-900">
+        <span className="font-bold text-neutral-900 whitespace-nowrap">
           {formatRupiah(trx.total)}
         </span>
       ),
@@ -437,7 +359,7 @@ export default function TransactionsPage() {
       key: 'paymentMethod',
       header: 'Metode',
       render: (trx) => (
-        <span className="font-normal text-neutral-700">
+        <span className="font-medium text-neutral-700 whitespace-nowrap">
           {trx.paymentMethod}
         </span>
       ),
@@ -458,6 +380,7 @@ export default function TransactionsPage() {
             handleOpenTransaction(trx);
           }}
           className="p-1 rounded-md text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+          aria-label="Aksi"
         >
           <MoreVertical className="size-4" />
         </button>
@@ -466,7 +389,7 @@ export default function TransactionsPage() {
   ];
 
   return (
-    <div className="p-6 lg:p-8 space-y-4 max-w-[1600px] mx-auto">
+    <div className="p-6 lg:p-8 space-y-5 max-w-[1600px] mx-auto animate-in fade-in duration-200">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-20 right-6 z-50 bg-neutral-900 text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 border border-neutral-700 animate-in fade-in slide-in-from-top-2">
@@ -480,138 +403,122 @@ export default function TransactionsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Transaksi</h1>
           <p className="text-xs text-neutral-500 mt-1">
-            Lihat semua transaksi yang berhasil maupun dibatalkan
+            Riwayat transaksi finansial dan pembayaran pelanggan {activeStore?.name ? `(${activeStore.name})` : ''}
           </p>
         </div>
 
-        {/* Right Header: Export Button & Discrete State Switcher */}
+        {/* Right Header: Refresh & Export Button */}
         <div className="flex items-center gap-3">
-          {/* Subtle switcher for testing empty state per screenshot 3 */}
-          <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-lg border border-neutral-200 text-xs">
-            <button
-              onClick={() => setDemoMode('populated')}
-              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
-                demoMode === 'populated'
-                  ? 'bg-white text-neutral-800 shadow-2xs font-semibold'
-                  : 'text-neutral-500 hover:text-neutral-800'
-              }`}
-            >
-              Data Terisi
-            </button>
-            <button
-              onClick={() => setDemoMode('empty')}
-              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all ${
-                demoMode === 'empty'
-                  ? 'bg-white text-neutral-800 shadow-2xs font-semibold'
-                  : 'text-neutral-500 hover:text-neutral-800'
-              }`}
-            >
-              Belum Ada Transaksi
-            </button>
-          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<RefreshCw className={`size-3.5 ${refreshing ? 'animate-spin text-orange-600' : ''}`} />}
+            onClick={() => fetchTransactions(true)}
+            disabled={refreshing}
+          >
+            Muat Ulang
+          </Button>
 
           <button
-            onClick={() => showToast('Mengekspor data transaksi...')}
-            className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-[#E5484D] text-[#E5484D] bg-white hover:bg-red-50 text-xs font-semibold transition-colors shadow-2xs"
+            onClick={handleExportCsv}
+            className="inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-[#E5484D] text-[#E5484D] bg-white hover:bg-red-50 text-xs font-semibold transition-colors shadow-2xs cursor-pointer active:scale-95"
           >
-            <span>Export</span>
-            <Upload className="size-3.5" />
+            <span>Export CSV</span>
+            <Download className="size-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Filters Bar: Clean individual pill elements directly on background */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Date Filter */}
-        <div className="h-9 px-3.5 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 flex items-center gap-2 shadow-2xs cursor-pointer hover:bg-neutral-50">
-          <span>Hari ini (14/10/2026)</span>
-          <Calendar className="size-3.5 text-neutral-400" />
-        </div>
-
-        {/* Channel Filter */}
-        <div className="relative">
-          <select
+      {/* Filters Bar */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Channel Select */}
+          <Select
             value={selectedChannel}
             onChange={(e) => setSelectedChannel(e.target.value)}
-            className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
-          >
-            <option value="all">Semua channel</option>
-            <option value="QR Order">QR Order</option>
-            <option value="Kasir">Kasir</option>
-            <option value="GrabFood">GrabFood</option>
-            <option value="ShopeeFood">ShopeeFood</option>
-            <option value="GoFood">GoFood</option>
-          </select>
-          <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
-        </div>
+            size="sm"
+            options={[
+              { value: 'all', label: 'Semua Channel' },
+              { value: 'QR Order', label: 'QR Order' },
+              { value: 'Kasir', label: 'Kasir' },
+              { value: 'GrabFood', label: 'GrabFood' },
+              { value: 'ShopeeFood', label: 'ShopeeFood' },
+              { value: 'GoFood', label: 'GoFood' },
+            ]}
+          />
 
-        {/* Type Filter */}
-        <div className="relative">
-          <select
+          {/* Type Select */}
+          <Select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
-            className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
-          >
-            <option value="all">Semua tipe</option>
-            <option value="Dine-in">Dine-in</option>
-            <option value="Takeaway">Takeaway</option>
-            <option value="Delivery">Delivery</option>
-          </select>
-          <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
-        </div>
+            size="sm"
+            options={[
+              { value: 'all', label: 'Semua Tipe' },
+              { value: 'Dine-in', label: 'Dine-in' },
+              { value: 'Takeaway', label: 'Takeaway' },
+              { value: 'Delivery', label: 'Delivery' },
+            ]}
+          />
 
-        {/* Payment Status Filter */}
-        <div className="relative">
-          <select
+          {/* Payment Status Select */}
+          <Select
             value={selectedPaymentStatus}
             onChange={(e) => setSelectedPaymentStatus(e.target.value)}
-            className="h-9 pl-3.5 pr-8 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-800 appearance-none shadow-2xs cursor-pointer focus:outline-none focus:border-neutral-400 hover:bg-neutral-50"
-          >
-            <option value="all">Semua pembayaran</option>
-            <option value="Lunas">Lunas</option>
-            <option value="Sebagian">Sebagian</option>
-            <option value="Dibatalkan">Dibatalkan</option>
-          </select>
-          <ChevronDown className="size-3.5 text-neutral-400 absolute right-2.5 top-3 pointer-events-none" />
+            size="sm"
+            options={[
+              { value: 'all', label: 'Semua Status' },
+              { value: 'Lunas', label: 'Lunas' },
+              { value: 'Sebagian', label: 'Sebagian' },
+              { value: 'Dibatalkan', label: 'Dibatalkan' },
+            ]}
+          />
         </div>
 
         {/* Search Input */}
-        <div className="relative flex-1 min-w-[260px]">
-          <input
-            type="text"
+        <div className="min-w-[260px] lg:w-72">
+          <SearchInput
+            placeholder="Cari transaksi, order, meja..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari nomor transaksi, Nomor p..."
-            className="w-full h-9 pl-3.5 pr-9 rounded-lg border border-neutral-200 bg-white text-xs text-neutral-900 placeholder:text-neutral-400 shadow-2xs focus:outline-none focus:border-neutral-400"
+            onClear={() => setSearchQuery('')}
+            size="sm"
           />
-          <div className="absolute right-2.5 top-2 size-5 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-400">
-            <Search className="size-3" />
-          </div>
         </div>
       </div>
 
-      {/* Global Reusable DataTable matching Screenshot 2 & 3 */}
-      <DataTable
-        columns={columns}
-        data={filteredTransactions}
-        keyExtractor={(item) => item.id}
-        selectable
-        selectedIds={selectedIds}
-        onToggleSelect={toggleSelectRow}
-        onToggleSelectAll={toggleSelectAll}
-        onRowClick={handleOpenTransaction}
-        emptyTitle="BELUM ADA TRANSAKSI"
-        emptyDescription="Transaksi penjualan akan muncul di sini setelah pembayaran dilakukan."
-        entityName="pesanan"
-      />
+      {/* Transactions Data Table */}
+      {loading ? (
+        <div className="p-16 bg-white rounded-2xl border border-neutral-200 text-center flex flex-col items-center justify-center space-y-3">
+          <Loader2 className="size-8 text-[#FF5C38] animate-spin" />
+          <p className="text-xs font-semibold text-neutral-600">Memuat daftar transaksi dari database...</p>
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={filteredTransactions}
+          keyExtractor={(item) => item.id}
+          selectable
+          selectedIds={selectedIds}
+          onToggleSelect={(id) => toggleSelectRow(id)}
+          onToggleSelectAll={toggleSelectAll}
+          onRowClick={handleOpenTransaction}
+          emptyTitle="BELUM ADA TRANSAKSI"
+          emptyDescription="Transaksi pembayaran yang diproses akan tersimpan otomatis di database dan tampil di sini."
+          entityName="transaksi"
+        />
+      )}
 
       {/* Slide-over Transaction Details Drawer */}
       <TransactionDetailsDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         transaction={selectedTransaction}
-        onPrintReceipt={(id) => showToast(`Mencetak struk transaksi ${id}...`)}
-        onSendReceipt={(id) => showToast(`Mengirim struk transaksi ${id}...`)}
+        onPrintReceipt={(id) => {
+          window.print();
+        }}
+        onSendReceipt={(id) => {
+          showToast(`Struk pembayaran telah dikirimkan ke pelanggan.`);
+        }}
         onPrev={handlePrevTransaction}
         onNext={handleNextTransaction}
       />

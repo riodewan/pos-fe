@@ -37,3 +37,14 @@ export function getPastDateISO(daysAgo: number): string {
   d.setDate(d.getDate() - daysAgo);
   return d.toISOString().split('T')[0];
 }
+
+export function formatTimeOnly(dateInput: string | Date | null | undefined, locale = 'id-ID'): string {
+  if (!dateInput) return '-';
+  const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+  if (isNaN(date.getTime())) return '-';
+
+  return new Intl.DateTimeFormat(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}

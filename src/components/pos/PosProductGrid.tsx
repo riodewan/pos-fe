@@ -19,6 +19,7 @@ export interface PosProduct {
   name: string;
   price: number;
   imageUrl?: string | null;
+  category?: string;
   isFavorite?: boolean;
 }
 
@@ -42,7 +43,13 @@ export function PosProductGrid({
   onAddToCart,
   onResetDemoMenu,
 }: PosProductGridProps) {
-  const categories = [{ id: 'Semua', label: 'Semua', icon: null as null | typeof Coffee }];
+  const categories = [
+    { id: 'Semua', label: 'Semua', icon: null as null | typeof Coffee },
+    { id: 'Coffee', label: 'Coffee', icon: Coffee },
+    { id: 'Tea & Non-Coffee', label: 'Tea & Non-Coffee', icon: GlassWater },
+    { id: 'Pastry & Bakery', label: 'Pastry & Bakery', icon: Cake },
+    { id: 'Makanan & Snack', label: 'Makanan & Snack', icon: UtensilsCrossed },
+  ];
 
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-white rounded-2xl border border-neutral-200/90 shadow-2xs overflow-hidden">

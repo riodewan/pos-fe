@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, use, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, use, Suspense } from 'react';
 import {
   Coffee,
   Plus,
@@ -30,7 +30,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { publicService } from '@/services';
 import { PublicQrResolved, Order, OrderStatus } from '@/types';
 import { ApiError } from '@/lib/api';
-import { formatRupiah } from '@/utils';
+import { formatRupiah, deduceProductCategory } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -169,26 +169,23 @@ function CustomerQrContent({ token }: { token: string }) {
     return raw.toLowerCase().startsWith('meja') ? raw : `Meja ${raw}`;
   }, [session?.table?.name]);
 
-  // Categories helper
+  // Categories helper using deduceProductCategory
+  const getProductCategory = useCallback((name: string, description: string = '', sku: string = ''): string => {
+    return deduceProductCategory(name, description, sku);
+  }, []);
+
   const categories = useMemo(() => {
     if (!session?.products) return ['Semua'];
-    const cats = new Set<string>();
-    cats.add('Semua');
-
+    const standardOrder = ['Semua', 'Coffee', 'Tea & Non-Coffee', 'Pastry & Bakery', 'Makanan & Snack'];
+    const presentCats = new Set<string>();
     session.products.forEach((p) => {
-      const lower = `${p.name} ${p.description || ''}`.toLowerCase();
-      if (lower.includes('latte') || lower.includes('coffee') || lower.includes('kopi') || lower.includes('espresso') || lower.includes('americano')) {
-        cats.add('Coffee');
-      } else if (lower.includes('tea') || lower.includes('matcha') || lower.includes('teh')) {
-        cats.add('Tea & Latte');
-      } else if (lower.includes('croissant') || lower.includes('roti') || lower.includes('bread') || lower.includes('pastry') || lower.includes('cake')) {
-        cats.add('Pastry & Bakery');
-      } else {
-        cats.add('Lainnya');
-      }
+      presentCats.add(deduceProductCategory(p.name, p.description || '', p.sku || ''));
     });
-
-    return Array.from(cats);
+    const ordered = standardOrder.filter((c) => c === 'Semua' || presentCats.has(c));
+    presentCats.forEach((c) => {
+      if (!ordered.includes(c)) ordered.push(c);
+    });
+    return ordered;
   }, [session?.products]);
 
   // Filtered Products
@@ -197,14 +194,8 @@ function CustomerQrContent({ token }: { token: string }) {
     return session.products.filter((p) => {
       // Category filter
       if (selectedCategory !== 'Semua') {
-        const lower = `${p.name} ${p.description || ''}`.toLowerCase();
-        if (selectedCategory === 'Coffee') {
-          if (!lower.includes('latte') && !lower.includes('coffee') && !lower.includes('kopi') && !lower.includes('espresso') && !lower.includes('americano')) return false;
-        } else if (selectedCategory === 'Tea & Latte') {
-          if (!lower.includes('tea') && !lower.includes('matcha') && !lower.includes('teh')) return false;
-        } else if (selectedCategory === 'Pastry & Bakery') {
-          if (!lower.includes('croissant') && !lower.includes('roti') && !lower.includes('bread') && !lower.includes('pastry') && !lower.includes('cake')) return false;
-        }
+        const cat = getProductCategory(p.name, p.description || '', p.sku || '');
+        if (cat !== selectedCategory) return false;
       }
 
       // Search filter
@@ -215,7 +206,7 @@ function CustomerQrContent({ token }: { token: string }) {
 
       return true;
     });
-  }, [session?.products, selectedCategory, searchQuery]);
+  }, [session?.products, selectedCategory, searchQuery, getProductCategory]);
 
   // Cart Actions
   const addToCart = (prod: PublicQrResolved['products'][0]) => {
@@ -580,6 +571,11 @@ function CustomerQrContent({ token }: { token: string }) {
                               alt={prod.name}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               loading="lazy"
+                              onError={(e) => {
+                                const target = e.currentTarget;
+                                target.style.display = 'none';
+                                target.parentElement?.classList.add('flex', 'items-center', 'justify-center', 'text-neutral-400');
+                              }}
                             />
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center text-neutral-400 dark:text-zinc-500">
@@ -590,6 +586,9 @@ function CustomerQrContent({ token }: { token: string }) {
 
                         {/* Title & Description */}
                         <div className="flex-1 min-w-0">
+                          <span className="text-[10px] font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-2 py-0.5 rounded-md inline-block mb-1">
+                            {getProductCategory(prod.name, prod.description || '', prod.sku || '')}
+                          </span>
                           <h3 className="text-sm font-bold text-neutral-900 dark:text-zinc-100 leading-snug line-clamp-1 group-hover:text-orange-600 transition-colors">
                             {prod.name}
                           </h3>

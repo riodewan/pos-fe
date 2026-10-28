@@ -54,9 +54,12 @@ export const posService = {
   cancelOrder: (orderId: string, reason: string) =>
     api.post<ApiResponse<Order>>(`/pos/orders/${orderId}/cancel`, { reason }),
 
-  // Payments
+  // Payments & Transactions
   getOrderPayments: (orderId: string) =>
     api.get<ApiResponse<Payment[]>>(`/pos/orders/${orderId}/payments`),
+
+  getTransactions: (params?: Record<string, string | number>) =>
+    api.get<ApiResponse<Payment[]>>('/pos/transactions', { params }),
 
   processPayment: (
     orderId: string,
