@@ -77,6 +77,8 @@ interface PaymentMethodsTabProps {
   setItems: React.Dispatch<React.SetStateAction<PaymentMethodItem[]>>;
   isDemoEmpty: boolean;
   setIsDemoEmpty: (val: boolean) => void;
+  onToggleStatus?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 export function PaymentMethodsTab({
@@ -85,6 +87,8 @@ export function PaymentMethodsTab({
   setItems,
   isDemoEmpty,
   setIsDemoEmpty,
+  onToggleStatus,
+  onDelete,
 }: PaymentMethodsTabProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
@@ -102,6 +106,7 @@ export function PaymentMethodsTab({
   };
 
   const handleToggleStatus = (id: string) => {
+    onToggleStatus?.(id);
     setItems((prev) =>
       prev.map((item) =>
         item.id === id ? { ...item, isActive: !item.isActive } : item
@@ -111,6 +116,7 @@ export function PaymentMethodsTab({
   };
 
   const handleDelete = (id: string) => {
+    onDelete?.(id);
     setItems((prev) => prev.filter((item) => item.id !== id));
     setActiveMenuId(null);
   };

@@ -73,6 +73,8 @@ interface TaxesFeesTabProps {
   setItems: React.Dispatch<React.SetStateAction<TaxFeeItem[]>>;
   isDemoEmpty: boolean;
   setIsDemoEmpty: (val: boolean) => void;
+  onToggleStatus?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 export function TaxesFeesTab({
@@ -81,6 +83,8 @@ export function TaxesFeesTab({
   setItems,
   isDemoEmpty,
   setIsDemoEmpty,
+  onToggleStatus,
+  onDelete,
 }: TaxesFeesTabProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
@@ -98,6 +102,7 @@ export function TaxesFeesTab({
   };
 
   const handleToggleStatus = (id: string) => {
+    onToggleStatus?.(id);
     setItems((prev) =>
       prev.map((item) =>
         item.id === id ? { ...item, isActive: !item.isActive } : item
@@ -107,6 +112,7 @@ export function TaxesFeesTab({
   };
 
   const handleDelete = (id: string) => {
+    onDelete?.(id);
     setItems((prev) => prev.filter((item) => item.id !== id));
     setActiveMenuId(null);
   };

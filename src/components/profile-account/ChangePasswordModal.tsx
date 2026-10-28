@@ -5,6 +5,7 @@ import { KeyRound, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
+import { authService } from '@/services/auth.service';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -28,7 +29,7 @@ export function ChangePasswordModal({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -46,14 +47,22 @@ export function ChangePasswordModal({
     }
 
     setLoading(true);
-    setTimeout(() => {
+    try {
+      await authService.updatePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+        new_password_confirmation: confirmPassword,
+      });
       setLoading(false);
       onSuccess();
       onClose();
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    }, 600);
+    } catch (err: any) {
+      setLoading(false);
+      setError(err?.message || 'Gagal mengubah kata sandi. Periksa kembali kata sandi saat ini.');
+    }
   };
 
   return (

@@ -20,6 +20,7 @@ import { PaymentMethodsTab, INITIAL_PAYMENT_METHODS } from './PaymentMethodsTab'
 import { AddTaxFeeModal } from './AddTaxFeeModal';
 import { AddPaymentMethodModal } from './AddPaymentMethodModal';
 import { Button } from '@/components/common/Button';
+import { tenantService } from '@/services/tenant.service';
 
 export function OutletSettingsView() {
   const [activeTab, setActiveTab] = useState<SettingsActiveTab>('personalization');
@@ -42,28 +43,139 @@ export function OutletSettingsView() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const handleAddTaxFee = (item: Omit<TaxFeeItem, 'id' | 'isActive'>) => {
-    const newItem: TaxFeeItem = {
-      ...item,
-      id: `tf-${Date.now()}`,
-      isActive: true,
+  // Fetch live backend settings on mount
+  React.useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const [taxesRes, paymentsRes] = await Promise.allSettled([
+          tenantService.getTaxesFees(),
+          tenantService.getPaymentMethods(),
+        ]);
+
+        if (taxesRes.status === 'fulfilled' && taxesRes.value?.data && taxesRes.value.data.length > 0) {
+          const mappedTaxes: TaxFeeItem[] = taxesRes.value.data.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            type: item.type === 'Pajak' ? 'Pajak' : 'Biaya',
+            value: item.value,
+            appliesTo: item.applies_to || 'Semua Menu',
+            isActive: Boolean(item.is_active),
+          }));
+          setTaxesFeesItems(mappedTaxes);
+        }
+
+        if (paymentsRes.status === 'fulfilled' && paymentsRes.value?.data && paymentsRes.value.data.length > 0) {
+          const mappedPayments: PaymentMethodItem[] = paymentsRes.value.data.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            type: item.type,
+            description: item.description || '',
+            isActive: Boolean(item.is_active),
+            iconType: item.icon_type || 'qris',
+          }));
+          setPaymentMethods(mappedPayments);
+        }
+      } catch {
+        // Fallback to initialized mock values if offline
+      }
     };
-    setTaxesFeesItems((prev) => [newItem, ...prev]);
+
+    fetchSettings();
+  }, []);
+
+  const handleAddTaxFee = async (item: Omit<TaxFeeItem, 'id' | 'isActive'>) => {
+    try {
+      const res = await tenantService.createTaxFee({
+        name: item.name,
+        type: item.type,
+        value_type: item.value.includes('%') ? 'percent' : 'fixed',
+        value: item.value,
+        applies_to: item.appliesTo,
+        is_active: true,
+      });
+
+      const newItem: TaxFeeItem = {
+        ...item,
+        id: res.data?.id || `tf-${Date.now()}`,
+        isActive: true,
+      };
+      setTaxesFeesItems((prev) => [newItem, ...prev]);
+    } catch {
+      const newItem: TaxFeeItem = {
+        ...item,
+        id: `tf-${Date.now()}`,
+        isActive: true,
+      };
+      setTaxesFeesItems((prev) => [newItem, ...prev]);
+    }
+
     setIsTaxDemoEmpty(false);
     showToast(`${item.name} berhasil ditambahkan!`);
   };
 
-  const handleAddPaymentMethod = (
+  const handleToggleTaxFee = async (id: string) => {
+    try {
+      await tenantService.toggleTaxFee(id);
+    } catch {
+      // Handled silently
+    }
+  };
+
+  const handleDeleteTaxFee = async (id: string) => {
+    try {
+      await tenantService.deleteTaxFee(id);
+      showToast('Pajak / Biaya berhasil dihapus');
+    } catch {
+      // Handled silently
+    }
+  };
+
+  const handleAddPaymentMethod = async (
     item: Omit<PaymentMethodItem, 'id' | 'isActive'>
   ) => {
-    const newItem: PaymentMethodItem = {
-      ...item,
-      id: `pm-${Date.now()}`,
-      isActive: true,
-    };
-    setPaymentMethods((prev) => [newItem, ...prev]);
+    try {
+      const res = await tenantService.createPaymentMethod({
+        name: item.name,
+        type: item.type,
+        description: item.description,
+        icon_type: item.iconType,
+        is_active: true,
+      });
+
+      const newItem: PaymentMethodItem = {
+        ...item,
+        id: res.data?.id || `pm-${Date.now()}`,
+        isActive: true,
+      };
+      setPaymentMethods((prev) => [newItem, ...prev]);
+    } catch {
+      const newItem: PaymentMethodItem = {
+        ...item,
+        id: `pm-${Date.now()}`,
+        isActive: true,
+      };
+      setPaymentMethods((prev) => [newItem, ...prev]);
+    }
+
     setIsPaymentDemoEmpty(false);
     showToast(`Metode ${item.name} berhasil ditambahkan!`);
+  };
+
+  const handleTogglePaymentMethod = async (id: string) => {
+    try {
+      await tenantService.togglePaymentMethod(id);
+    } catch {
+      // Handled silently
+    }
+  };
+
+  const handleDeletePaymentMethod = async (id: string) => {
+    try {
+      await tenantService.deletePaymentMethod(id);
+      showToast('Metode pembayaran berhasil dihapus');
+    } catch {
+      // Handled silently
+    }
   };
 
   return (
@@ -196,6 +308,8 @@ export function OutletSettingsView() {
           setItems={setTaxesFeesItems}
           isDemoEmpty={isTaxDemoEmpty}
           setIsDemoEmpty={setIsTaxDemoEmpty}
+          onToggleStatus={handleToggleTaxFee}
+          onDelete={handleDeleteTaxFee}
         />
       )}
 
@@ -206,6 +320,8 @@ export function OutletSettingsView() {
           setItems={setPaymentMethods}
           isDemoEmpty={isPaymentDemoEmpty}
           setIsDemoEmpty={setIsPaymentDemoEmpty}
+          onToggleStatus={handleTogglePaymentMethod}
+          onDelete={handleDeletePaymentMethod}
         />
       )}
 

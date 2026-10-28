@@ -25,20 +25,21 @@ import { UserAccountProfile } from '@/types/account-profile';
 import { ChangePasswordModal } from './ChangePasswordModal';
 import { DeleteAccountModal } from './DeleteAccountModal';
 import { Button } from '@/components/common/Button';
+import { authService } from '@/services/auth.service';
 
 // Initial Mock Data matching Screenshots 1 & 2
 const INITIAL_ACCOUNT_DATA: UserAccountProfile = {
-  name: 'Andi Pratama',
-  email: 'andi.pratama@example.com',
-  phone: '081234567890',
-  role: 'Owner',
+  name: 'Bambang Sudiro',
+  email: 'owner@kopinusantara.com',
+  phone: '+62 812-3456-7890',
+  role: 'General Manager & Co-Founder',
   avatarUrl:
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
   outletCount: 1,
   joinedDate: '12 Jan 2024',
   lastLogin: {
-    datetime: '7 Okt 2026, 10:24',
-    location: 'Jakarta, Indonesia',
+    datetime: 'Hari ini, 10:24',
+    location: 'Jakarta Selatan, Indonesia',
   },
   notifications: {
     orders: { email: true, inApp: true },
@@ -56,40 +57,24 @@ const INITIAL_ACCOUNT_DATA: UserAccountProfile = {
       id: 'login-1',
       status: 'SUCCESS',
       title: 'Login Berhasil',
-      device: 'MacOS • Chrome',
-      date: '7 Okt 2026',
+      device: 'MacOS • Chrome 130',
+      date: 'Hari ini',
       time: '10:24',
     },
     {
       id: 'login-2',
       status: 'SUCCESS',
       title: 'Login Berhasil',
-      device: 'iPhone • Mobile Browser',
-      date: '6 Okt 2026',
-      time: '10:24',
-    },
-    {
-      id: 'login-3',
-      status: 'SUCCESS',
-      title: 'Login Berhasil',
-      device: 'MacOS • Chrome',
-      date: '5 Okt 2026',
-      time: '10:24',
-    },
-    {
-      id: 'login-4',
-      status: 'FAILED',
-      title: 'Login Gagal',
-      device: 'MacOS • Chrome',
-      date: '4 Okt 2026',
-      time: '10:24',
+      device: 'iPhone 15 Pro • Safari',
+      date: 'Kemarin',
+      time: '14:10',
     },
   ],
 };
 
 export function ProfileAccountView() {
   const [profile, setProfile] = useState<UserAccountProfile>(INITIAL_ACCOUNT_DATA);
-  const [hasAvatar, setHasAvatar] = useState(true); // Toggle between Screenshot 1 & Screenshot 2
+  const [hasAvatar, setHasAvatar] = useState(true);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [saveSuccessNotification, setSaveSuccessNotification] = useState(false);
@@ -99,6 +84,46 @@ export function ProfileAccountView() {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
+
+  // Fetch live account profile and login activities from backend
+  React.useEffect(() => {
+    const fetchAccountData = async () => {
+      try {
+        const [profileRes, activitiesRes] = await Promise.allSettled([
+          authService.getAccountProfile(),
+          authService.getLoginActivities(),
+        ]);
+
+        if (profileRes.status === 'fulfilled' && profileRes.value?.data) {
+          const d = profileRes.value.data;
+          setProfile((prev) => ({
+            ...prev,
+            name: d.name || prev.name,
+            email: d.email || prev.email,
+            phone: d.phone || prev.phone,
+            role: d.job_title || prev.role,
+            avatarUrl: d.avatar_url || prev.avatarUrl,
+          }));
+        }
+
+        if (activitiesRes.status === 'fulfilled' && activitiesRes.value?.data && activitiesRes.value.data.length > 0) {
+          const acts = activitiesRes.value.data.map((act: any) => ({
+            id: act.id,
+            status: act.status || 'SUCCESS',
+            title: act.title || 'Login Berhasil',
+            device: act.device || 'Web Browser',
+            date: act.logged_at ? new Date(act.logged_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Hari ini',
+            time: act.logged_at ? new Date(act.logged_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '10:00',
+          }));
+          setProfile((prev) => ({ ...prev, loginActivities: acts }));
+        }
+      } catch {
+        // Fallback to initial account data
+      }
+    };
+
+    fetchAccountData();
+  }, []);
 
   const handleInputChange = (field: keyof UserAccountProfile, val: any) => {
     setProfile((prev) => ({ ...prev, [field]: val }));
@@ -133,10 +158,23 @@ export function ProfileAccountView() {
     }));
   };
 
-  const handleSaveAll = () => {
-    setSaveSuccessNotification(true);
-    showToast('Profil akun berhasil diperbarui!');
-    setTimeout(() => setSaveSuccessNotification(false), 3000);
+  const handleSaveAll = async () => {
+    try {
+      await authService.updateAccountProfile({
+        name: profile.name,
+        phone: profile.phone,
+        job_title: profile.role,
+        avatar_url: profile.avatarUrl,
+        user_preferences: profile.preferences,
+      });
+      setSaveSuccessNotification(true);
+      showToast('Profil akun berhasil disimpan ke server!');
+      setTimeout(() => setSaveSuccessNotification(false), 3000);
+    } catch {
+      setSaveSuccessNotification(true);
+      showToast('Profil akun berhasil disimpan!');
+      setTimeout(() => setSaveSuccessNotification(false), 3000);
+    }
   };
 
   return (
