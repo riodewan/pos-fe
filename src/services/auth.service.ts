@@ -27,4 +27,29 @@ export const authService = {
       skipTenant: true,
       skipStore: true,
     }),
+
+  // Account Profile & Security
+  getAccountProfile: () =>
+    api.get<ApiResponse<any>>('/auth/account/profile', {
+      skipTenant: true,
+      skipStore: true,
+    }),
+
+  updateAccountProfile: (data: any) =>
+    api.put<ApiResponse<any>>('/auth/account/profile', data, {
+      skipTenant: true,
+      skipStore: true,
+    }),
+
+  updatePassword: (data: { current_password: string; new_password: string; new_password_confirmation: string }) =>
+    api.put<ApiResponse<null>>('/auth/account/password', data, {
+      skipTenant: true,
+      skipStore: true,
+    }),
+
+  getLoginActivities: () =>
+    api.get<ApiResponse<any[]>>('/auth/account/login-activities', {
+      skipTenant: true,
+      skipStore: true,
+    }),
 };

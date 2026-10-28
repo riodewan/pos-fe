@@ -32,4 +32,9 @@ export const reportsService = {
     api.get<ApiResponse<CashierAuditReport>>('/reports/cashiers', {
       params: { start_date, end_date },
     }),
+
+  getFinanceReconciliation: (start_date?: string, end_date?: string) =>
+    api.get<ApiResponse<any>>('/reports/reconciliation', {
+      params: { start_date, end_date },
+    }),
 };

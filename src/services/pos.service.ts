@@ -67,4 +67,35 @@ export const posService = {
       metadata?: Record<string, unknown>;
     }
   ) => api.post<ApiResponse<Payment>>(`/pos/orders/${orderId}/payments`, data),
+
+  // Table Reservations
+  getReservations: (params?: Record<string, string | number>) =>
+    api.get<ApiResponse<any[]>>('/pos/reservations', { params }),
+
+  getReservation: (id: string) =>
+    api.get<ApiResponse<any>>(`/pos/reservations/${id}`),
+
+  createReservation: (data: {
+    table_id?: string | null;
+    customer_name: string;
+    customer_phone?: string | null;
+    customer_email?: string | null;
+    guest_count: number;
+    reservation_date: string;
+    reservation_time: string;
+    notes?: string | null;
+  }) => api.post<ApiResponse<any>>('/pos/reservations', data),
+
+  updateReservationStatus: (id: string, status: string) =>
+    api.put<ApiResponse<any>>(`/pos/reservations/${id}/status`, { status }),
+
+  deleteReservation: (id: string) =>
+    api.delete<ApiResponse<null>>(`/pos/reservations/${id}`),
+
+  // Kitchen Display System (KDS)
+  getKdsQueue: (params?: { status?: string }) =>
+    api.get<ApiResponse<any[]>>('/pos/kds/queue', { params }),
+
+  updateKdsOrderStatus: (orderId: string, status: string) =>
+    api.put<ApiResponse<Order>>(`/pos/kds/orders/${orderId}/status`, { status }),
 };
