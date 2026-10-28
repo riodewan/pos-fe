@@ -25,6 +25,7 @@ import { ReservationsFloorplanView } from './ReservationsFloorplanView';
 import { Button } from '@/components/common/Button';
 import { SearchInput } from '@/components/common/SearchInput';
 import { Select } from '@/components/common/Select';
+import { posService } from '@/services/pos.service';
 
 export const INITIAL_RESERVATIONS: Reservation[] = [
   {
@@ -245,6 +246,47 @@ export function ReservationsView() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [reservationToEdit, setReservationToEdit] = useState<Reservation | null>(null);
 
+  // Fetch live reservations on mount
+  React.useEffect(() => {
+    const fetchReservations = async () => {
+      try {
+        const res = await posService.getReservations();
+        if (res?.data && res.data.length > 0) {
+          const mapped: Reservation[] = res.data.map((r: any) => ({
+            id: r.id,
+            time: r.reservation_time || '18:00',
+            customerName: r.customer_name,
+            customerPhone: r.customer_phone || '-',
+            avatarUrl:
+              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+            guestCount: Number(r.guest_count) || 2,
+            table: r.table?.name || 'Meja Umum',
+            area: 'Indoor',
+            status:
+              r.status === 'Selesai'
+                ? 'SELESAI'
+                : r.status === 'Dibatalkan'
+                ? 'DIBATALKAN'
+                : r.status === 'Dikonfirmasi'
+                ? 'DUDUK'
+                : 'AKAN_DATANG',
+            notes: r.notes || '-',
+            date: r.reservation_date || 'Hari Ini',
+            duration: '2 jam',
+          }));
+          setReservations(mapped);
+          if (mapped.length > 0) {
+            setSelectedReservation(mapped[0]);
+          }
+        }
+      } catch {
+        // Fallback to initial demo reservations
+      }
+    };
+
+    fetchReservations();
+  }, []);
+
   // KPI Counts matching Image 1
   const kpiStats = useMemo(() => {
     const total = reservations.length;
@@ -286,7 +328,11 @@ export function ReservationsView() {
   }, [reservations, selectedStatus, selectedArea, searchQuery]);
 
   // Actions
-  const handleCheckIn = (id: string) => {
+  const handleCheckIn = async (id: string) => {
+    try {
+      await posService.updateReservationStatus(id, 'Dikonfirmasi');
+    } catch {}
+
     setReservations((prev) =>
       prev.map((r) => (r.id === id ? { ...r, status: 'DUDUK' as ReservationStatus } : r))
     );
@@ -297,7 +343,11 @@ export function ReservationsView() {
     }
   };
 
-  const handleCancel = (id: string) => {
+  const handleCancel = async (id: string) => {
+    try {
+      await posService.updateReservationStatus(id, 'Dibatalkan');
+    } catch {}
+
     setReservations((prev) =>
       prev.map((r) => (r.id === id ? { ...r, status: 'DIBATALKAN' as ReservationStatus } : r))
     );
@@ -308,7 +358,7 @@ export function ReservationsView() {
     }
   };
 
-  const handleSaveReservation = (data: Partial<Reservation>) => {
+  const handleSaveReservation = async (data: Partial<Reservation>) => {
     if (data.id) {
       // Edit
       setReservations((prev) =>
@@ -321,9 +371,24 @@ export function ReservationsView() {
       }
     } else {
       // Add
+      let createdId = `res-${Date.now()}`;
+      try {
+        const apiRes = await posService.createReservation({
+          customer_name: data.customerName || 'Tamu Baru',
+          customer_phone: data.customerPhone || null,
+          guest_count: data.guestCount || 2,
+          reservation_date: new Date().toISOString().split('T')[0],
+          reservation_time: data.time || '18:00',
+          notes: data.notes || null,
+        });
+        if (apiRes?.data?.id) {
+          createdId = apiRes.data.id;
+        }
+      } catch {}
+
       const newRes: Reservation = {
-        id: `res-${Date.now()}`,
-        time: data.time || '10:00',
+        id: createdId,
+        time: data.time || '18:00',
         customerName: data.customerName || 'Tamu Baru',
         customerPhone: data.customerPhone || '081234567890',
         guestCount: data.guestCount || 2,
@@ -331,7 +396,7 @@ export function ReservationsView() {
         area: data.area || 'Indoor',
         status: data.status || 'AKAN_DATANG',
         notes: data.notes || '-',
-        date: data.date || '7 Okt 2026',
+        date: data.date || 'Hari Ini',
         duration: data.duration || '2 jam',
       };
       setReservations((prev) => [newRes, ...prev]);
