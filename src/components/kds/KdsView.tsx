@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { Select } from '@/components/common/Select';
+import { posService } from '@/services/pos.service';
 
 export type KdsItemStatus =
   | 'MENUNGGU'
@@ -293,8 +294,64 @@ export function KdsView() {
   const [volume, setVolume] = useState<number>(75);
   const [soundType, setSoundType] = useState<string>('Bell');
 
+  // Fetch live KDS orders from backend on mount
+  React.useEffect(() => {
+    const fetchQueue = async () => {
+      try {
+        const res = await posService.getKdsQueue();
+        if (res?.data && res.data.length > 0) {
+          const mapped: KdsOrder[] = res.data.map((o: any) => ({
+            id: o.id,
+            orderNumber: o.order_number || `#ORD-${o.id.slice(-4)}`,
+            channelType: (o.channel === 'DELIVERY'
+              ? 'Delivery'
+              : o.channel === 'TAKEAWAY'
+              ? 'Takeaway'
+              : o.channel === 'QR_ORDER'
+              ? 'QR Order'
+              : 'Dine-in') as any,
+            channelDetail: o.table_name || o.customer_name || 'Kasir',
+            time: o.created_at
+              ? new Date(o.created_at).toLocaleTimeString('id-ID', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : '10:00',
+            timestamp: o.created_at ? new Date(o.created_at).getTime() : Date.now(),
+            status:
+              o.status === 'READY'
+                ? 'DI_PROSES'
+                : o.status === 'PREPARING'
+                ? 'DI_PROSES'
+                : o.status === 'COMPLETED'
+                ? 'SUDAH_DIANTAR'
+                : 'BARU',
+            items: (o.items || []).map((it: any) => ({
+              id: it.id,
+              name: it.product_name,
+              quantity: it.quantity,
+              notes: it.notes || '',
+              status: (o.status === 'READY'
+                ? 'SIAP_DIANTAR'
+                : o.status === 'PREPARING'
+                ? 'SEDANG_DISIAPKAN'
+                : o.status === 'COMPLETED'
+                ? 'SUDAH_DIANTAR'
+                : 'MENUNGGU') as any,
+            })),
+          }));
+          setOrders(mapped);
+        }
+      } catch {
+        // Fallback to initial orders
+      }
+    };
+
+    fetchQueue();
+  }, []);
+
   // Interactive item status transition
-  const handleItemAction = (orderId: string, itemId: string) => {
+  const handleItemAction = async (orderId: string, itemId: string) => {
     setOrders((prev) =>
       prev.map((order) => {
         if (order.id !== orderId) return order;
@@ -326,8 +383,11 @@ export function KdsView() {
         let newStatus: KdsOrderStatus = order.status;
         if (allDelivered) {
           newStatus = 'SUDAH_DIANTAR';
+          posService.updateKdsOrderStatus(orderId, 'COMPLETED').catch(() => {});
         } else if (anyActive) {
           newStatus = 'DI_PROSES';
+          const anyReady = updatedItems.some((i) => i.status === 'SIAP_DIANTAR');
+          posService.updateKdsOrderStatus(orderId, anyReady ? 'READY' : 'PREPARING').catch(() => {});
         }
 
         return {

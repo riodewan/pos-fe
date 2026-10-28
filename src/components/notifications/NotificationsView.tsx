@@ -21,6 +21,7 @@ import {
   NotificationStatusFilter,
 } from '@/types/notifications';
 import { Button } from '@/components/common/Button';
+import { tenantService } from '@/services/tenant.service';
 
 // Initial Mock Notifications matching Screenshot 1
 const INITIAL_NOTIFICATIONS: NotificationItem[] = [
@@ -138,15 +139,54 @@ export function NotificationsView() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  // Fetch live notifications on mount
+  React.useEffect(() => {
+    const fetchNotifs = async () => {
+      try {
+        const res = await tenantService.getNotifications();
+        if (res?.data && res.data.length > 0) {
+          const mapped: NotificationItem[] = res.data.map((n: any) => ({
+            id: n.id,
+            title: n.title,
+            subtitle: n.subtitle,
+            category: (n.category || 'Sistem') as NotificationItem['category'],
+            isRead: Boolean(n.is_read),
+            dateGroup: 'Hari Ini',
+            time: n.created_at
+              ? new Date(n.created_at).toLocaleTimeString('id-ID', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : '10:00',
+            targetUrl: n.target_url || '/dashboard',
+          }));
+          setNotifications(mapped);
+        }
+      } catch {
+        // Fallback to initial notifications
+      }
+    };
+
+    fetchNotifs();
+  }, []);
+
   // Mark single as read
-  const handleMarkAsRead = (id: string) => {
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await tenantService.markNotificationRead(id);
+    } catch {}
+
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
     );
   };
 
   // Mark all as read
-  const handleMarkAllAsRead = () => {
+  const handleMarkAllAsRead = async () => {
+    try {
+      await tenantService.markAllNotificationsRead();
+    } catch {}
+
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     showToast('Semua notifikasi telah ditandai sebagai dibaca');
   };
