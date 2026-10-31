@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Shield,
   ShieldCheck,
@@ -13,6 +13,7 @@ import {
 import { RoleDefinition, StaffRole } from '@/types/staff';
 import { Button } from '@/components/common/Button';
 import { Modal } from '@/components/common/Modal';
+import { tenantService } from '@/services/tenant.service';
 
 const DEFAULT_ROLES: RoleDefinition[] = [
   {
@@ -112,6 +113,35 @@ export function RolePermissionTab() {
   const [roles, setRoles] = useState<RoleDefinition[]>(DEFAULT_ROLES);
   const [selectedRole, setSelectedRole] = useState<RoleDefinition | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    tenantService
+      .getRoles()
+      .then((res) => {
+        if (Array.isArray(res?.data) && res.data.length > 0) {
+          // Merge fetched roles with visual configurations
+          const merged: RoleDefinition[] = res.data.map((r: any) => {
+            const foundDef = DEFAULT_ROLES.find(
+              (dr) => dr.name.toLowerCase() === r.name.toLowerCase()
+            );
+            return {
+              id: r.id,
+              name: (foundDef?.name || r.name) as StaffRole,
+              description: r.description || foundDef?.description || 'Pengaturan akses peran staf.',
+              staffCount: foundDef?.staffCount ?? 1,
+              color: foundDef?.color || '#FF5C38',
+              badgeBg: foundDef?.badgeBg || 'bg-rose-50',
+              badgeText: foundDef?.badgeText || 'text-rose-600 border-rose-200',
+              permissions: foundDef?.permissions || ['Akses Standar Modul'],
+            };
+          });
+          setRoles(merged);
+        }
+      })
+      .catch((err) => {
+        console.warn('Backend roles warning, using defaults:', err);
+      });
+  }, []);
 
   const handleEditRole = (role: RoleDefinition) => {
     setSelectedRole(role);

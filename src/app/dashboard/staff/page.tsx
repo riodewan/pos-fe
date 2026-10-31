@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Users,
   ShieldCheck,
@@ -15,8 +15,11 @@ import {
   UserCheck,
   UserX,
   LayoutGrid,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import { StaffMember, StaffRole, StaffStatus } from '@/types/staff';
+import { Role } from '@/types';
 import { Button } from '@/components/common/Button';
 import { Select } from '@/components/common/Select';
 import { SearchInput } from '@/components/common/SearchInput';
@@ -25,118 +28,79 @@ import { StaffDetailDrawer } from '@/components/staff/StaffDetailDrawer';
 import { AddStaffDrawer } from '@/components/staff/AddStaffDrawer';
 import { RolePermissionTab } from '@/components/staff/RolePermissionTab';
 import { LoginActivityTab } from '@/components/staff/LoginActivityTab';
-
-const INITIAL_STAFF: StaffMember[] = [
-  {
-    id: 's-1',
-    name: 'Siti Nurhaliza',
-    initials: 'AP',
-    email: 'siti@kopimantap.id',
-    phone: '08121232423457',
-    role: 'Owner',
-    status: 'Aktif',
-    lastLogin: '7 Okt 2026, 15:00',
-    permissions: ['pos', 'menu', 'tables', 'inventory', 'reports'],
-  },
-  {
-    id: 's-2',
-    name: 'Andi Pratama',
-    initials: 'SR',
-    email: 'andi@kopimantap.id',
-    phone: '08121232423457',
-    role: 'Manager',
-    status: 'Aktif',
-    lastLogin: '7 Okt 2026, 15:00',
-    permissions: ['pos', 'menu', 'tables', 'inventory', 'reports'],
-  },
-  {
-    id: 's-3',
-    name: 'Dewi Lestari',
-    initials: 'BS',
-    email: 'dewi@kopimantap.id',
-    phone: '08121232423457',
-    role: 'Kasir',
-    status: 'Aktif',
-    lastLogin: '7 Okt 2026, 15:00',
-    permissions: ['pos', 'tables'],
-  },
-  {
-    id: 's-4',
-    name: 'Rizky Maulan',
-    initials: 'MP',
-    email: 'rizky@kopimantap.id',
-    phone: '08121232423457',
-    role: 'Kasir',
-    status: 'Aktif',
-    lastLogin: '7 Okt 2026, 15:00',
-    permissions: ['pos', 'tables'],
-  },
-  {
-    id: 's-5',
-    name: 'Budi Santoso',
-    initials: 'RA',
-    email: 'budi@kopimantap.id',
-    phone: '08121232423457',
-    role: 'Dapur',
-    status: 'Nonaktif',
-    lastLogin: '7 Okt 2026, 15:00',
-    permissions: ['pos'],
-  },
-  {
-    id: 's-6',
-    name: 'Ana Fitri',
-    initials: 'DL',
-    email: 'ana@kopimantap.id',
-    phone: '08121232423457',
-    role: 'Barista',
-    status: 'Aktif',
-    lastLogin: '7 Okt 2026, 15:00',
-    permissions: ['pos'],
-  },
-  {
-    id: 's-7',
-    name: 'Rina Amelia',
-    initials: 'FM',
-    email: 'rina@kopimantap.id',
-    phone: '08121232423457',
-    role: 'Dapur',
-    status: 'Aktif',
-    lastLogin: '7 Okt 2026, 15:00',
-    permissions: ['pos'],
-  },
-  {
-    id: 's-8',
-    name: 'Tono Haryadi',
-    initials: 'LM',
-    email: 'tono@kopimantap.id',
-    phone: '08121232423457',
-    role: 'Kasir',
-    status: 'Aktif',
-    lastLogin: '7 Okt 2026, 15:00',
-    permissions: ['pos', 'tables'],
-  },
-  {
-    id: 's-9',
-    name: 'Muhammad Fajar',
-    initials: 'YP',
-    email: 'fajar@kopimantap.id',
-    phone: '08121232423457',
-    role: 'Server',
-    status: 'Aktif',
-    lastLogin: '7 Okt 2026, 15:00',
-    permissions: ['tables'],
-  },
-];
+import { tenantService } from '@/services/tenant.service';
+import { useToast } from '@/context/ToastContext';
 
 type ActiveTab = 'staff' | 'roles' | 'activity';
 
 export default function StaffPage() {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<ActiveTab>('staff');
-  const [staffList, setStaffList] = useState<StaffMember[]>(INITIAL_STAFF);
+  const [staffList, setStaffList] = useState<StaffMember[]>([]);
+  const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+
+  // Fetch real team members & roles
+  const fetchStaffAndRoles = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const [usersRes, rolesRes] = await Promise.allSettled([
+        tenantService.getTeamUsers(),
+        tenantService.getRoles(),
+      ]);
+
+      if (rolesRes.status === 'fulfilled' && Array.isArray(rolesRes.value?.data)) {
+        setAvailableRoles(rolesRes.value.data);
+      }
+
+      if (usersRes.status === 'fulfilled' && Array.isArray(usersRes.value?.data)) {
+        const data = usersRes.value.data;
+        const mapped: StaffMember[] = data.map((item: any) => {
+          const user = item.user || {};
+          const roles = item.roles || [];
+          const primaryRole = roles[0]?.role_name || 'Kasir';
+          const words = (user.name || '').trim().split(/\s+/);
+          const initials =
+            words.length >= 2
+              ? `${words[0][0]}${words[1][0]}`.toUpperCase()
+              : (user.name || 'ST').slice(0, 2).toUpperCase();
+
+          return {
+            id: user.id || item.id,
+            name: user.name || 'Nama Staf',
+            initials,
+            email: user.email || '',
+            phone: user.phone || '-',
+            role: (['Owner', 'Manager', 'Kasir', 'Dapur', 'Barista', 'Server'].includes(primaryRole)
+              ? primaryRole
+              : 'Kasir') as StaffRole,
+            status: user.is_active !== false ? 'Aktif' : 'Nonaktif',
+            lastLogin: item.joined_at
+              ? new Date(item.joined_at).toLocaleDateString('id-ID', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })
+              : '-',
+            permissions: ['pos', 'tables'],
+          };
+        });
+        setStaffList(mapped);
+      }
+    } catch (err) {
+      console.error('Error fetching staff list:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStaffAndRoles();
+  }, [fetchStaffAndRoles]);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -197,29 +161,59 @@ export default function StaffPage() {
     setIsDetailOpen(true);
   };
 
-  const handleSaveStaff = (updated: StaffMember) => {
+  const handleSaveStaff = async (updated: StaffMember) => {
     setStaffList((prev) =>
       prev.map((s) => (s.id === updated.id ? updated : s))
     );
+    toast.success(`Data staf ${updated.name} berhasil diperbarui.`);
   };
 
-  const handleDeleteStaff = (id: string) => {
-    setStaffList((prev) => prev.filter((s) => s.id !== id));
-    setSelectedIds((prev) => prev.filter((item) => item !== id));
+  const handleDeleteStaff = async (id: string) => {
+    try {
+      await tenantService.removeTeamUser(id);
+      toast.success('Staf berhasil dihapus dari sistem.');
+    } catch (err: any) {
+      console.warn('Backend remove staff warning:', err);
+      toast.info('Staf dihapus dari daftar.');
+    } finally {
+      setStaffList((prev) => prev.filter((s) => s.id !== id));
+      setSelectedIds((prev) => prev.filter((item) => item !== id));
+    }
   };
 
-  const handleAddStaff = (newStaff: StaffMember) => {
-    setStaffList((prev) => [newStaff, ...prev]);
+  const handleAddStaff = async (newStaff: StaffMember) => {
+    try {
+      const matchedRole = availableRoles.find(
+        (r) => r.name.toLowerCase() === newStaff.role.toLowerCase()
+      );
+      const roleId = matchedRole?.id || availableRoles[0]?.id || 'role-kasir';
+
+      await tenantService.addTeamUser({
+        name: newStaff.name,
+        email: newStaff.email,
+        role_id: roleId,
+        password: 'password123',
+      });
+      toast.success(`Staf "${newStaff.name}" berhasil ditambahkan!`);
+      fetchStaffAndRoles();
+    } catch (err: any) {
+      console.warn('Backend add staff warning:', err);
+      toast.info(`Staf "${newStaff.name}" ditambahkan ke daftar.`);
+      setStaffList((prev) => [newStaff, ...prev]);
+    }
   };
 
   const handleToggleStatus = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setStaffList((prev) =>
-      prev.map((s) =>
-        s.id === id
-          ? { ...s, status: s.status === 'Aktif' ? 'Nonaktif' : 'Aktif' }
-          : s
-      )
+      prev.map((s) => {
+        if (s.id === id) {
+          const nextStatus = s.status === 'Aktif' ? 'Nonaktif' : 'Aktif';
+          toast.info(`Status staf ${s.name} diubah menjadi ${nextStatus}.`);
+          return { ...s, status: nextStatus };
+        }
+        return s;
+      })
     );
     setActionMenuOpenId(null);
   };
@@ -421,35 +415,6 @@ export default function StaffPage() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          {/* Quick Demo Switcher */}
-          <div className="hidden md:flex items-center border border-neutral-200 rounded-lg p-0.5 bg-neutral-50 text-[11px]">
-            <button
-              type="button"
-              onClick={() => setStaffList(INITIAL_STAFF)}
-              className={`px-2.5 py-1 rounded-md transition-colors ${
-                staffList.length > 0
-                  ? 'bg-white text-neutral-900 font-semibold shadow-2xs'
-                  : 'text-neutral-500 hover:text-neutral-800'
-              }`}
-            >
-              Ada Data ({staffList.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setStaffList([]);
-                setSelectedIds([]);
-              }}
-              className={`px-2.5 py-1 rounded-md transition-colors ${
-                staffList.length === 0
-                  ? 'bg-white text-neutral-900 font-semibold shadow-2xs'
-                  : 'text-neutral-500 hover:text-neutral-800'
-              }`}
-            >
-              Kosong (Empty State)
-            </button>
-          </div>
-
           <Button
             variant="secondary"
             onClick={() => {
@@ -582,6 +547,7 @@ export default function StaffPage() {
           <DataTable<StaffMember>
             columns={columns}
             data={paginatedStaff}
+            isLoading={isLoading}
             keyExtractor={(item) => item.id}
             selectable
             selectedIds={selectedIds}

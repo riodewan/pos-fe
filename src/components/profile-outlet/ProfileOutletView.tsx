@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Store,
   Sliders,
@@ -19,6 +19,7 @@ import {
   Phone,
   Layers,
   FileImage,
+  Loader2,
 } from 'lucide-react';
 import { OutletProfile, OperatingHourItem, OutletPhotoItem } from '@/types/profile-outlet';
 import { ReceiptPreview } from './ReceiptPreview';
@@ -26,30 +27,30 @@ import { OperationalFacilitiesTab } from './OperationalFacilitiesTab';
 import { PhotosMediaTab } from './PhotosMediaTab';
 import { AddOutletModal } from './AddOutletModal';
 import { Button } from '@/components/common/Button';
+import { tenantService } from '@/services/tenant.service';
+import { useToast } from '@/context/ToastContext';
 
-// Mock Initial Data matching Screenshots 1 & 2
-const INITIAL_OUTLET: OutletProfile = {
-  id: 'outlet-menteng',
-  name: 'Kopi Mantap',
-  branchName: 'Main Outlet',
-  category: 'Coffee Shop',
-  description:
-    'Kopi Mantap adalah tempat ngopi santai untuk menikmati kopi favorit, bekerja, atau berkumpul bersama teman. Temukan teman terbaik untuk setiap momen dalam secangkir kopi.',
-  logoUrl: '/images/km-logo.png',
-  thumbnailUrl:
-    'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&auto=format&fit=crop&q=60',
-  phone: '081234567890',
-  email: 'halo@kopimantap.com',
-  website: 'https://kopimantap.com',
-  address: 'Jl. Melati No. 10, Jakarta Barat, Jakarta, Indonesia',
-  mapsUrl: 'https://maps.google.com',
+// Clean Initial Empty Data (No dummy data)
+const EMPTY_OUTLET: OutletProfile = {
+  id: '',
+  name: '',
+  branchName: '',
+  category: '',
+  description: '',
+  logoUrl: '',
+  thumbnailUrl: null,
+  phone: '',
+  email: '',
+  website: '',
+  address: '',
+  mapsUrl: '',
   receiptConfig: {
     showLogo: true,
-    displayName: 'Kopi Mantap',
-    shortAddress: 'Jl. Melati No. 10, Jakarta Barat, Jakarta, Indonesia',
-    footerMessage: 'Pesan pada struk',
+    displayName: '',
+    shortAddress: '',
+    footerMessage: '',
   },
-  operationalStatus: 'NON_AKTIF',
+  operationalStatus: 'AKTIF',
   publicationStatus: 'DIPUBLIKASIKAN',
   operatingHours: [
     { day: 'Senin', openTime: '08:00', closeTime: '22:00', isOpen: true },
@@ -60,51 +61,92 @@ const INITIAL_OUTLET: OutletProfile = {
     { day: 'Sabtu', openTime: '08:00', closeTime: '23:00', isOpen: true },
     { day: 'Minggu', openTime: '08:00', closeTime: '22:00', isOpen: true },
   ],
-  facilities: [
-    'WiFi Gratis (High-Speed)',
-    'Colokan Listrik di Setiap Meja',
-    'Ruangan Ber-AC (Indoor)',
-    'Area Merokok (Smoking Area)',
-    'Toilet Bersih & Higienis',
-    'Pembayaran Cashless (QRIS & Kartu)',
-  ],
-  photos: [
-    {
-      id: 'photo-1',
-      url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&auto=format&fit=crop&q=60',
-      title: 'Counter & Barista Area',
-      category: 'Indoor',
-    },
-    {
-      id: 'photo-2',
-      url: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&auto=format&fit=crop&q=60',
-      title: 'Seating Outdoor Garden',
-      category: 'Outdoor',
-    },
-    {
-      id: 'photo-3',
-      url: 'https://images.unsplash.com/photo-1509785307050-d4066910ec1e?w=800&auto=format&fit=crop&q=60',
-      title: 'Signature Latte & Pastry',
-      category: 'Menu',
-    },
-  ],
+  facilities: [],
+  photos: [],
 };
 
-const OUTLET_OPTIONS = [
-  { id: 'outlet-menteng', name: 'Kopi Mantap - Menteng' },
-  { id: 'outlet-senopati', name: 'Kopi Mantap - Senopati' },
-  { id: 'outlet-kemang', name: 'Kopi Mantap - Kemang' },
-];
+interface StoreOption {
+  id: string;
+  name: string;
+  code?: string;
+}
 
 export function ProfileOutletView() {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'info' | 'ops' | 'media'>('info');
-  const [selectedOutlet, setSelectedOutlet] = useState(OUTLET_OPTIONS[0].name);
-  const [outlet, setOutlet] = useState<OutletProfile>(INITIAL_OUTLET);
+  const [stores, setStores] = useState<StoreOption[]>([]);
+  const [selectedOutletId, setSelectedOutletId] = useState<string>('');
+  const [outlet, setOutlet] = useState<OutletProfile>(EMPTY_OUTLET);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [saveSuccessNotification, setSaveSuccessNotification] = useState(false);
 
   // Toggle for Thumbnail state (Screenshot 1: filled image vs Screenshot 2: empty dashed upload box)
   const [hasThumbnail, setHasThumbnail] = useState(true);
+
+  // Fetch outlet profile and store list
+  const fetchProfileAndStores = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const [profileRes, storesRes] = await Promise.allSettled([
+        tenantService.getOutletProfile(),
+        tenantService.getStores(),
+      ]);
+
+      if (profileRes.status === 'fulfilled' && profileRes.value?.data) {
+        const d = (profileRes.value.data as any);
+        setOutlet({
+          id: d.id || '',
+          name: d.name || '',
+          branchName: d.code || '',
+          category: d.category || 'Coffee Shop',
+          description: d.description || '',
+          logoUrl: d.logo_url || '',
+          thumbnailUrl: d.thumbnail_url || null,
+          phone: d.phone || '',
+          email: d.email || '',
+          website: d.website || '',
+          address: d.address || '',
+          mapsUrl: d.maps_url || '',
+          receiptConfig: d.receipt_config || EMPTY_OUTLET.receiptConfig,
+          operationalStatus:
+            d.operational_status === 'OPEN' || d.operational_status === 'AKTIF'
+              ? 'AKTIF'
+              : 'NON_AKTIF',
+          publicationStatus:
+            d.publication_status === 'PUBLISHED' || d.publication_status === 'DIPUBLIKASIKAN'
+              ? 'DIPUBLIKASIKAN'
+              : 'NON_AKTIF',
+          operatingHours:
+            Array.isArray(d.operating_hours) && d.operating_hours.length > 0
+              ? d.operating_hours
+              : EMPTY_OUTLET.operatingHours,
+          facilities:
+            Array.isArray(d.facilities) && d.facilities.length > 0
+              ? d.facilities
+              : EMPTY_OUTLET.facilities,
+          photos:
+            Array.isArray(d.photos) && d.photos.length > 0
+              ? d.photos
+              : EMPTY_OUTLET.photos,
+        });
+        setSelectedOutletId(d.id || '');
+      }
+
+      if (storesRes.status === 'fulfilled' && Array.isArray(storesRes.value?.data)) {
+        setStores(storesRes.value.data);
+      }
+    } catch (err) {
+      console.error('Error fetching outlet profile:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProfileAndStores();
+  }, [fetchProfileAndStores]);
 
   // Form handlers
   const handleInputChange = (field: keyof OutletProfile, value: any) => {
@@ -121,24 +163,140 @@ export function ProfileOutletView() {
     }));
   };
 
-  const handleToggleOperationalStatus = () => {
-    setOutlet((prev) => ({
-      ...prev,
-      operationalStatus: prev.operationalStatus === 'AKTIF' ? 'NON_AKTIF' : 'AKTIF',
-    }));
+  const handleToggleOperationalStatus = async () => {
+    const nextStatus = outlet.operationalStatus === 'AKTIF' ? 'NON_AKTIF' : 'AKTIF';
+    setOutlet((prev) => ({ ...prev, operationalStatus: nextStatus }));
+    try {
+      await tenantService.updateOutletProfile({
+        operational_status: nextStatus === 'AKTIF' ? 'OPEN' : 'CLOSED',
+      });
+      toast.success(
+        `Status operasional diubah menjadi ${nextStatus === 'AKTIF' ? 'Aktif' : 'Non Aktif'}`
+      );
+    } catch (err) {
+      toast.error('Gagal memperbarui status operasional.');
+    }
   };
 
-  const handleTogglePublicationStatus = () => {
-    setOutlet((prev) => ({
-      ...prev,
-      publicationStatus: prev.publicationStatus === 'DIPUBLIKASIKAN' ? 'NON_AKTIF' : 'DIPUBLIKASIKAN',
-    }));
+  const handleTogglePublicationStatus = async () => {
+    const nextStatus = outlet.publicationStatus === 'DIPUBLIKASIKAN' ? 'NON_AKTIF' : 'DIPUBLIKASIKAN';
+    setOutlet((prev) => ({ ...prev, publicationStatus: nextStatus }));
+    try {
+      await tenantService.updateOutletProfile({
+        publication_status: nextStatus === 'DIPUBLIKASIKAN' ? 'PUBLISHED' : 'HIDDEN',
+      });
+      toast.success(
+        `Status publikasi diubah menjadi ${nextStatus === 'DIPUBLIKASIKAN' ? 'Dipublikasikan' : 'Non Aktif'}`
+      );
+    } catch (err) {
+      toast.error('Gagal memperbarui status publikasi.');
+    }
   };
 
-  const handleSaveAll = () => {
-    setSaveSuccessNotification(true);
-    setTimeout(() => setSaveSuccessNotification(false), 3000);
+  const handleSaveAll = async () => {
+    try {
+      setIsSaving(true);
+      const payload = {
+        name: outlet.name,
+        address: outlet.address,
+        phone: outlet.phone,
+        email: outlet.email,
+        website: outlet.website,
+        maps_url: outlet.mapsUrl,
+        logo_url: outlet.logoUrl,
+        thumbnail_url: outlet.thumbnailUrl,
+        category: outlet.category,
+        description: outlet.description,
+        operational_status: outlet.operationalStatus === 'AKTIF' ? 'OPEN' : 'CLOSED',
+        publication_status: outlet.publicationStatus === 'DIPUBLIKASIKAN' ? 'PUBLISHED' : 'HIDDEN',
+        receipt_config: outlet.receiptConfig,
+        operating_hours: outlet.operatingHours,
+        facilities: outlet.facilities,
+        photos: outlet.photos,
+      };
+
+      await tenantService.updateOutletProfile(payload);
+      setSaveSuccessNotification(true);
+      toast.success('Profil outlet berhasil disimpan!');
+      setTimeout(() => setSaveSuccessNotification(false), 3000);
+    } catch (err: any) {
+      console.error('Failed to save outlet profile:', err);
+      toast.error(err.response?.data?.message || 'Gagal menyimpan profil outlet.');
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  const handleCreateStore = async (newOutlet: {
+    name: string;
+    branchName: string;
+    category: string;
+    phone: string;
+    address: string;
+  }) => {
+    try {
+      await tenantService.createStore({
+        name: newOutlet.name,
+        code: newOutlet.branchName.toLowerCase().replace(/\s+/g, '-'),
+        phone: newOutlet.phone,
+        address: newOutlet.address,
+      });
+      toast.success('Outlet baru berhasil dibuat!');
+      setIsAddModalOpen(false);
+      const res = await tenantService.getStores();
+      if (Array.isArray(res?.data)) {
+        setStores(res.data);
+      }
+    } catch (err: any) {
+      console.error('Failed to create store:', err);
+      toast.error(err.response?.data?.message || 'Gagal membuat outlet baru.');
+    }
+  };
+
+  const handleDeleteStore = async () => {
+    if (!outlet.id) return;
+    if (!window.confirm(`Yakin ingin menghapus outlet "${outlet.name}"?`)) return;
+
+    try {
+      await tenantService.deleteStore(outlet.id);
+      toast.success('Outlet berhasil dihapus.');
+      fetchProfileAndStores();
+    } catch (err: any) {
+      console.error('Failed to delete store:', err);
+      toast.error(err.response?.data?.message || 'Gagal menghapus outlet.');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6 animate-pulse">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-7 w-48 bg-neutral-200 rounded-lg" />
+            <div className="h-4 w-72 bg-neutral-200 rounded" />
+          </div>
+          <div className="h-10 w-36 bg-neutral-200 rounded-xl" />
+        </div>
+        <div className="h-10 w-64 bg-neutral-200 rounded-xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-neutral-200/80 space-y-5">
+            <div className="h-5 w-40 bg-neutral-200 rounded" />
+            <div className="h-12 w-full bg-neutral-100 rounded-xl" />
+            <div className="h-12 w-full bg-neutral-100 rounded-xl" />
+            <div className="h-24 w-full bg-neutral-100 rounded-xl" />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="h-12 bg-neutral-100 rounded-xl" />
+              <div className="h-12 bg-neutral-100 rounded-xl" />
+            </div>
+          </div>
+          <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-neutral-200/80 space-y-5">
+            <div className="h-5 w-32 bg-neutral-200 rounded" />
+            <div className="h-64 w-full bg-neutral-100 rounded-2xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6">
@@ -171,15 +329,31 @@ export function ProfileOutletView() {
         {/* Outlet Switcher Dropdown */}
         <div className="relative inline-block">
           <select
-            value={selectedOutlet}
-            onChange={(e) => setSelectedOutlet(e.target.value)}
+            value={selectedOutletId || outlet.id}
+            onChange={(e) => {
+              const sId = e.target.value;
+              setSelectedOutletId(sId);
+              const found = stores.find((s) => s.id === sId);
+              if (found) {
+                setOutlet((prev) => ({
+                  ...prev,
+                  id: found.id,
+                  name: found.name,
+                  branchName: found.code || '',
+                }));
+              }
+            }}
             className="appearance-none bg-white border border-neutral-200/90 text-neutral-800 text-xs sm:text-sm font-semibold rounded-xl pl-4 pr-10 py-2.5 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#FF5C38]/20 focus:border-[#FF5C38] cursor-pointer"
           >
-            {OUTLET_OPTIONS.map((opt) => (
-              <option key={opt.id} value={opt.name}>
-                {opt.name}
-              </option>
-            ))}
+            {stores.length > 0 ? (
+              stores.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} {s.code ? `(${s.code})` : ''}
+                </option>
+              ))
+            ) : (
+              <option value={outlet.id}>{outlet.name}</option>
+            )}
           </select>
           <ChevronDown className="size-4 text-[#FF5C38] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.5]" />
         </div>
@@ -671,6 +845,7 @@ export function ProfileOutletView() {
             <div className="flex items-center justify-between gap-4 pt-2">
               <button
                 type="button"
+                onClick={handleDeleteStore}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-neutral-200 hover:border-red-300 hover:bg-red-50 text-neutral-700 hover:text-red-600 text-xs font-bold transition-all cursor-pointer shadow-2xs"
               >
                 <Trash2 className="size-4 text-red-500" />
@@ -687,10 +862,15 @@ export function ProfileOutletView() {
                   type="button"
                   variant="primary"
                   onClick={handleSaveAll}
-                  className="bg-[#FF5C38] hover:bg-[#E04B28] text-white font-bold px-5 py-2.5 rounded-xl shadow-xs flex items-center gap-2 cursor-pointer transition-all"
+                  disabled={isSaving}
+                  className="bg-[#FF5C38] hover:bg-[#E04B28] text-white font-bold px-5 py-2.5 rounded-xl shadow-xs flex items-center gap-2 cursor-pointer transition-all disabled:opacity-50"
                 >
-                  <CheckCircle2 className="size-4" />
-                  <span>Simpan Perubahan</span>
+                  {isSaving ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="size-4" />
+                  )}
+                  <span>{isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
                 </Button>
               </div>
             </div>
@@ -703,12 +883,21 @@ export function ProfileOutletView() {
         <OperationalFacilitiesTab
           initialHours={outlet.operatingHours}
           initialFacilities={outlet.facilities}
-          onSave={(hours, facilities) => {
+          onSave={async (hours, facilities) => {
             setOutlet((prev) => ({
               ...prev,
               operatingHours: hours,
               facilities: facilities,
             }));
+            try {
+              await tenantService.updateOutletProfile({
+                operating_hours: hours,
+                facilities: facilities,
+              });
+              toast.success('Jam operasional & fasilitas berhasil diperbarui!');
+            } catch (err: any) {
+              toast.error(err.response?.data?.message || 'Gagal memperbarui jam operasional.');
+            }
           }}
         />
       )}
@@ -717,11 +906,19 @@ export function ProfileOutletView() {
       {activeTab === 'media' && (
         <PhotosMediaTab
           initialPhotos={outlet.photos}
-          onSave={(photos) => {
+          onSave={async (photos) => {
             setOutlet((prev) => ({
               ...prev,
               photos: photos,
             }));
+            try {
+              await tenantService.updateOutletProfile({
+                photos: photos,
+              });
+              toast.success('Foto & media berhasil diperbarui!');
+            } catch (err: any) {
+              toast.error(err.response?.data?.message || 'Gagal memperbarui foto & media.');
+            }
           }}
         />
       )}
@@ -730,11 +927,7 @@ export function ProfileOutletView() {
       <AddOutletModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onSave={(newOutlet) => {
-          setSelectedOutlet(`${newOutlet.name} - ${newOutlet.branchName}`);
-          setSaveSuccessNotification(true);
-          setTimeout(() => setSaveSuccessNotification(false), 3000);
-        }}
+        onSave={handleCreateStore}
       />
     </div>
   );

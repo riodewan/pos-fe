@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   ShieldAlert,
   CheckCircle2,
@@ -9,17 +9,55 @@ import {
   Laptop,
   Globe,
   Clock,
+  Loader2,
 } from 'lucide-react';
 import { LoginActivity } from '@/types/staff';
 import { DataTable, ColumnDef } from '@/components/common/DataTable';
 import { SearchInput } from '@/components/common/SearchInput';
-
+import { authService } from '@/services/auth.service';
 
 export function LoginActivityTab() {
   const [logs, setLogs] = useState<LoginActivity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  const fetchLogs = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const res = await authService.getLoginActivities();
+      if (Array.isArray(res?.data)) {
+        const mapped: LoginActivity[] = res.data.map((item: any) => ({
+          id: item.id || `act-${Math.random()}`,
+          staffName: item.user?.name || item.name || 'Admin',
+          role: 'Manager',
+          email: item.user?.email || item.email || 'user@example.com',
+          device: item.device || item.user_agent || 'Chrome on Windows',
+          ipAddress: item.ip_address || '127.0.0.1',
+          timestamp: item.logged_at
+            ? new Date(item.logged_at).toLocaleString('id-ID', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : 'Baru saja',
+          status: item.status === 'FAILED' ? 'Gagal' : 'Berhasil',
+        }));
+        setLogs(mapped);
+      }
+    } catch (err) {
+      console.error('Error fetching login activities:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   const filteredLogs = useMemo(() => {
     return logs.filter((l) => {
@@ -137,6 +175,7 @@ export function LoginActivityTab() {
       <DataTable<LoginActivity>
         columns={columns}
         data={paginatedLogs}
+        isLoading={isLoading}
         keyExtractor={(item) => item.id}
         showPagination={filteredLogs.length > 0}
         currentPage={currentPage}

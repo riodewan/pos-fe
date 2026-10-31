@@ -34,11 +34,11 @@ import {
   Select,
   SearchInput,
   Pagination,
+  CardSkeleton,
 } from '@/components/common';
 
 type ReportTab = 'summary' | 'products' | 'cogs' | 'cashiers';
 
-// Fallback Top Products Data
 interface ProductPerformance {
   id: string;
   rank: number;
@@ -50,60 +50,6 @@ interface ProductPerformance {
   grossMarginPercent: number;
 }
 
-const FALLBACK_PRODUCTS: ProductPerformance[] = [
-  {
-    id: 'p-1',
-    rank: 1,
-    name: 'Kopi Susu Gula Aren',
-    category: 'Kopi',
-    qtySold: 420,
-    revenue: 11760000,
-    cogs: 3360000,
-    grossMarginPercent: 71.4,
-  },
-  {
-    id: 'p-2',
-    rank: 2,
-    name: 'Matcha Latte',
-    category: 'Kopi',
-    qtySold: 285,
-    revenue: 8550000,
-    cogs: 2622000,
-    grossMarginPercent: 69.3,
-  },
-  {
-    id: 'p-3',
-    rank: 3,
-    name: 'Caramel Macchiato',
-    category: 'Kopi',
-    qtySold: 210,
-    revenue: 5880000,
-    cogs: 1659000,
-    grossMarginPercent: 71.8,
-  },
-  {
-    id: 'p-4',
-    rank: 4,
-    name: 'Croissant Butter',
-    category: 'Pastry',
-    qtySold: 180,
-    revenue: 3600000,
-    cogs: 1080000,
-    grossMarginPercent: 70.0,
-  },
-  {
-    id: 'p-5',
-    rank: 5,
-    name: 'Americano Ice',
-    category: 'Kopi',
-    qtySold: 165,
-    revenue: 3630000,
-    cogs: 957000,
-    grossMarginPercent: 73.6,
-  },
-];
-
-// Fallback COGS Data
 interface CogsItem {
   id: string;
   ingredientName: string;
@@ -115,60 +61,19 @@ interface CogsItem {
   status: 'Efisien' | 'Wajar' | 'Boros';
 }
 
-const FALLBACK_COGS: CogsItem[] = [
-  {
-    id: 'cg-1',
-    ingredientName: 'Biji Kopi Arabica',
-    unit: 'kg',
-    theoreticalUsage: 14.2,
-    actualUsage: 14.5,
-    varianceQty: 0.3,
-    costTotal: 1740000,
-    status: 'Wajar',
-  },
-  {
-    id: 'cg-2',
-    ingredientName: 'Susu UHT Full Cream',
-    unit: 'liter',
-    theoreticalUsage: 82.0,
-    actualUsage: 85.0,
-    varianceQty: 3.0,
-    costTotal: 1530000,
-    status: 'Wajar',
-  },
-  {
-    id: 'cg-3',
-    ingredientName: 'Sirup Gula Aren',
-    unit: 'liter',
-    theoreticalUsage: 18.5,
-    actualUsage: 18.2,
-    varianceQty: -0.3,
-    costTotal: 819000,
-    status: 'Efisien',
-  },
-  {
-    id: 'cg-4',
-    ingredientName: 'Matcha Powder',
-    unit: 'kg',
-    theoreticalUsage: 3.5,
-    actualUsage: 4.2,
-    varianceQty: 0.7,
-    costTotal: 1470000,
-    status: 'Boros',
-  },
-];
-
 export default function ReportsPage() {
   const router = useRouter();
   const { user, activeTenant, isLoading } = useAuth();
   const { activeStore } = useStore();
 
   const [activeTab, setActiveTab] = useState<ReportTab>('summary');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [dateRangeFilter, setDateRangeFilter] = useState('30d');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const [dashboardData, setDashboardData] = useState<DashboardReport | null>(null);
+  const [productList, setProductList] = useState<ProductPerformance[]>([]);
+  const [cogsList, setCogsList] = useState<CogsItem[]>([]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -182,12 +87,47 @@ export default function ReportsPage() {
       const days = dateRangeFilter === 'today' ? 0 : dateRangeFilter === '7d' ? 7 : 30;
       const start = getPastDateISO(days);
       const end = getISODateOnly();
-      const res = await reportsService.getDashboardOverview(start, end);
-      if (res.data) {
-        setDashboardData(res.data);
+
+      const [res, topProdRes, usageRes] = await Promise.allSettled([
+        reportsService.getDashboardOverview(start, end),
+        reportsService.getTopProducts(start, end),
+        reportsService.getInventoryUsage(start, end),
+      ]);
+
+      if (res.status === 'fulfilled' && res.value?.data) {
+        setDashboardData(res.value.data);
+      }
+
+      if (topProdRes.status === 'fulfilled' && Array.isArray(topProdRes.value?.data)) {
+        const mappedProducts: ProductPerformance[] = topProdRes.value.data.map((p: any, idx: number) => ({
+          id: p.id || `p-${idx}`,
+          rank: idx + 1,
+          name: p.name || p.product_name || 'Produk',
+          category: p.category || 'Kopi & Minuman',
+          qtySold: p.total_quantity_sold || p.qty || 0,
+          revenue: Number(p.total_sales || p.revenue || 0),
+          cogs: Number(p.total_cogs || (p.total_sales ? p.total_sales * 0.35 : 0)),
+          grossMarginPercent: Number(p.margin_percent || 65),
+        }));
+        setProductList(mappedProducts);
+      }
+
+      if (usageRes.status === 'fulfilled' && Array.isArray((usageRes.value?.data as any)?.items)) {
+        const items = (usageRes.value.data as any).items;
+        const mappedCogs: CogsItem[] = items.map((c: any, idx: number) => ({
+          id: c.id || `cg-${idx}`,
+          ingredientName: c.ingredient_name || c.name || 'Bahan',
+          unit: c.unit || 'kg',
+          theoreticalUsage: Number(c.theoretical_usage || 0),
+          actualUsage: Number(c.actual_usage || 0),
+          varianceQty: Number(c.variance || 0),
+          costTotal: Number(c.cost || 0),
+          status: (c.variance <= 0 ? 'Efisien' : c.variance < 5 ? 'Wajar' : 'Boros') as any,
+        }));
+        setCogsList(mappedCogs);
       }
     } catch (err) {
-      // Use graceful fallback
+      console.error('Failed to load reports:', err);
     } finally {
       setLoading(false);
     }
@@ -197,16 +137,16 @@ export default function ReportsPage() {
     loadReports();
   }, [loadReports]);
 
-  // Derived KPI values or default demo
+  // Derived KPI values with clean defaults (no dummy numbers)
   const kpis = dashboardData?.kpis || {
-    gross_sales: 34850000,
-    total_discounts: 1250000,
-    net_sales: 33600000,
-    tax: 3360000,
+    gross_sales: 0,
+    total_discounts: 0,
+    net_sales: 0,
+    tax: 0,
     service_charge: 0,
-    total_revenue: 36960000,
-    total_orders: 1260,
-    average_order_value: 29333,
+    total_revenue: 0,
+    total_orders: 0,
+    average_order_value: 0,
   };
 
   const productColumns: ColumnDef<ProductPerformance>[] = [
@@ -361,42 +301,46 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {/* 4 Summary Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
-          <p className="text-xs font-medium text-neutral-500">Total Pendapatan (Revenue)</p>
-          <p className="text-2xl font-bold text-neutral-900 tracking-tight">
-            {formatRupiah(kpis.total_revenue)}
-          </p>
-          <p className="text-[11px] text-emerald-600 font-medium">Termasuk PPN & Biaya Layanan</p>
-        </div>
+      {/* 4 Summary Stat Cards or Skeleton */}
+      {loading ? (
+        <CardSkeleton count={4} />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
+            <p className="text-xs font-medium text-neutral-500">Total Pendapatan (Revenue)</p>
+            <p className="text-2xl font-bold text-neutral-900 tracking-tight">
+              {formatRupiah(kpis.total_revenue)}
+            </p>
+            <p className="text-[11px] text-emerald-600 font-medium">Termasuk PPN & Biaya Layanan</p>
+          </div>
 
-        <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
-          <p className="text-xs font-medium text-neutral-500">Penjualan Bersih (Net Sales)</p>
-          <p className="text-2xl font-bold text-neutral-900 tracking-tight">
-            {formatRupiah(kpis.net_sales)}
-          </p>
-          <p className="text-[11px] text-neutral-400">
-            Diskon: -{formatRupiah(kpis.total_discounts)}
-          </p>
-        </div>
+          <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
+            <p className="text-xs font-medium text-neutral-500">Penjualan Bersih (Net Sales)</p>
+            <p className="text-2xl font-bold text-neutral-900 tracking-tight">
+              {formatRupiah(kpis.net_sales)}
+            </p>
+            <p className="text-[11px] text-neutral-400">
+              Diskon: -{formatRupiah(kpis.total_discounts)}
+            </p>
+          </div>
 
-        <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
-          <p className="text-xs font-medium text-neutral-500">Total Pesanan Selesai</p>
-          <p className="text-2xl font-bold text-neutral-900 tracking-tight">
-            {kpis.total_orders.toLocaleString('id-ID')} Struk
-          </p>
-          <p className="text-[11px] text-blue-600 font-medium">100% Pesanan Terlayani</p>
-        </div>
+          <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
+            <p className="text-xs font-medium text-neutral-500">Total Pesanan Selesai</p>
+            <p className="text-2xl font-bold text-neutral-900 tracking-tight">
+              {kpis.total_orders.toLocaleString('id-ID')} Struk
+            </p>
+            <p className="text-[11px] text-blue-600 font-medium">100% Pesanan Terlayani</p>
+          </div>
 
-        <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
-          <p className="text-xs font-medium text-neutral-500">Rata-rata Transaksi (AOV)</p>
-          <p className="text-2xl font-bold text-neutral-900 tracking-tight">
-            {formatRupiah(kpis.average_order_value)}
-          </p>
-          <p className="text-[11px] text-neutral-400">Rerata nilai belanja pelanggan</p>
+          <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
+            <p className="text-xs font-medium text-neutral-500">Rata-rata Transaksi (AOV)</p>
+            <p className="text-2xl font-bold text-neutral-900 tracking-tight">
+              {formatRupiah(kpis.average_order_value)}
+            </p>
+            <p className="text-[11px] text-neutral-400">Rerata nilai belanja pelanggan</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Horizontal Tabs */}
       <div className="border-b border-neutral-200 flex items-center gap-2 overflow-x-auto no-scrollbar pt-1">
@@ -520,7 +464,8 @@ export default function ReportsPage() {
         <div className="space-y-4">
           <DataTable<ProductPerformance>
             columns={productColumns}
-            data={FALLBACK_PRODUCTS}
+            data={productList}
+            isLoading={loading}
             keyExtractor={(item) => item.id}
             selectable={false}
             emptyTitle="BELUM ADA DATA PENJUALAN PRODUK"
@@ -534,7 +479,8 @@ export default function ReportsPage() {
         <div className="space-y-4">
           <DataTable<CogsItem>
             columns={cogsColumns}
-            data={FALLBACK_COGS}
+            data={cogsList}
+            isLoading={loading}
             keyExtractor={(item) => item.id}
             selectable={false}
             emptyTitle="BELUM ADA DATA HPP"

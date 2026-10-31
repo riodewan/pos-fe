@@ -23,11 +23,13 @@ import {
 } from '@/components/tables';
 import { EmptyState, Button, Select, SearchInput } from '@/components/common';
 import { posService } from '@/services/pos.service';
+import { useToast } from '@/context/ToastContext';
 import { DiningTable } from '@/types';
 
 type TablesTab = 'tables' | 'category' | 'area';
 
 export default function TablesPage() {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<TablesTab>('tables');
   const [tables, setTables] = useState<TableItem[]>([]);
   const [rawTables, setRawTables] = useState<DiningTable[]>([]);
@@ -36,7 +38,6 @@ export default function TablesPage() {
   // Filters
   const [areaFilter, setAreaFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Drawer / Modals
   const [selectedTable, setSelectedTable] = useState<TableItem | null>(null);
@@ -46,8 +47,7 @@ export default function TablesPage() {
   const [isAddAreaOpen, setIsAddAreaOpen] = useState(false);
 
   const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    toast.success(msg);
   };
 
   // Load real tables from backend
@@ -58,18 +58,20 @@ export default function TablesPage() {
       const list: DiningTable[] = Array.isArray(res?.data) ? res.data : [];
       setRawTables(list);
 
-      const mapped: TableItem[] = list.map((t: DiningTable, idx: number) => {
-        const numMatch = t.code.match(/\d+/) || t.name.match(/\d+/);
-        const tableNumber = numMatch ? parseInt(numMatch[0], 10) : idx + 1;
+      const mapped: TableItem[] = list.map((t: any, idx: number) => {
+        const numMatch = t.code?.match(/\d+/) || t.name?.match(/\d+/);
+        const tableNumber = t.table_number || (numMatch ? parseInt(numMatch[0], 10) : idx + 1);
 
-        let area: TableItem['area'] = 'Indoor';
-        if (t.code.toUpperCase().includes('OUT') || t.name.toUpperCase().includes('OUTDOOR')) {
-          area = 'Outdoor';
-        } else if (t.code.toUpperCase().includes('VIP') || t.name.toUpperCase().includes('VIP')) {
-          area = 'VIP';
+        let area: TableItem['area'] = t.area || 'Indoor';
+        if (!t.area) {
+          if (t.code?.toUpperCase().includes('OUT') || t.name?.toUpperCase().includes('OUTDOOR')) {
+            area = 'Outdoor';
+          } else if (t.code?.toUpperCase().includes('VIP') || t.name?.toUpperCase().includes('VIP')) {
+            area = 'VIP';
+          }
         }
 
-        let status: TableItem['status'] = 'Kosong';
+        let status: TableItem['status'] = t.operational_status || 'Kosong';
         if (t.status === 'INACTIVE') {
           status = 'Diblokir';
         } else if (t.is_occupied) {
@@ -139,10 +141,13 @@ export default function TablesPage() {
     try {
       await posService.createTable({
         name: `Meja ${newTable.tableNumber}`,
-        code: `T-${String(newTable.tableNumber).padStart(2, '0')}`,
+        code: `${newTable.area.substring(0, 3).toUpperCase()}-${String(newTable.tableNumber).padStart(2, '0')}`,
         capacity: newTable.capacity,
         status: newTable.status === 'Diblokir' ? 'INACTIVE' : 'ACTIVE',
-      });
+        area: newTable.area,
+        table_number: newTable.tableNumber,
+        operational_status: newTable.status,
+      } as any);
       await loadTables();
       showToast(`Meja ${newTable.tableNumber} berhasil ditambahkan ke database!`);
     } catch (err: any) {
@@ -152,6 +157,7 @@ export default function TablesPage() {
   };
 
   const handlePay = (table: TableItem) => {
+    posService.updateTable(table.id, { operational_status: 'Kosong' } as any).catch(console.error);
     setTables((prev) =>
       prev.map((t) => (t.id === table.id ? { ...t, status: 'Kosong', activeOrder: undefined } : t))
     );
@@ -160,6 +166,7 @@ export default function TablesPage() {
   };
 
   const handleCheckInReservation = (table: TableItem) => {
+    posService.updateTable(table.id, { operational_status: 'Terisi' } as any).catch(console.error);
     setTables((prev) =>
       prev.map((t) =>
         t.id === table.id
@@ -187,6 +194,7 @@ export default function TablesPage() {
 
   const handleCancelReservation = (table: TableItem) => {
     if (confirm(`Yakin ingin membatalkan reservasi Meja ${table.tableNumber}?`)) {
+      posService.updateTable(table.id, { operational_status: 'Kosong' } as any).catch(console.error);
       setTables((prev) =>
         prev.map((t) => (t.id === table.id ? { ...t, status: 'Kosong', customer: undefined } : t))
       );
@@ -196,6 +204,7 @@ export default function TablesPage() {
   };
 
   const handleOpenTable = (table: TableItem) => {
+    posService.updateTable(table.id, { operational_status: 'Terisi' } as any).catch(console.error);
     setTables((prev) =>
       prev.map((t) =>
         t.id === table.id
@@ -254,14 +263,6 @@ export default function TablesPage() {
 
   return (
     <div className="p-6 lg:p-8 space-y-4 max-w-[1600px] mx-auto">
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-20 right-6 z-50 bg-neutral-900 text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 border border-neutral-700 animate-in fade-in slide-in-from-top-2">
-          <Check className="size-4 text-emerald-400" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
       {/* Top Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -390,11 +391,25 @@ export default function TablesPage() {
             </div>
           </div>
 
-          {/* Table Cards Grid or Loading / Empty State */}
+          {/* Table Cards Grid or Loading Skeleton / Empty State */}
           {isLoading ? (
-            <div className="py-24 flex flex-col items-center justify-center text-center space-y-3">
-              <Loader2 className="size-8 text-neutral-400 animate-spin" />
-              <p className="text-xs text-neutral-500">Memuat status meja dari server...</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pt-1">
+              {Array.from({ length: 8 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-2xl p-4 bg-white border border-neutral-200/80 shadow-2xs space-y-4 animate-pulse"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="h-6 w-20 bg-neutral-200 rounded-lg" />
+                    <div className="h-4 w-12 bg-neutral-200 rounded-full" />
+                  </div>
+                  <div className="h-10 w-full bg-neutral-100 rounded-xl" />
+                  <div className="flex items-center justify-between pt-2">
+                    <div className="h-4 w-16 bg-neutral-200 rounded" />
+                    <div className="h-4 w-14 bg-neutral-200 rounded" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filteredTables.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pt-1">
@@ -498,7 +513,7 @@ export default function TablesPage() {
         onPrevTable={handlePrevTable}
         onNextTable={handleNextTable}
         onPay={handlePay}
-        onAddOrder={() => alert(`Buka menu kasir untuk menambah pesanan Meja ${selectedTable?.tableNumber}`)}
+        onAddOrder={() => toast.info(`Buka menu kasir untuk menambah pesanan Meja ${selectedTable?.tableNumber}`)}
         onCheckInReservation={handleCheckInReservation}
         onCancelReservation={handleCancelReservation}
         onOpenTable={handleOpenTable}

@@ -86,9 +86,13 @@ export default function MenuCatalogPage() {
       const rawProducts: Product[] = Array.isArray(res?.data) ? res.data : [];
 
       const mapped: MenuItem[] = rawProducts.map((p) => {
-        const { category, type } = deduceMeta(p.name, p.description || '');
+        const rawCategory = (p as any).category;
+        const rawType = (p as any).type;
+        const meta = deduceMeta(p.name, p.description || '');
+        const category = rawCategory || meta.category;
+        const type = rawType || meta.type;
         const price = Number(p.selling_price) || 0;
-        const cost = Math.round(price * 0.3);
+        const cost = Number((p as any).cost_price) || Math.round(price * 0.3);
         const margin = price > 0 ? Math.round(((price - cost) / price) * 100 * 10) / 10 : 70;
 
         return {
@@ -167,7 +171,10 @@ export default function MenuCatalogPage() {
           description: updated.description,
           status: updated.status === 'Aktif' ? 'ACTIVE' : 'INACTIVE',
           image_url: updated.image,
-        });
+          category: updated.category,
+          type: updated.type,
+          cost_price: updated.cost,
+        } as any);
         showToast(`Menu ${updated.name} berhasil dibuat di database!`);
       } else {
         await catalogService.updateProduct(updated.id, {
@@ -177,7 +184,10 @@ export default function MenuCatalogPage() {
           description: updated.description,
           status: updated.status === 'Aktif' ? 'ACTIVE' : 'INACTIVE',
           image_url: updated.image,
-        });
+          category: updated.category,
+          type: updated.type,
+          cost_price: updated.cost,
+        } as any);
         showToast(`Menu ${updated.name} berhasil diperbarui di database!`);
       }
       await loadProducts();
@@ -531,32 +541,26 @@ export default function MenuCatalogPage() {
             </div>
           </div>
 
-          {/* Table Container */}
-          {isLoading ? (
-            <div className="py-24 flex flex-col items-center justify-center text-center space-y-3 bg-white rounded-2xl border border-neutral-200/80">
-              <Loader2 className="size-8 text-neutral-400 animate-spin" />
-              <p className="text-xs text-neutral-500">Memuat katalog menu dari database...</p>
-            </div>
-          ) : (
-            <DataTable
-              columns={columns}
-              data={filteredMenuItems}
-              keyExtractor={(item) => item.id}
-              selectable
-              selectedIds={selectedIds}
-              onToggleSelect={toggleSelectRow}
-              onToggleSelectAll={toggleSelectAll}
-              onRowClick={handleOpenItem}
-              emptyTitle="BELUM ADA MENU"
-              emptyDescription="Kamu belum menambahkan menu. Klik tombol di bawah untuk mulai membuat menu pertamamu."
-              entityName="menu"
-              showPagination={true}
-              currentPage={1}
-              totalPages={1}
-              pageSize={20}
-              totalItems={filteredMenuItems.length}
-            />
-          )}
+          {/* Table Container with Skeleton & Real Data */}
+          <DataTable
+            columns={columns}
+            data={filteredMenuItems}
+            isLoading={isLoading}
+            keyExtractor={(item) => item.id}
+            selectable
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelectRow}
+            onToggleSelectAll={toggleSelectAll}
+            onRowClick={handleOpenItem}
+            emptyTitle="BELUM ADA MENU"
+            emptyDescription="Kamu belum menambahkan menu. Klik tombol di bawah untuk mulai membuat menu pertamamu."
+            entityName="menu"
+            showPagination={!isLoading && filteredMenuItems.length > 0}
+            currentPage={1}
+            totalPages={1}
+            pageSize={20}
+            totalItems={filteredMenuItems.length}
+          />
         </div>
       )}
 

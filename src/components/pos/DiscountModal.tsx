@@ -6,6 +6,7 @@ import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { formatRupiah } from '@/utils';
+import { useToast } from '@/context/ToastContext';
 
 interface DiscountModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export function DiscountModal({
   onClose,
   onApplyDiscount,
 }: DiscountModalProps) {
+  const { toast } = useToast();
   const [promoCode, setPromoCode] = useState('');
   const [manualAmount, setManualAmount] = useState<number>(currentDiscount || 0);
 
@@ -129,9 +131,11 @@ export function DiscountModal({
               size="sm"
               onClick={() => {
                 if (promoCode === 'KOPIHEMAT10') {
-                  setManualAmount(Math.round(subtotal * 0.1));
+                  const disc = Math.round(subtotal * 0.1);
+                  setManualAmount(disc);
+                  toast.success(`Kode promo aktif! Diskon 10% (${formatRupiah(disc)}) diterapkan.`);
                 } else {
-                  alert('Kode promo tidak valid atau telah kedaluwarsa.');
+                  toast.error('Kode promo tidak valid atau telah kedaluwarsa.');
                 }
               }}
             >

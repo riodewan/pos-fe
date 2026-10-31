@@ -41,68 +41,7 @@ export interface CategoryItem {
   description?: string;
 }
 
-export const INITIAL_CATEGORIES: CategoryItem[] = [
-  {
-    id: 'cat-1',
-    name: 'Kopi',
-    slug: 'kopi',
-    type: 'Minuman',
-    itemCount: 5,
-    sortOrder: 1,
-    status: 'Aktif',
-    description: 'Semua racikan espresso based, manual brew, dan signature coffee.',
-  },
-  {
-    id: 'cat-2',
-    name: 'Non-Kopi',
-    slug: 'non-kopi',
-    type: 'Minuman',
-    itemCount: 3,
-    sortOrder: 2,
-    status: 'Aktif',
-    description: 'Minuman teh, artisan tea, cokelat, dan susu aneka rasa.',
-  },
-  {
-    id: 'cat-3',
-    name: 'Pastry',
-    slug: 'pastry',
-    type: 'Makanan',
-    itemCount: 2,
-    sortOrder: 3,
-    status: 'Aktif',
-    description: 'Croissant panggang renyah, muffin, dan roti artisan.',
-  },
-  {
-    id: 'cat-4',
-    name: 'Makanan Berat',
-    slug: 'makanan-berat',
-    type: 'Makanan',
-    itemCount: 4,
-    sortOrder: 4,
-    status: 'Aktif',
-    description: 'Aneka nasi bowl, pasta, sandwich, dan olahan ayam.',
-  },
-  {
-    id: 'cat-5',
-    name: 'Snack & Bites',
-    slug: 'snack-bites',
-    type: 'Cemilan',
-    itemCount: 3,
-    sortOrder: 5,
-    status: 'Aktif',
-    description: 'Camilan pendamping kopi seperti french fries, churros, dan nachos.',
-  },
-  {
-    id: 'cat-6',
-    name: 'Dessert',
-    slug: 'dessert',
-    type: 'Makanan',
-    itemCount: 2,
-    sortOrder: 6,
-    status: 'Aktif',
-    description: 'Puding, cheesecake, dan es krim segar.',
-  },
-];
+export const INITIAL_CATEGORIES: CategoryItem[] = [];
 
 interface CategoryManagementProps {
   onShowToast: (msg: string) => void;
@@ -111,11 +50,49 @@ interface CategoryManagementProps {
 }
 
 export function CategoryManagement({ onShowToast, isCreateOpen, onCloseCreate }: CategoryManagementProps) {
-  const [categories, setCategories] = useState<CategoryItem[]>(INITIAL_CATEGORIES);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  // Fetch real categories deduced from products
+  React.useEffect(() => {
+    setIsLoading(true);
+    import('@/services/catalog.service').then(({ catalogService }) => {
+      catalogService
+        .getProducts()
+        .then((res) => {
+          if (Array.isArray(res?.data)) {
+            const catMap = new Map<string, CategoryItem>();
+            res.data.forEach((p: any) => {
+              const catName = p.category || 'Kopi';
+              const catType = p.type || 'Minuman';
+              const slug = catName.toLowerCase().replace(/\s+/g, '-');
+              if (!catMap.has(slug)) {
+                catMap.set(slug, {
+                  id: `cat-${slug}`,
+                  name: catName,
+                  slug,
+                  type: catType as any,
+                  itemCount: 1,
+                  sortOrder: catMap.size + 1,
+                  status: 'Aktif',
+                  description: `Kategori menu ${catName}`,
+                });
+              } else {
+                const existing = catMap.get(slug)!;
+                existing.itemCount += 1;
+              }
+            });
+            setCategories(Array.from(catMap.values()));
+          }
+        })
+        .catch((err) => console.warn('Failed to fetch categories:', err))
+        .finally(() => setIsLoading(false));
+    });
+  }, []);
 
   // Drawer / Modal for Edit / Create
   const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
@@ -394,6 +371,7 @@ export function CategoryManagement({ onShowToast, isCreateOpen, onCloseCreate }:
       <DataTable
         columns={columns}
         data={filteredCategories}
+        isLoading={isLoading}
         keyExtractor={(item) => item.id}
         selectable
         selectedIds={selectedIds}

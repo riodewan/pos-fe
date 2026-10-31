@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { StatusBadge, Button } from '@/components/common';
 import { formatRupiah } from '@/utils';
+import { useToast } from '@/context/ToastContext';
 
 export type TableStatus = 'Kosong' | 'Terisi' | 'Reservasi' | 'Diblokir';
 
@@ -86,6 +87,7 @@ export function TableDetailDrawer({
   onCancelReservation,
   onOpenTable,
 }: TableDetailDrawerProps) {
+  const { toast } = useToast();
   if (!isOpen || !table) return null;
 
   const isOccupied = table.status === 'Terisi';
@@ -161,7 +163,7 @@ export function TableDetailDrawer({
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => alert(`Memanggil ${table.customer?.phone}`)}
+                      onClick={() => toast.info(`Memanggil ${table.customer?.phone}`)}
                       className="size-9 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-700 flex items-center justify-center transition-colors shadow-2xs"
                       title="Telepon"
                     >
@@ -411,7 +413,7 @@ export function TableDetailDrawer({
                 <Button
                   variant="secondary"
                   size="md"
-                  onClick={() => alert(`Ubah reservasi Meja ${table.tableNumber}`)}
+                  onClick={() => toast.info(`Ubah reservasi Meja ${table.tableNumber}`)}
                 >
                   Ubah
                 </Button>

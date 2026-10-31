@@ -15,6 +15,8 @@ import {
   Users,
 } from 'lucide-react';
 import { DataTable, ColumnDef, StatusBadge } from '@/components/common';
+import { useToast } from '@/context/ToastContext';
+import { posService } from '@/services/pos.service';
 
 export interface TableCategoryItem {
   id: string;
@@ -26,35 +28,7 @@ export interface TableCategoryItem {
   description?: string;
 }
 
-const INITIAL_CATEGORIES: TableCategoryItem[] = [
-  {
-    id: 'tcat-1',
-    name: 'Meja Standar (2-4 Orang)',
-    slug: 'meja-standar',
-    defaultCapacity: 4,
-    tableCount: 8,
-    status: 'Aktif',
-    description: 'Meja makan reguler untuk pasangan atau grup keluarga kecil.',
-  },
-  {
-    id: 'tcat-2',
-    name: 'Meja Bar & Stool',
-    slug: 'meja-bar',
-    defaultCapacity: 2,
-    tableCount: 2,
-    status: 'Aktif',
-    description: 'Meja tinggi dekat counter espresso untuk pelanggan solo / laptop.',
-  },
-  {
-    id: 'tcat-3',
-    name: 'Sofa VIP & Rapat',
-    slug: 'sofa-vip',
-    defaultCapacity: 8,
-    tableCount: 2,
-    status: 'Aktif',
-    description: 'Meja panjang dan sofa nyaman untuk reservasi kelompok besar.',
-  },
-];
+const INITIAL_CATEGORIES: TableCategoryItem[] = [];
 
 interface TableCategoryManagementProps {
   onShowToast: (msg: string) => void;
@@ -67,10 +41,37 @@ export function TableCategoryManagement({
   isCreateOpen,
   onCloseCreate,
 }: TableCategoryManagementProps) {
+  const { toast } = useToast();
   const [categories, setCategories] = useState<TableCategoryItem[]>(INITIAL_CATEGORIES);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  // Fetch categories from system settings API
+  React.useEffect(() => {
+    setIsLoading(true);
+    posService
+      .getTableCategories()
+      .then((res) => {
+        if (res?.data?.value) {
+          try {
+            const parsed = JSON.parse(res.data.value);
+            if (Array.isArray(parsed)) {
+              setCategories(parsed);
+            }
+          } catch (e) {
+            console.error('Failed to parse table categories setting:', e);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('Backend categories setting warning:', err);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, []);
 
   // Drawer states
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -113,27 +114,26 @@ export function TableCategoryManagement({
 
   const handleSave = (isDraft = false) => {
     if (!formName.trim()) {
-      alert('Nama kategori wajib diisi');
+      toast.warning('Nama kategori wajib diisi');
       return;
     }
 
     const slug = formName.toLowerCase().replace(/\s+/g, '-');
     const status = isDraft ? 'Nonaktif' : formStatus;
 
+    let nextCategories: TableCategoryItem[];
     if (editingCategory) {
-      setCategories((prev) =>
-        prev.map((c) =>
-          c.id === editingCategory.id
-            ? {
-                ...c,
-                name: formName,
-                slug,
-                defaultCapacity: formCapacity,
-                status,
-                description: formDescription,
-              }
-            : c
-        )
+      nextCategories = categories.map((c) =>
+        c.id === editingCategory.id
+          ? {
+              ...c,
+              name: formName,
+              slug,
+              defaultCapacity: formCapacity,
+              status,
+              description: formDescription,
+            }
+          : c
       );
     } else {
       const newCat: TableCategoryItem = {
@@ -145,8 +145,13 @@ export function TableCategoryManagement({
         status,
         description: formDescription,
       };
-      setCategories((prev) => [...prev, newCat]);
+      nextCategories = [...categories, newCat];
     }
+
+    setCategories(nextCategories);
+    posService.saveTableCategories(nextCategories).catch((err) => {
+      console.warn('Backend saveTableCategories warning:', err);
+    });
 
     setIsDrawerOpen(false);
     setShowSuccessModal(true);
@@ -154,7 +159,11 @@ export function TableCategoryManagement({
 
   const handleDelete = (id: string, name: string) => {
     if (confirm(`Yakin ingin menghapus kategori meja "${name}"?`)) {
-      setCategories((prev) => prev.filter((c) => c.id !== id));
+      const nextCategories = categories.filter((c) => c.id !== id);
+      setCategories(nextCategories);
+      posService.saveTableCategories(nextCategories).catch((err) => {
+        console.warn('Backend saveTableCategories warning:', err);
+      });
       onShowToast(`Kategori "${name}" berhasil dihapus!`);
       if (editingCategory?.id === id) handleClose();
     }
@@ -292,6 +301,7 @@ export function TableCategoryManagement({
       <DataTable
         columns={columns}
         data={filteredCategories}
+        isLoading={isLoading}
         keyExtractor={(item) => item.id}
         selectable
         selectedIds={selectedIds}

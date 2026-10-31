@@ -24,6 +24,7 @@ import { tenantService } from '@/services/tenant.service';
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSegmentation, setSelectedSegmentation] = useState<string>('ALL');
@@ -45,6 +46,7 @@ export default function CustomersPage() {
   React.useEffect(() => {
     const fetchCustomers = async () => {
       try {
+        setIsLoading(true);
         const res = await tenantService.getCustomers();
         if (res?.data) {
           const mapped: Customer[] = res.data.map((c: any) => ({
@@ -63,17 +65,20 @@ export default function CustomersPage() {
             email: c.email || '-',
             totalTransactions: Number(c.total_visits) || 0,
             totalSpent: Number(c.total_spent) || 0,
-            segmentation: c.tier === 'Gold' ? 'VIP' : c.tier === 'Silver' ? 'Regular' : 'Baru',
-            status: 'Aktif',
+            segmentation: c.segmentation || (c.tier === 'Gold' ? 'VIP' : c.tier === 'Silver' ? 'Regular' : 'Baru'),
+            status: c.status || 'Aktif',
             birthDate: c.birth_date || '-',
-            gender: 'Laki-laki',
-            notes: c.points ? `Member ${c.tier} (${c.points} poin)` : 'Pelanggan terdaftar',
+            gender: c.gender || 'Laki-laki',
+            notes: c.notes || (c.points ? `Member ${c.tier} (${c.points} poin)` : 'Pelanggan terdaftar'),
             address: c.address || '-',
+            avatarUrl: c.avatar_url || undefined,
           }));
           setCustomers(mapped);
         }
       } catch {
         // Keep empty list when the API is unreachable
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -138,6 +143,13 @@ export default function CustomersPage() {
         name: updated.name,
         phone: updated.phone,
         email: updated.email,
+        status: updated.status,
+        segmentation: updated.segmentation,
+        gender: updated.gender,
+        birth_date: updated.birthDate,
+        notes: updated.notes,
+        address: updated.address,
+        avatar_url: updated.avatarUrl,
       });
     } catch {}
 
@@ -163,6 +175,13 @@ export default function CustomersPage() {
         phone: newCustomer.phone,
         email: newCustomer.email,
         tier: newCustomer.segmentation === 'VIP' ? 'Gold' : newCustomer.segmentation === 'Regular' ? 'Silver' : 'Bronze',
+        status: newCustomer.status || 'Aktif',
+        segmentation: newCustomer.segmentation || 'Baru',
+        gender: newCustomer.gender,
+        birth_date: newCustomer.birthDate,
+        notes: newCustomer.notes,
+        address: newCustomer.address,
+        avatar_url: newCustomer.avatarUrl,
       });
       if (res?.data?.id) {
         createdId = res.data.id;
@@ -175,6 +194,7 @@ export default function CustomersPage() {
   // Quick action: Toggle Status
   const handleToggleStatus = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    tenantService.toggleCustomerStatus(id).catch(console.error);
     setCustomers((prev) =>
       prev.map((c) =>
         c.id === id
@@ -445,6 +465,7 @@ export default function CustomersPage() {
       <DataTable<Customer>
         columns={columns}
         data={paginatedCustomers}
+        isLoading={isLoading}
         keyExtractor={(item) => item.id}
         selectable
         selectedIds={selectedIds}

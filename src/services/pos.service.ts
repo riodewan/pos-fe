@@ -24,6 +24,25 @@ export const posService = {
   rotateTableQr: (tableId: string) =>
     api.post<ApiResponse<QrCode>>(`/pos/tables/${tableId}/qr`),
 
+  // Table Areas & Categories (Stored via System Settings per Tenant & Store)
+  getTableAreas: () =>
+    api.get<ApiResponse<{ key: string; value: string }>>('/system/settings/table_areas'),
+
+  saveTableAreas: (areas: any[]) =>
+    api.post<ApiResponse<any>>('/system/settings', { key: 'table_areas', value: JSON.stringify(areas) }),
+
+  getTableCategories: () =>
+    api.get<ApiResponse<{ key: string; value: string }>>('/system/settings/table_categories'),
+
+  saveTableCategories: (categories: any[]) =>
+    api.post<ApiResponse<any>>('/system/settings', { key: 'table_categories', value: JSON.stringify(categories) }),
+
+  getDisposableQrs: () =>
+    api.get<ApiResponse<{ key: string; value: string }>>('/system/settings/disposable_qrs'),
+
+  saveDisposableQrs: (qrs: any[]) =>
+    api.post<ApiResponse<any>>('/system/settings', { key: 'disposable_qrs', value: JSON.stringify(qrs) }),
+
   // Orders
   getOrders: (params?: Record<string, string | number>) =>
     api.get<ApiResponse<Order[]>>('/pos/orders', { params }),

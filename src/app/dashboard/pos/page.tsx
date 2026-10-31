@@ -47,6 +47,7 @@ import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { catalogService, posService } from '@/services';
 import { tenantService } from '@/services/tenant.service';
 import { useStore } from '@/context/StoreContext';
+import { useToast } from '@/context/ToastContext';
 import { deduceProductCategory } from '@/utils';
 
 type OrderType = 'DINE_IN' | 'TAKEAWAY' | 'DELIVERY' | 'QR_ORDER';
@@ -56,6 +57,7 @@ function PosContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { activeStore } = useStore();
+  const { toast } = useToast();
 
   // Active top-level view: 'register' (Kasir) | 'orders' (Daftar Pesanan / KDS)
   const queryTab = searchParams.get('tab');
@@ -312,7 +314,7 @@ function PosContent() {
         setLastOrderNumber(created?.order_number || '');
       }
     } catch (e: any) {
-      window.alert(e?.response?.data?.message || 'Gagal menyimpan pesanan. Silakan coba lagi.');
+      toast.error(e?.response?.data?.message || 'Gagal menyimpan pesanan. Silakan coba lagi.');
       return;
     }
 

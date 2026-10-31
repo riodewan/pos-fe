@@ -44,75 +44,7 @@ export interface SectionItem {
   selectedMenuIds?: string[];
 }
 
-export const INITIAL_SECTIONS: SectionItem[] = [
-  {
-    id: 'sec-1',
-    name: 'Rekomendasi Barista',
-    placement: 'Semua Channel',
-    activeHours: 'Sepanjang Hari',
-    itemCount: 4,
-    sortOrder: 1,
-    status: 'Aktif',
-    description: 'Menu signature kopi pilihan terbaik barista yang direkomendasikan kepada pelanggan.',
-    selectedMenuIds: ['m-1', 'm-2', 'm-4', 'm-6'],
-  },
-  {
-    id: 'sec-2',
-    name: 'Sarapan Pagi / Breakfast Combo',
-    placement: 'Hanya QR Order',
-    activeHours: '07:00 - 11:00 WIB',
-    itemCount: 3,
-    sortOrder: 2,
-    status: 'Aktif',
-    description: 'Paket bundling kopi dan croissant hangat untuk santapan pagi hemat.',
-    selectedMenuIds: ['m-1', 'm-6', 'm-7'],
-  },
-  {
-    id: 'sec-3',
-    name: 'Best Seller Musim Ini',
-    placement: 'Semua Channel',
-    activeHours: 'Sepanjang Hari',
-    itemCount: 5,
-    sortOrder: 3,
-    status: 'Aktif',
-    description: 'Menu dengan penjualan tertinggi bulan ini untuk dorongan impulsive order.',
-    selectedMenuIds: ['m-1', 'm-2', 'm-3', 'm-6', 'm-8'],
-  },
-  {
-    id: 'sec-4',
-    name: 'Camilan & Dessert Sore',
-    placement: 'Semua Channel',
-    activeHours: '14:00 - 18:00 WIB',
-    itemCount: 4,
-    sortOrder: 4,
-    status: 'Aktif',
-    description: 'Pilihan pastry dan french fries untuk santai sore hari.',
-    selectedMenuIds: ['m-6', 'm-7', 'm-8'],
-  },
-  {
-    id: 'sec-5',
-    name: 'Paket Hemat Berdua',
-    placement: 'Hanya POS Kasir',
-    activeHours: 'Sepanjang Hari',
-    itemCount: 2,
-    sortOrder: 5,
-    status: 'Nonaktif',
-    description: 'Bundling makan siang hemat 2 porsi makanan dan minuman segar.',
-    selectedMenuIds: ['m-8', 'm-9'],
-  },
-];
-
-const AVAILABLE_MENUS = [
-  { id: 'm-1', name: 'Kopi Susu Gula Aren', category: 'Kopi', price: 28000 },
-  { id: 'm-2', name: 'Matcha Latte', category: 'Kopi', price: 30000 },
-  { id: 'm-3', name: 'Americano', category: 'Kopi', price: 22000 },
-  { id: 'm-4', name: 'Cappucino', category: 'Kopi', price: 28000 },
-  { id: 'm-5', name: 'Latte', category: 'Kopi', price: 27000 },
-  { id: 'm-6', name: 'Croissant', category: 'Pastry', price: 25000 },
-  { id: 'm-7', name: 'Chocolate Croissant', category: 'Pastry', price: 28000 },
-  { id: 'm-8', name: 'Chicken Sandwich', category: 'Makanan Berat', price: 45000 },
-  { id: 'm-9', name: 'Pasta Carbonara', category: 'Makanan Berat', price: 48000 },
-];
+export const INITIAL_SECTIONS: SectionItem[] = [];
 
 interface SectionManagementProps {
   onShowToast: (msg: string) => void;
@@ -121,11 +53,35 @@ interface SectionManagementProps {
 }
 
 export function SectionManagement({ onShowToast, isCreateOpen, onCloseCreate }: SectionManagementProps) {
-  const [sections, setSections] = useState<SectionItem[]>(INITIAL_SECTIONS);
+  const [sections, setSections] = useState<SectionItem[]>([]);
+  const [availableMenus, setAvailableMenus] = useState<{ id: string; name: string; category: string; price: number }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [placementFilter, setPlacementFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  // Load products for section builder
+  React.useEffect(() => {
+    setIsLoading(true);
+    import('@/services/catalog.service').then(({ catalogService }) => {
+      catalogService
+        .getProducts()
+        .then((res) => {
+          if (Array.isArray(res?.data)) {
+            const mapped = res.data.map((p: any) => ({
+              id: p.id,
+              name: p.name,
+              category: p.category || 'Kopi',
+              price: Number(p.selling_price) || 0,
+            }));
+            setAvailableMenus(mapped);
+          }
+        })
+        .catch((err) => console.warn('Failed to fetch products for sections:', err))
+        .finally(() => setIsLoading(false));
+    });
+  }, []);
 
   // Drawer / Modal for Edit / Create
   const [editingSection, setEditingSection] = useState<SectionItem | null>(null);
@@ -411,6 +367,7 @@ export function SectionManagement({ onShowToast, isCreateOpen, onCloseCreate }: 
       <DataTable
         columns={columns}
         data={filteredSections}
+        isLoading={isLoading}
         keyExtractor={(item) => item.id}
         selectable
         selectedIds={selectedIds}
@@ -529,26 +486,30 @@ export function SectionManagement({ onShowToast, isCreateOpen, onCloseCreate }: 
           {/* Field: Pilih Menu Terdaftar dalam Section */}
           <FormField label={`Menu Terdaftar (${formSelectedMenuIds.length} Dipilih)`}>
             <div className="border border-neutral-200 rounded-xl p-3 max-h-48 overflow-y-auto space-y-1.5 bg-neutral-50/40">
-              {AVAILABLE_MENUS.map((menu) => (
-                <label
-                  key={menu.id}
-                  className="flex items-center justify-between p-2 rounded-lg bg-white border border-neutral-200/70 hover:border-neutral-300 cursor-pointer text-xs"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <input
-                      type="checkbox"
-                      checked={formSelectedMenuIds.includes(menu.id)}
-                      onChange={() => toggleMenuSelection(menu.id)}
-                      className="rounded border-neutral-300 text-orange-600 focus:ring-0 size-4"
-                    />
-                    <span className="font-semibold text-neutral-800">{menu.name}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500">
-                      {menu.category}
-                    </span>
-                  </div>
-                  <span className="font-medium text-neutral-700">Rp{menu.price.toLocaleString('id-ID')}</span>
-                </label>
-              ))}
+              {availableMenus.length === 0 ? (
+                <p className="text-xs text-neutral-400 py-3 text-center">Belum ada menu di katalog.</p>
+              ) : (
+                availableMenus.map((menu) => (
+                  <label
+                    key={menu.id}
+                    className="flex items-center justify-between p-2 rounded-lg bg-white border border-neutral-200/70 hover:border-neutral-300 cursor-pointer text-xs"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <input
+                        type="checkbox"
+                        checked={formSelectedMenuIds.includes(menu.id)}
+                        onChange={() => toggleMenuSelection(menu.id)}
+                        className="rounded border-neutral-300 text-orange-600 focus:ring-0 size-4"
+                      />
+                      <span className="font-semibold text-neutral-800">{menu.name}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500">
+                        {menu.category}
+                      </span>
+                    </div>
+                    <span className="font-medium text-neutral-700">Rp{menu.price.toLocaleString('id-ID')}</span>
+                  </label>
+                ))
+              )}
             </div>
           </FormField>
 

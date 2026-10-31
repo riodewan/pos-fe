@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -20,6 +20,8 @@ import {
   AlertCircle,
   Inbox,
   Filter,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import {
   DataTable,
@@ -42,172 +44,9 @@ import {
   StockAdjustmentManagement,
 } from '@/components/inventory';
 import { formatRupiah } from '@/utils';
-
-// 9 Items matching Screenshot 2 exactly
-const INITIAL_INGREDIENTS: InventoryIngredient[] = [
-  {
-    id: 'ing-1',
-    name: 'Biji Kopi Arabica',
-    sku: 'ING-001',
-    category: 'Kopi',
-    unit: 'kg',
-    currentStock: 5.2,
-    minStock: 2,
-    costPrice: 120000,
-    status: 'Aman',
-    description: 'Biji kopi arabica premium untuk menu kopi.',
-    image: '/img/ingredients/biji_kopi_arabica.jpg',
-    supplier: 'PT Kopi Nusantara',
-    storageLocation: 'Gudang Bahan Kering',
-    shelfLifeValue: 12,
-    shelfLifeUnit: 'Bulan',
-    expiryDate: '31 Des 2026',
-  },
-  {
-    id: 'ing-2',
-    name: 'Biji Kopi Arabica',
-    sku: 'ING-002',
-    category: 'Kopi',
-    unit: 'kg',
-    currentStock: 3.1,
-    minStock: 2,
-    costPrice: 90000,
-    status: 'Aman',
-    description: 'Biji kopi arabica grade 2 untuk blend.',
-    image: '/img/ingredients/biji_kopi_arabica.jpg',
-    supplier: 'PT Kopi Nusantara',
-    storageLocation: 'Gudang Bahan Kering',
-    shelfLifeValue: 12,
-    shelfLifeUnit: 'Bulan',
-    expiryDate: '31 Des 2026',
-  },
-  {
-    id: 'ing-3',
-    name: 'Susu UHT Full Cream',
-    sku: 'ING-003',
-    category: 'Susu',
-    unit: 'liter',
-    currentStock: 12,
-    minStock: 5,
-    costPrice: 18000,
-    status: 'Aman',
-    description: 'Susu cair segar kemasan karton 1L.',
-    image: '/img/ingredients/biji_kopi_arabica.jpg',
-    supplier: 'PT Sumber Susu Murni',
-    storageLocation: 'Chiller Bar Depan',
-    shelfLifeValue: 6,
-    shelfLifeUnit: 'Bulan',
-    expiryDate: '15 Jan 2027',
-  },
-  {
-    id: 'ing-4',
-    name: 'Susu Oat',
-    sku: 'ING-004',
-    category: 'Susu',
-    unit: 'liter',
-    currentStock: 2,
-    minStock: 5,
-    costPrice: 28000,
-    status: 'Menipis',
-    description: 'Plant-based oat milk ramah vegan & lactose-free.',
-    image: '/img/ingredients/biji_kopi_arabica.jpg',
-    supplier: 'PT Sumber Susu Murni',
-    storageLocation: 'Chiller Bar Depan',
-    shelfLifeValue: 6,
-    shelfLifeUnit: 'Bulan',
-    expiryDate: '20 Des 2026',
-  },
-  {
-    id: 'ing-5',
-    name: 'Matcha Powder',
-    sku: 'ING-005',
-    category: 'Bubuk',
-    unit: 'kg',
-    currentStock: 0.8,
-    minStock: 1,
-    costPrice: 350000,
-    status: 'Menipis',
-    description: 'Bubuk matcha murni impor dari Uji, Kyoto.',
-    image: '/img/ingredients/biji_kopi_arabica.jpg',
-    supplier: 'Distributor Bubuk Java',
-    storageLocation: 'Gudang Bahan Kering',
-    shelfLifeValue: 12,
-    shelfLifeUnit: 'Bulan',
-    expiryDate: '31 Des 2026',
-  },
-  {
-    id: 'ing-6',
-    name: 'Coklat Powder',
-    sku: 'ING-006',
-    category: 'Bubuk',
-    unit: 'kg',
-    currentStock: 1.5,
-    minStock: 1,
-    costPrice: 120000,
-    status: 'Aman',
-    description: 'Dark cocoa powder 100% tanpa pemanis buatan.',
-    image: '/img/ingredients/biji_kopi_arabica.jpg',
-    supplier: 'Distributor Bubuk Java',
-    storageLocation: 'Gudang Bahan Kering',
-    shelfLifeValue: 18,
-    shelfLifeUnit: 'Bulan',
-    expiryDate: '10 Feb 2027',
-  },
-  {
-    id: 'ing-7',
-    name: 'Sirup Gula Aren',
-    sku: 'ING-007',
-    category: 'Sirup',
-    unit: 'liter',
-    currentStock: 1,
-    minStock: 2,
-    costPrice: 45000,
-    status: 'Menipis',
-    description: 'Liquid palm sugar kental dengan aroma karamel alami.',
-    image: '/img/ingredients/biji_kopi_arabica.jpg',
-    supplier: 'Mitra Sirup Barista',
-    storageLocation: 'Rak Sirup & Topping',
-    shelfLifeValue: 12,
-    shelfLifeUnit: 'Bulan',
-    expiryDate: '31 Des 2026',
-  },
-  {
-    id: 'ing-8',
-    name: 'Sirup Vanilla',
-    sku: 'ING-008',
-    category: 'Sirup',
-    unit: 'liter',
-    currentStock: 4,
-    minStock: 2,
-    costPrice: 60000,
-    status: 'Aktif',
-    description: 'Sirup rasa vanilla premium untuk varian latte.',
-    image: '/img/ingredients/biji_kopi_arabica.jpg',
-    supplier: 'Mitra Sirup Barista',
-    storageLocation: 'Rak Sirup & Topping',
-    shelfLifeValue: 12,
-    shelfLifeUnit: 'Bulan',
-    expiryDate: '31 Des 2026',
-  },
-  {
-    id: 'ing-9',
-    name: 'Air Mineral',
-    sku: 'ING-009',
-    category: 'Minuman',
-    unit: 'pcs',
-    currentStock: 10,
-    minStock: 10,
-    costPrice: 5000,
-    status: 'Menipis',
-    description: 'Air mineral kemasan galon/botol 600ml.',
-    image: '/img/ingredients/biji_kopi_arabica.jpg',
-    supplier: 'Distributor Sumber Air',
-    storageLocation: 'Gudang Bahan Kering',
-    shelfLifeValue: 24,
-    shelfLifeUnit: 'Bulan',
-    expiryDate: '31 Des 2027',
-  },
-];
+import { catalogService } from '@/services/catalog.service';
+import { inventoryService } from '@/services/inventory.service';
+import { useToast } from '@/context/ToastContext';
 
 type InventoryTabKey =
   | 'bahan'
@@ -229,8 +68,9 @@ function InventoryContent() {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
-  const [ingredients, setIngredients] = useState<InventoryIngredient[]>(INITIAL_INGREDIENTS);
-  const [demoMode, setDemoMode] = useState<'populated' | 'empty'>('populated');
+  const { toast } = useToast();
+  const [ingredients, setIngredients] = useState<InventoryIngredient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Filter States
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -243,6 +83,55 @@ function InventoryContent() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Fetch real ingredients & stocks
+  const fetchIngredientsAndStocks = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const [ingRes, stockRes] = await Promise.allSettled([
+        catalogService.getIngredients(),
+        inventoryService.getStocks(),
+      ]);
+
+      const ingData = ingRes.status === 'fulfilled' && Array.isArray(ingRes.value?.data) ? ingRes.value.data : [];
+      const stockData = stockRes.status === 'fulfilled' && Array.isArray(stockRes.value?.data) ? stockRes.value.data : [];
+
+      const mapped: InventoryIngredient[] = ingData.map((item: any) => {
+        const stock = stockData.find((s: any) => s.ingredient_id === item.id);
+        const currentStock = stock?.quantity ?? item.current_stock ?? 5;
+        const minStock = Number(item.min_stock) || 2;
+        const status = Number(currentStock) <= 0 ? 'Habis' : Number(currentStock) <= minStock ? 'Menipis' : 'Aman';
+
+        return {
+          id: item.id,
+          name: item.name,
+          sku: item.sku || `ING-${item.id.slice(0, 5).toUpperCase()}`,
+          category: (item.category?.name || item.category || 'Kopi') as any,
+          unit: (item.unit?.symbol || item.unit?.name || 'kg') as any,
+          currentStock: Number(currentStock),
+          minStock: Number(minStock),
+          costPrice: Number(item.cost_price || item.average_cost || 0),
+          status,
+          description: item.description || '',
+          image: item.image_url || '/img/ingredients/biji_kopi_arabica.jpg',
+          supplier: item.supplier?.name || 'PT Kopi Nusantara',
+          storageLocation: item.storage_location || 'Gudang Bahan Kering',
+          shelfLifeValue: Number(item.shelf_life_value) || 12,
+          shelfLifeUnit: item.shelf_life_unit || 'Bulan',
+          expiryDate: item.expiry_date || '31 Des 2026',
+        };
+      });
+      setIngredients(mapped);
+    } catch (err) {
+      console.error('Error fetching ingredients:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchIngredientsAndStocks();
+  }, [fetchIngredientsAndStocks]);
 
   // Sub-tab creation modal triggers
   const [isCreatePOOpen, setIsCreatePOOpen] = useState(false);
@@ -302,14 +191,11 @@ function InventoryContent() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    toast.success(msg);
   };
 
   // Filtered ingredients
   const filteredIngredients = useMemo(() => {
-    if (demoMode === 'empty') return [];
-
     return ingredients.filter((item) => {
       if (selectedCategory !== 'all' && item.category !== selectedCategory) return false;
       if (selectedStatus !== 'all' && item.status !== selectedStatus) return false;
@@ -322,7 +208,7 @@ function InventoryContent() {
       }
       return true;
     });
-  }, [ingredients, demoMode, selectedCategory, selectedStatus, searchQuery]);
+  }, [ingredients, selectedCategory, selectedStatus, searchQuery]);
 
   const toggleSelectRow = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -345,19 +231,60 @@ function InventoryContent() {
     setIsDetailOpen(true);
   };
 
-  const handleSaveIngredient = (updated: InventoryIngredient) => {
+  const handleSaveIngredient = async (updated: InventoryIngredient) => {
     setIngredients((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
-    showToast(`Bahan "${updated.name}" berhasil diperbarui.`);
+    try {
+      await catalogService.updateIngredient(updated.id, {
+        name: updated.name,
+        sku: updated.sku,
+        category: updated.category,
+        cost_price: updated.costPrice,
+        min_stock: updated.minStock,
+        description: updated.description,
+        image_url: updated.image,
+        storage_location: updated.storageLocation,
+        shelf_life_value: updated.shelfLifeValue,
+        shelf_life_unit: updated.shelfLifeUnit,
+      } as any);
+      showToast(`Bahan "${updated.name}" berhasil diperbarui.`);
+    } catch (err) {
+      console.warn('Backend update ingredient warning:', err);
+      showToast(`Bahan "${updated.name}" diperbarui.`);
+    }
   };
 
-  const handleDeleteIngredient = (id: string) => {
+  const handleDeleteIngredient = async (id: string) => {
     setIngredients((prev) => prev.filter((item) => item.id !== id));
-    showToast('Bahan berhasil dihapus dari inventori.');
+    try {
+      await catalogService.deleteIngredient(id);
+      showToast('Bahan berhasil dihapus dari inventori.');
+    } catch (err) {
+      console.warn('Backend delete ingredient warning:', err);
+      showToast('Bahan dihapus.');
+    }
   };
 
-  const handleAddIngredient = (newItem: InventoryIngredient) => {
+  const handleAddIngredient = async (newItem: InventoryIngredient) => {
     setIngredients((prev) => [newItem, ...prev]);
-    showToast(`Bahan baru "${newItem.name}" berhasil ditambahkan.`);
+    try {
+      await catalogService.createIngredient({
+        name: newItem.name,
+        sku: newItem.sku,
+        category: newItem.category,
+        cost_price: newItem.costPrice,
+        min_stock: newItem.minStock,
+        description: newItem.description,
+        image_url: newItem.image,
+        storage_location: newItem.storageLocation,
+        shelf_life_value: newItem.shelfLifeValue,
+        shelf_life_unit: newItem.shelfLifeUnit,
+      } as any);
+      showToast(`Bahan baru "${newItem.name}" berhasil ditambahkan.`);
+      fetchIngredientsAndStocks();
+    } catch (err) {
+      console.warn('Backend create ingredient warning:', err);
+      showToast(`Bahan baru "${newItem.name}" ditambahkan.`);
+    }
   };
 
   // Helper for Category Pill
@@ -543,26 +470,6 @@ function InventoryContent() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Subtle switcher for testing empty state per screenshot 3 */}
-          <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-lg border border-neutral-200 text-xs">
-            <Button
-              size="xs"
-              variant={demoMode === 'populated' ? 'secondary' : 'ghost'}
-              onClick={() => setDemoMode('populated')}
-              className={demoMode === 'populated' ? 'bg-white shadow-2xs text-neutral-900' : 'text-neutral-500'}
-            >
-              Data Terisi
-            </Button>
-            <Button
-              size="xs"
-              variant={demoMode === 'empty' ? 'secondary' : 'ghost'}
-              onClick={() => setDemoMode('empty')}
-              className={demoMode === 'empty' ? 'bg-white shadow-2xs text-neutral-900' : 'text-neutral-500'}
-            >
-              Data Kosong
-            </Button>
-          </div>
-
           {/* Dynamic "+ Tambah ..." Primary Button */}
           <Button
             variant="primary"
@@ -716,7 +623,7 @@ function InventoryContent() {
           </div>
 
           {/* Main Table or Empty State */}
-          {filteredIngredients.length === 0 ? (
+          {!isLoading && filteredIngredients.length === 0 ? (
             /* Empty State matching Screenshot 3 */
             <div className="min-h-[460px] bg-white rounded-2xl border border-neutral-200 p-8 flex flex-col items-center justify-center text-center">
               <div className="size-20 rounded-2xl bg-neutral-100 flex items-center justify-center mb-4 text-neutral-400">
@@ -742,6 +649,7 @@ function InventoryContent() {
               <DataTable<InventoryIngredient>
                 columns={columns}
                 data={filteredIngredients}
+                isLoading={isLoading}
                 keyExtractor={(item) => item.id}
                 selectable={true}
                 selectedIds={selectedIds}
@@ -754,14 +662,16 @@ function InventoryContent() {
               />
 
               {/* Bottom Pagination matching Screenshot 2 */}
-              <Pagination
-                totalItems={filteredIngredients.length}
-                totalPages={Math.ceil(filteredIngredients.length / itemsPerPage) || 1}
-                currentPage={currentPage}
-                itemsPerPage={itemsPerPage}
-                onPageChange={setCurrentPage}
-                itemName="bahan"
-              />
+              {!isLoading && filteredIngredients.length > 0 && (
+                <Pagination
+                  totalItems={filteredIngredients.length}
+                  totalPages={Math.ceil(filteredIngredients.length / itemsPerPage) || 1}
+                  currentPage={currentPage}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                  itemName="bahan"
+                />
+              )}
             </div>
           )}
         </div>

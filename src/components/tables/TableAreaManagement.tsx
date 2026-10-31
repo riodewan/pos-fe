@@ -14,6 +14,8 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { DataTable, ColumnDef, StatusBadge } from '@/components/common';
+import { useToast } from '@/context/ToastContext';
+import { posService } from '@/services/pos.service';
 
 export interface AreaItem {
   id: string;
@@ -26,38 +28,7 @@ export interface AreaItem {
   description?: string;
 }
 
-const INITIAL_AREAS: AreaItem[] = [
-  {
-    id: 'area-1',
-    name: 'Indoor Utama',
-    code: 'IND',
-    tableCount: 5,
-    totalSeats: 12,
-    smokingAllowed: false,
-    status: 'Aktif',
-    description: 'Area ber-AC ruang utama dekat counter kasir dan bar kopi.',
-  },
-  {
-    id: 'area-2',
-    name: 'Outdoor Terbuka',
-    code: 'OUT',
-    tableCount: 7,
-    totalSeats: 14,
-    smokingAllowed: true,
-    status: 'Aktif',
-    description: 'Area taman santai dengan pencahayaan alami dan smoking area.',
-  },
-  {
-    id: 'area-3',
-    name: 'VIP Room',
-    code: 'VIP',
-    tableCount: 2,
-    totalSeats: 16,
-    smokingAllowed: false,
-    status: 'Aktif',
-    description: 'Ruang privat berkapasitas besar untuk rapat kerja atau perayaan khusus.',
-  },
-];
+const INITIAL_AREAS: AreaItem[] = [];
 
 interface TableAreaManagementProps {
   onShowToast: (msg: string) => void;
@@ -70,10 +41,37 @@ export function TableAreaManagement({
   isCreateOpen,
   onCloseCreate,
 }: TableAreaManagementProps) {
+  const { toast } = useToast();
   const [areas, setAreas] = useState<AreaItem[]>(INITIAL_AREAS);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  // Fetch areas from system settings API
+  React.useEffect(() => {
+    setIsLoading(true);
+    posService
+      .getTableAreas()
+      .then((res) => {
+        if (res?.data?.value) {
+          try {
+            const parsed = JSON.parse(res.data.value);
+            if (Array.isArray(parsed)) {
+              setAreas(parsed);
+            }
+          } catch (e) {
+            console.error('Failed to parse table areas setting:', e);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('Backend areas setting warning:', err);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, []);
 
   // Drawer states
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -119,27 +117,26 @@ export function TableAreaManagement({
 
   const handleSave = (isDraft = false) => {
     if (!formName.trim()) {
-      alert('Nama area wajib diisi');
+      toast.warning('Nama area wajib diisi');
       return;
     }
 
     const code = formCode.trim().toUpperCase() || formName.substring(0, 3).toUpperCase();
     const status = isDraft ? 'Nonaktif' : formStatus;
 
+    let nextAreas: AreaItem[];
     if (editingArea) {
-      setAreas((prev) =>
-        prev.map((a) =>
-          a.id === editingArea.id
-            ? {
-                ...a,
-                name: formName,
-                code,
-                smokingAllowed: formSmoking,
-                status,
-                description: formDescription,
-              }
-            : a
-        )
+      nextAreas = areas.map((a) =>
+        a.id === editingArea.id
+          ? {
+              ...a,
+              name: formName,
+              code,
+              smokingAllowed: formSmoking,
+              status,
+              description: formDescription,
+            }
+          : a
       );
     } else {
       const newArea: AreaItem = {
@@ -152,8 +149,13 @@ export function TableAreaManagement({
         status,
         description: formDescription,
       };
-      setAreas((prev) => [...prev, newArea]);
+      nextAreas = [...areas, newArea];
     }
+
+    setAreas(nextAreas);
+    posService.saveTableAreas(nextAreas).catch((err) => {
+      console.warn('Backend saveTableAreas warning:', err);
+    });
 
     setIsDrawerOpen(false);
     setShowSuccessModal(true);
@@ -161,7 +163,11 @@ export function TableAreaManagement({
 
   const handleDelete = (id: string, name: string) => {
     if (confirm(`Yakin ingin menghapus area "${name}"?`)) {
-      setAreas((prev) => prev.filter((a) => a.id !== id));
+      const nextAreas = areas.filter((a) => a.id !== id);
+      setAreas(nextAreas);
+      posService.saveTableAreas(nextAreas).catch((err) => {
+        console.warn('Backend saveTableAreas warning:', err);
+      });
       onShowToast(`Area "${name}" berhasil dihapus!`);
       if (editingArea?.id === id) handleClose();
     }
@@ -314,6 +320,7 @@ export function TableAreaManagement({
       <DataTable
         columns={columns}
         data={filteredAreas}
+        isLoading={isLoading}
         keyExtractor={(item) => item.id}
         selectable
         selectedIds={selectedIds}

@@ -27,12 +27,14 @@ import { OrderDetailsDrawer, DetailedOrder } from '@/components/orders/OrderDeta
 import { formatRupiah, formatDateTime, formatTimeOnly } from '@/utils';
 import { posService } from '@/services/pos.service';
 import { useStore } from '@/context/StoreContext';
+import { useToast } from '@/context/ToastContext';
 import { Order, OrderStatus } from '@/types';
 
 type FilterStatus = 'Semua' | 'Baru' | 'Diproses' | 'Siap diambil' | 'Selesai' | 'Dibatalkan';
 
 export default function OrdersPage() {
   const { activeStore } = useStore();
+  const { toast } = useToast();
 
   // Filter states
   const [selectedStatusTab, setSelectedStatusTab] = useState<FilterStatus>('Semua');
@@ -45,7 +47,6 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<DetailedOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Slide-over Drawer state
   const [selectedOrder, setSelectedOrder] = useState<DetailedOrder | null>(null);
@@ -53,11 +54,6 @@ export default function OrdersPage() {
 
   // Selected checkbox rows
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
-  };
 
   // Helper to map DB Order to DetailedOrder
   const mapDbOrderToDetailedOrder = useCallback((ord: any): DetailedOrder => {
@@ -177,7 +173,7 @@ export default function OrdersPage() {
       setOrders(mapped);
     } catch (err: any) {
       console.error('Failed to fetch orders:', err);
-      showToast('Gagal memuat pesanan dari database.');
+      toast.error('Gagal memuat pesanan dari database.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -293,22 +289,22 @@ export default function OrdersPage() {
       }
 
       await posService.updateOrderStatus(orderId, nextStatus);
-      showToast(`Status pesanan ${selectedOrder?.orderNumber} berhasil diperbarui.`);
+      toast.success(`Status pesanan ${selectedOrder?.orderNumber} berhasil diperbarui.`);
       setDrawerOpen(false);
       await fetchOrders(true);
     } catch (err: any) {
-      showToast('Gagal memperbarui status pesanan.');
+      toast.error('Gagal memperbarui status pesanan.');
     }
   };
 
   const handleRejectOrder = async (orderId: string) => {
     try {
       await posService.cancelOrder(orderId, 'Dibatalkan oleh kasir/manajemen');
-      showToast(`Pesanan ${selectedOrder?.orderNumber} telah dibatalkan.`);
+      toast.info(`Pesanan ${selectedOrder?.orderNumber} telah dibatalkan.`);
       setDrawerOpen(false);
       await fetchOrders(true);
     } catch (err: any) {
-      showToast('Gagal membatalkan pesanan.');
+      toast.error('Gagal membatalkan pesanan.');
     }
   };
 
@@ -431,14 +427,6 @@ export default function OrdersPage() {
 
   return (
     <div className="p-5 sm:p-6 lg:p-7 space-y-5 max-w-[1520px] mx-auto animate-in fade-in duration-200">
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-20 right-6 z-50 bg-neutral-900 text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 border border-neutral-700 animate-in fade-in slide-in-from-top-2">
-          <Check className="size-4 text-emerald-400" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
       {/* ======================================================== */}
       {/* 1. PAGE HEADER                                           */}
       {/* ======================================================== */}
@@ -658,28 +646,22 @@ export default function OrdersPage() {
       </div>
 
       {/* ======================================================== */}
-      {/* 4. ORDERS DATA TABLE (Reused Global DataTable)           */}
+      {/* 4. ORDERS DATA TABLE (Reused Global DataTable with Skeleton) */}
       {/* ======================================================== */}
-      {loading ? (
-        <div className="p-16 bg-white rounded-2xl border border-neutral-200 text-center flex flex-col items-center justify-center space-y-3">
-          <Loader2 className="size-8 text-[#FF5C38] animate-spin" />
-          <p className="text-xs font-semibold text-neutral-600">Memuat daftar pesanan dari database...</p>
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={filteredOrders}
-          keyExtractor={(item) => item.id}
-          selectable
-          selectedIds={selectedRowIds}
-          onToggleSelect={(id) => handleSelectRow(id)}
-          onToggleSelectAll={() => handleSelectAll(selectedRowIds.length !== filteredOrders.length)}
-          onRowClick={handleRowClick}
-          emptyTitle="BELUM ADA PESANAN"
-          emptyDescription="Pesanan yang masuk dari kasir atau QR meja akan muncul otomatis di sini."
-          entityName="pesanan"
-        />
-      )}
+      <DataTable
+        columns={columns}
+        data={filteredOrders}
+        isLoading={loading}
+        keyExtractor={(item) => item.id}
+        selectable
+        selectedIds={selectedRowIds}
+        onToggleSelect={(id) => handleSelectRow(id)}
+        onToggleSelectAll={() => handleSelectAll(selectedRowIds.length !== filteredOrders.length)}
+        onRowClick={handleRowClick}
+        emptyTitle="BELUM ADA PESANAN"
+        emptyDescription="Pesanan yang masuk dari kasir atau QR meja akan muncul otomatis di sini."
+        entityName="pesanan"
+      />
 
       {/* ======================================================== */}
       {/* 5. SLIDE-OVER ORDER DETAILS DRAWER                       */}

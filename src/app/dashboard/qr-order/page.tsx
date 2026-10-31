@@ -33,8 +33,11 @@ import {
   Modal,
   Input,
   RadioGroup,
+  TableRowSkeleton,
 } from '@/components/common';
+import { formatRupiah } from '@/utils';
 import { posService } from '@/services/pos.service';
+import { useToast } from '@/context/ToastContext';
 import { DiningTable } from '@/types';
 
 interface TableQrItem {
@@ -58,6 +61,7 @@ interface DisposableQrItem {
 }
 
 export default function QrOrderPage() {
+  const { toast } = useToast();
   const [windowOrigin, setWindowOrigin] = useState('');
   const [tables, setTables] = useState<DiningTable[]>([]);
   const [isLoadingTables, setIsLoadingTables] = useState(true);
@@ -128,6 +132,23 @@ export default function QrOrderPage() {
 
   useEffect(() => {
     loadTables();
+    posService
+      .getDisposableQrs()
+      .then((res) => {
+        if (res?.data?.value) {
+          try {
+            const parsed = JSON.parse(res.data.value);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setDisposableQrs(parsed);
+            }
+          } catch (e) {
+            console.error('Failed to parse disposable QRs setting:', e);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('Backend disposable QRs warning, using defaults:', err);
+      });
   }, [loadTables]);
 
   // Rotate QR Token for table
@@ -244,7 +265,7 @@ export default function QrOrderPage() {
 
   const handleGenerateDisposable = (isDraft = false) => {
     if (!formEventName.trim()) {
-      alert('Nama catatan / acara wajib diisi');
+      toast.warning('Nama catatan / acara wajib diisi');
       return;
     }
 
@@ -259,7 +280,12 @@ export default function QrOrderPage() {
       status: isDraft ? 'Selesai' : 'Aktif',
     };
 
-    setDisposableQrs((prev) => [newQr, ...prev]);
+    const nextQrs = [newQr, ...disposableQrs];
+    setDisposableQrs(nextQrs);
+    posService.saveDisposableQrs(nextQrs).catch((err) => {
+      console.warn('Backend saveDisposableQrs warning:', err);
+    });
+
     setIsGenerateModalOpen(false);
     setShowSuccessModal(true);
   };
@@ -443,9 +469,26 @@ export default function QrOrderPage() {
 
             {/* Table or Loading / Empty State */}
             {isLoadingTables ? (
-              <div className="py-16 flex flex-col items-center justify-center text-center space-y-3">
-                <Loader2 className="size-8 text-neutral-400 animate-spin" />
-                <p className="text-xs text-neutral-500">Memuat data QR meja dari database...</p>
+              <div className="overflow-x-auto border-t border-neutral-100">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-neutral-200/80 text-neutral-500 font-medium">
+                      <th className="py-3 px-2 w-8"><div className="size-3.5 bg-neutral-200 rounded" /></th>
+                      <th className="py-3 px-3 font-semibold text-neutral-700">Meja</th>
+                      <th className="py-3 px-3 font-semibold text-neutral-700">Area</th>
+                      <th className="py-3 px-3 font-semibold text-neutral-700">QR Code</th>
+                      <th className="py-3 px-3 font-semibold text-neutral-700">Tautan</th>
+                      <th className="py-3 px-3 font-semibold text-neutral-700">Status</th>
+                      <th className="py-3 px-3 font-semibold text-neutral-700">Unduh</th>
+                      <th className="py-3 px-2 w-12 text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Array.from({ length: 5 }).map((_, idx) => (
+                      <TableRowSkeleton key={idx} columns={7} hasCheckbox={true} />
+                    ))}
+                  </tbody>
+                </table>
               </div>
             ) : filteredTableQrs.length > 0 ? (
               <div className="space-y-4">

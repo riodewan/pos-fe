@@ -41,6 +41,7 @@ export interface DataTableProps<T> {
   totalItems?: number;
   className?: string;
   showPagination?: boolean;
+  isLoading?: boolean;
 }
 
 export function DataTable<T>({
@@ -64,6 +65,7 @@ export function DataTable<T>({
   totalItems,
   className = '',
   showPagination = true,
+  isLoading = false,
 }: DataTableProps<T>) {
   const isAllSelected =
     data.length > 0 && selectable && selectedIds.length === data.length;
@@ -116,7 +118,29 @@ export function DataTable<T>({
 
           {/* Table Body */}
           <tbody>
-            {data.length > 0 ? (
+            {isLoading ? (
+              Array.from({ length: Math.min(pageSize, 6) }).map((_, rIdx) => (
+                <tr key={`skeleton-${rIdx}`} className="border-b border-neutral-100 animate-pulse">
+                  {selectable && (
+                    <td className="py-4 px-3.5">
+                      <div className="size-4 bg-neutral-200/80 rounded" />
+                    </td>
+                  )}
+                  {columns.map((col, cIdx) => (
+                    <td key={`skeleton-col-${cIdx}`} className="py-4 px-3.5">
+                      <div
+                        className={`h-4 bg-neutral-200/80 rounded ${
+                          col.align === 'right' ? 'ml-auto' : col.align === 'center' ? 'mx-auto' : ''
+                        }`}
+                        style={{
+                          width: `${Math.max(30, (cIdx % 3 === 0 ? 70 : cIdx % 2 === 0 ? 50 : 40))}%`,
+                        }}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : data.length > 0 ? (
               data.map((item, index) => {
                 const key = keyExtractor(item);
                 const isChecked = selectable && selectedIds.includes(key);

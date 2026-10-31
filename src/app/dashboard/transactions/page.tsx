@@ -29,6 +29,7 @@ import {
 import { formatRupiah, formatDateTime, formatTimeOnly } from '@/utils';
 import { posService } from '@/services/pos.service';
 import { useStore } from '@/context/StoreContext';
+import { useToast } from '@/context/ToastContext';
 
 // Payment Status Pill Component matching UI design
 function PaymentStatusBadge({ status }: { status: 'Lunas' | 'Sebagian' | 'Dibatalkan' }) {
@@ -65,6 +66,7 @@ function PaymentStatusBadge({ status }: { status: 'Lunas' | 'Sebagian' | 'Dibata
 
 export default function TransactionsPage() {
   const { activeStore } = useStore();
+  const { toast } = useToast();
 
   const [transactions, setTransactions] = useState<DetailedTransaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,12 +79,6 @@ export default function TransactionsPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<DetailedTransaction | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
-  };
 
   // Helper to map DB Payment & Order to DetailedTransaction
   const mapDbPaymentToTransaction = useCallback((p: any): DetailedTransaction => {
@@ -171,7 +167,7 @@ export default function TransactionsPage() {
       setTransactions(mapped);
     } catch (err: any) {
       console.error('Failed to fetch transactions:', err);
-      showToast('Gagal memuat transaksi dari database.');
+      toast.error('Gagal memuat transaksi dari database.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -241,7 +237,7 @@ export default function TransactionsPage() {
   // Export CSV function
   const handleExportCsv = () => {
     if (filteredTransactions.length === 0) {
-      showToast('Tidak ada data transaksi untuk diekspor.');
+      toast.warning('Tidak ada data transaksi untuk diekspor.');
       return;
     }
 
@@ -291,7 +287,7 @@ export default function TransactionsPage() {
     link.click();
     document.body.removeChild(link);
 
-    showToast('Data transaksi berhasil diekspor ke CSV.');
+    toast.success('Data transaksi berhasil diekspor ke CSV.');
   };
 
   // Column definitions for the reusable DataTable
@@ -390,14 +386,6 @@ export default function TransactionsPage() {
 
   return (
     <div className="p-6 lg:p-8 space-y-5 max-w-[1600px] mx-auto animate-in fade-in duration-200">
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-20 right-6 z-50 bg-neutral-900 text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 border border-neutral-700 animate-in fade-in slide-in-from-top-2">
-          <Check className="size-4 text-emerald-400" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
       {/* Top Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -486,27 +474,21 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {/* Transactions Data Table */}
-      {loading ? (
-        <div className="p-16 bg-white rounded-2xl border border-neutral-200 text-center flex flex-col items-center justify-center space-y-3">
-          <Loader2 className="size-8 text-[#FF5C38] animate-spin" />
-          <p className="text-xs font-semibold text-neutral-600">Memuat daftar transaksi dari database...</p>
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={filteredTransactions}
-          keyExtractor={(item) => item.id}
-          selectable
-          selectedIds={selectedIds}
-          onToggleSelect={(id) => toggleSelectRow(id)}
-          onToggleSelectAll={toggleSelectAll}
-          onRowClick={handleOpenTransaction}
-          emptyTitle="BELUM ADA TRANSAKSI"
-          emptyDescription="Transaksi pembayaran yang diproses akan tersimpan otomatis di database dan tampil di sini."
-          entityName="transaksi"
-        />
-      )}
+      {/* Transactions Data Table with Loading Skeleton */}
+      <DataTable
+        columns={columns}
+        data={filteredTransactions}
+        isLoading={loading}
+        keyExtractor={(item) => item.id}
+        selectable
+        selectedIds={selectedIds}
+        onToggleSelect={(id) => toggleSelectRow(id)}
+        onToggleSelectAll={toggleSelectAll}
+        onRowClick={handleOpenTransaction}
+        emptyTitle="BELUM ADA TRANSAKSI"
+        emptyDescription="Transaksi pembayaran yang diproses akan tersimpan otomatis di database dan tampil di sini."
+        entityName="transaksi"
+      />
 
       {/* Slide-over Transaction Details Drawer */}
       <TransactionDetailsDrawer
@@ -517,7 +499,7 @@ export default function TransactionsPage() {
           window.print();
         }}
         onSendReceipt={(id) => {
-          showToast(`Struk pembayaran telah dikirimkan ke pelanggan.`);
+          toast.success('Struk pembayaran telah dikirimkan ke pelanggan.');
         }}
         onPrev={handlePrevTransaction}
         onNext={handleNextTransaction}

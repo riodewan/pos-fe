@@ -31,6 +31,7 @@ import { publicService } from '@/services';
 import { PublicQrResolved, Order, OrderStatus } from '@/types';
 import { ApiError } from '@/lib/api';
 import { formatRupiah, deduceProductCategory } from '@/utils';
+import { useToast } from '@/context/ToastContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -89,6 +90,7 @@ function CustomerMenuSkeleton() {
 }
 
 function CustomerQrContent({ token }: { token: string }) {
+  const { toast } = useToast();
   const [session, setSession] = useState<PublicQrResolved | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -259,7 +261,7 @@ function CustomerQrContent({ token }: { token: string }) {
   const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName.trim()) {
-      alert('Mohon isi nama Anda terlebih dahulu.');
+      toast.warning('Mohon isi nama Anda terlebih dahulu.');
       return;
     }
     if (cart.length === 0) return;
@@ -296,11 +298,12 @@ function CustomerQrContent({ token }: { token: string }) {
       setPaymentModalOpen(false);
       setMobileCartDrawerOpen(false);
       setCart([]);
+      toast.success('Pesanan Anda berhasil dikirim ke dapur!');
     } catch (err: unknown) {
       if (err instanceof ApiError) {
-        alert(err.message || 'Gagal memproses pesanan.');
+        toast.error(err.message || 'Gagal memproses pesanan.');
       } else {
-        alert('Terjadi kesalahan saat memproses pesanan.');
+        toast.error('Terjadi kesalahan saat memproses pesanan.');
       }
     } finally {
       setProcessingPayment(false);

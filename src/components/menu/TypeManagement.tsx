@@ -42,48 +42,7 @@ export interface TypeItem {
   description?: string;
 }
 
-export const INITIAL_TYPES: TypeItem[] = [
-  {
-    id: 'type-1',
-    name: 'Minuman',
-    code: 'DRK',
-    categoriesCount: 2,
-    itemCount: 8,
-    taxRate: 10,
-    status: 'Aktif',
-    description: 'Semua produk minuman kopi, non-kopi, artisan tea, dan mocktail.',
-  },
-  {
-    id: 'type-2',
-    name: 'Makanan',
-    code: 'FOD',
-    categoriesCount: 2,
-    itemCount: 6,
-    taxRate: 10,
-    status: 'Aktif',
-    description: 'Makanan utama (mains), bakery, pastry, dan dessert.',
-  },
-  {
-    id: 'type-3',
-    name: 'Cemilan',
-    code: 'SNK',
-    categoriesCount: 1,
-    itemCount: 3,
-    taxRate: 10,
-    status: 'Aktif',
-    description: 'Makanan ringan pendamping minuman dan finger food.',
-  },
-  {
-    id: 'type-4',
-    name: 'Lainnya',
-    code: 'OTH',
-    categoriesCount: 1,
-    itemCount: 2,
-    taxRate: 10,
-    status: 'Aktif',
-    description: 'Merchandise kopi seperti tumbler, totebag, dan coffee beans roast.',
-  },
-];
+export const INITIAL_TYPES: TypeItem[] = [];
 
 interface TypeManagementProps {
   onShowToast: (msg: string) => void;
@@ -92,10 +51,47 @@ interface TypeManagementProps {
 }
 
 export function TypeManagement({ onShowToast, isCreateOpen, onCloseCreate }: TypeManagementProps) {
-  const [types, setTypes] = useState<TypeItem[]>(INITIAL_TYPES);
+  const [types, setTypes] = useState<TypeItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  // Fetch real types deduced from products
+  React.useEffect(() => {
+    setIsLoading(true);
+    import('@/services/catalog.service').then(({ catalogService }) => {
+      catalogService
+        .getProducts()
+        .then((res) => {
+          if (Array.isArray(res?.data)) {
+            const typeMap = new Map<string, TypeItem>();
+            res.data.forEach((p: any) => {
+              const typeName = p.type || 'Minuman';
+              const code = typeName.substring(0, 3).toUpperCase();
+              if (!typeMap.has(typeName)) {
+                typeMap.set(typeName, {
+                  id: `type-${typeName.toLowerCase()}`,
+                  name: typeName,
+                  code,
+                  categoriesCount: 1,
+                  itemCount: 1,
+                  taxRate: 10,
+                  status: 'Aktif',
+                  description: `Kelompok menu ${typeName}`,
+                });
+              } else {
+                const existing = typeMap.get(typeName)!;
+                existing.itemCount += 1;
+              }
+            });
+            setTypes(Array.from(typeMap.values()));
+          }
+        })
+        .catch((err) => console.warn('Failed to fetch types:', err))
+        .finally(() => setIsLoading(false));
+    });
+  }, []);
 
   // Drawer / Modal for Edit / Create
   const [editingType, setEditingType] = useState<TypeItem | null>(null);
@@ -352,6 +348,7 @@ export function TypeManagement({ onShowToast, isCreateOpen, onCloseCreate }: Typ
       <DataTable
         columns={columns}
         data={filteredTypes}
+        isLoading={isLoading}
         keyExtractor={(item) => item.id}
         selectable
         selectedIds={selectedIds}
