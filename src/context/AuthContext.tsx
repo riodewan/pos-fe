@@ -17,7 +17,9 @@ interface AuthContextType {
   logout: () => Promise<void>;
   selectTenant: (tenantId: string) => void;
   refreshUser: () => Promise<User | null>;
-  hasRole: (roleName: string) => boolean;
+  hasRole: (roleName: string | string[]) => boolean;
+  hasPermission: (permName: string | string[]) => boolean;
+  canAccess: (options: { permissions?: string[]; roles?: string[] }) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -154,11 +156,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const hasRole = useCallback(
-    (roleName: string): boolean => {
+    (roleName: string | string[]): boolean => {
       if (!user) return false;
       if (user.is_internal) return true;
       if (!activeTenant) return false;
-      return activeTenant.role?.toUpperCase() === roleName.toUpperCase();
+
+      const userRole = (activeTenant.role || '').toUpperCase();
+      if (Array.isArray(roleName)) {
+        return roleName.some((r) => r.toUpperCase() === userRole);
+      }
+      return userRole === roleName.toUpperCase();
+    },
+    [user, activeTenant]
+  );
+
+  const hasPermission = useCallback(
+    (permName: string | string[]): boolean => {
+      if (!user) return false;
+      if (user.is_internal) return true;
+
+      const userRole = (activeTenant?.role || '').toUpperCase();
+      if (userRole === 'OWNER') return true;
+
+      const userPerms = user.permissions || [];
+      if (Array.isArray(permName)) {
+        return permName.some((p) => userPerms.includes(p));
+      }
+      return userPerms.includes(permName);
+    },
+    [user, activeTenant]
+  );
+
+  const canAccess = useCallback(
+    (options: { permissions?: string[]; roles?: string[] }): boolean => {
+      if (!user) return false;
+      if (user.is_internal) return true;
+
+      const userRole = (activeTenant?.role || '').toUpperCase();
+      if (userRole === 'OWNER') return true;
+
+      // Check role match if specified
+      if (options.roles && options.roles.length > 0) {
+        if (options.roles.some((r) => r.toUpperCase() === userRole)) {
+          return true;
+        }
+      }
+
+      // Check permission match if specified
+      if (options.permissions && options.permissions.length > 0) {
+        const userPerms = user.permissions || [];
+        if (options.permissions.some((p) => userPerms.includes(p))) {
+          return true;
+        }
+      }
+
+      if ((options.roles?.length || 0) > 0 || (options.permissions?.length || 0) > 0) {
+        return false;
+      }
+
+      return true;
     },
     [user, activeTenant]
   );
@@ -177,8 +233,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       selectTenant,
       refreshUser,
       hasRole,
+      hasPermission,
+      canAccess,
     }),
-    [user, token, activeTenant, isLoading, refreshUser, hasRole, login, register, logout, selectTenant]
+    [user, token, activeTenant, isLoading, refreshUser, hasRole, hasPermission, canAccess, login, register, logout, selectTenant]
   );
 
 

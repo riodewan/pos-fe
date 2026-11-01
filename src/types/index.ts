@@ -37,6 +37,8 @@ export interface User {
   created_at?: string;
   updated_at?: string;
   tenants?: TenantMembership[];
+  roles?: any[];
+  permissions?: string[];
 }
 
 export interface TenantMembership {
