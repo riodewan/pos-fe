@@ -32,6 +32,7 @@ import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { getInitials } from '@/utils';
 import { cn } from '@/lib/utils';
 import { NemuLogo } from '@/components/common/NemuLogo';
+import { getLandingPageForRole } from '@/constants/navigation';
 
 interface NavigationItemDef {
   href: string;
@@ -59,16 +60,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const currentTab =
     typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
 
-  // Normalized active user role
+  // Normalized active user role and default landing page
   const userRole = user?.is_internal ? 'SUPER_ADMIN' : activeTenant?.role?.toUpperCase() || '';
-  const brandHomeHref =
-    userRole === 'CASHIER' || userRole === 'KASIR'
-      ? '/dashboard/pos'
-      : userRole === 'INVENTORY' || userRole === 'GUDANG'
-      ? '/dashboard/inventory'
-      : userRole === 'BARISTA' || userRole === 'DAPUR'
-      ? '/dashboard/kds'
-      : '/dashboard';
+  const brandHomeHref = getLandingPageForRole(userRole, !!user?.is_internal);
 
   // Navigation items mapping with required database permissions & role fallbacks
   const navigationGroups: NavigationGroupDef[] = useMemo(

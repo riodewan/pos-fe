@@ -25,6 +25,39 @@ export interface NavItem {
 
 export const NAV_GROUP_ORDER: NavGroup[] = ['Operasional', 'Produk & Stok', 'Bisnis'];
 
+/**
+ * Determine the primary default landing page for each role upon login
+ */
+export function getLandingPageForRole(roleName?: string | null, isInternalAdmin: boolean = false): string {
+  if (isInternalAdmin) return ROUTES.DASHBOARD.OVERVIEW;
+
+  const norm = (roleName || '').toUpperCase().trim();
+
+  switch (norm) {
+    case 'CASHIER':
+    case 'KASIR':
+      return ROUTES.DASHBOARD.POS;
+
+    case 'INVENTORY':
+    case 'GUDANG':
+      return ROUTES.DASHBOARD.INVENTORY;
+
+    case 'DAPUR':
+    case 'KITCHEN':
+    case 'BARISTA':
+      return '/dashboard/kds';
+
+    case 'SERVER':
+      return ROUTES.DASHBOARD.TABLES;
+
+    case 'OWNER':
+    case 'MANAGER':
+    case 'SUPER_ADMIN':
+    default:
+      return ROUTES.DASHBOARD.OVERVIEW;
+  }
+}
+
 export const SIDEBAR_NAV_ITEMS: NavItem[] = [
   {
     href: ROUTES.DASHBOARD.OVERVIEW,

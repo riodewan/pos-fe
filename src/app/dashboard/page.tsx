@@ -36,6 +36,7 @@ import {
   SalesTrendChart,
   ChannelDistributionChart,
 } from '@/components/dashboard';
+import { getLandingPageForRole } from '@/constants/navigation';
 
 export default function DashboardOverviewPage() {
   const router = useRouter();
@@ -58,15 +59,16 @@ export default function DashboardOverviewPage() {
     roleName === 'OWNER' ||
     roleName === 'MANAGER';
 
-  // Role-based redirect from overview: Cashier goes to POS, Inventory goes to Stock
+  // Role-based redirect from overview: Kasir goes to POS, Inventory goes to Stock, Dapur goes to KDS
   useEffect(() => {
     if (isLoading) return;
-    if (roleName === 'CASHIER') {
-      router.replace('/dashboard/pos');
-    } else if (roleName === 'INVENTORY') {
-      router.replace('/dashboard/inventory');
+    if (!isOwnerOrManager) {
+      const target = getLandingPageForRole(roleName, !!user?.is_internal);
+      if (target && target !== '/dashboard') {
+        router.replace(target);
+      }
     }
-  }, [roleName, isLoading, router]);
+  }, [roleName, isLoading, isOwnerOrManager, user, router]);
 
   // Check if first login / onboarding should be displayed
   useEffect(() => {
