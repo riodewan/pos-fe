@@ -263,24 +263,40 @@ export function ReservationsTableView({
       <div className="p-3.5 border-t border-neutral-100 bg-white flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-500">
         <p>Menampilkan 1-{reservations.length} dari {reservations.length} reservasi</p>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="p-1 rounded-md border border-neutral-200 text-neutral-400 hover:bg-neutral-50 cursor-pointer disabled:opacity-40"
-            disabled
-          >
-            <ChevronLeft className="size-3.5" />
-          </button>
-          <span className="size-6 rounded-md bg-[#FF5C38] text-white font-bold flex items-center justify-center text-xs">
-            1
-          </span>
-          <button
-            type="button"
-            className="p-1 rounded-md border border-neutral-200 text-neutral-400 hover:bg-neutral-50 cursor-pointer disabled:opacity-40"
-            disabled
-          >
-            <ChevronRight className="size-3.5" />
-          </button>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="p-1 rounded-md border border-neutral-200 text-neutral-400 hover:bg-neutral-50 cursor-pointer disabled:opacity-40"
+              disabled
+            >
+              <ChevronLeft className="size-3.5" />
+            </button>
+            <span className="size-6 rounded-md bg-[#FF5C38] text-white font-bold flex items-center justify-center text-xs">
+              1
+            </span>
+            <button
+              type="button"
+              className="p-1 rounded-md border border-neutral-200 text-neutral-400 hover:bg-neutral-50 cursor-pointer disabled:opacity-40"
+              disabled
+            >
+              <ChevronRight className="size-3.5" />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span>Tampilkan</span>
+            <select
+              defaultValue="10"
+              className="px-2 py-1 rounded-lg border border-neutral-200 bg-white font-semibold text-neutral-700 cursor-pointer"
+            >
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+            <span>per halaman</span>
+          </div>
         </div>
       </div>
     </div>

@@ -583,7 +583,7 @@ export default function StaffPage() {
             currentPage={currentPage}
             totalPages={totalPages}
             pageSize={pageSize}
-            pageSizeOptions={[10, 20, 50]}
+            pageSizeOptions={[10, 25, 50, 100]}
             totalItems={filteredStaff.length}
             onPageChange={(p) => setCurrentPage(p)}
             onPageSizeChange={(s) => {

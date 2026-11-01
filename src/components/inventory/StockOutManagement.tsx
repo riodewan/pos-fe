@@ -224,15 +224,6 @@ export function StockOutManagement({
           emptyDescription="Catat pembuangan bahan baku yang rusak, kedaluwarsa, atau tumpah untuk akurasi HPP."
           entityName="stok keluar"
         />
-
-        <Pagination
-          totalItems={filteredRecords.length}
-          totalPages={1}
-          currentPage={1}
-          itemsPerPage={10}
-          onPageChange={() => {}}
-          itemName="stok keluar"
-        />
       </div>
 
       {/* Drawer: Catat Stok Keluar */}

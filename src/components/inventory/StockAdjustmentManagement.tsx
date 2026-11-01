@@ -264,15 +264,6 @@ export function StockAdjustmentManagement({
           emptyDescription="Lakukan stock opname fisik gudang untuk mencocokkan stok aktual dengan sistem."
           entityName="penyesuaian stok"
         />
-
-        <Pagination
-          totalItems={filteredRecords.length}
-          totalPages={1}
-          currentPage={1}
-          itemsPerPage={10}
-          onPageChange={() => {}}
-          itemName="opname"
-        />
       </div>
 
       {/* Drawer: Input Penyesuaian Stok */}

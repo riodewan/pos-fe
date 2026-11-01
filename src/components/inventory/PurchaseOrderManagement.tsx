@@ -358,15 +358,6 @@ export function PurchaseOrderManagement({
           emptyDescription="Buat purchase order untuk pengadaan bahan baku ke vendor/supplier outlet."
           entityName="purchase order"
         />
-
-        <Pagination
-          totalItems={filteredOrders.length}
-          totalPages={1}
-          currentPage={1}
-          itemsPerPage={10}
-          onPageChange={() => {}}
-          itemName="order"
-        />
       </div>
 
       {/* Drawer: Detail PO */}

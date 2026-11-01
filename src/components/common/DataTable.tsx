@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { EmptyState } from '@/components/common/EmptyState';
 
+export const DEFAULT_PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
 export interface ColumnDef<T> {
   key: string;
   header: React.ReactNode;
@@ -56,21 +58,82 @@ export function DataTable<T>({
   emptyTitle = 'BELUM ADA DATA',
   emptyDescription = 'Data akan muncul di sini setelah transaksi dilakukan.',
   entityName = 'data',
-  currentPage = 1,
-  totalPages,
-  pageSize = 10,
-  pageSizeOptions = [10, 25, 50],
+  currentPage: controlledPage,
+  totalPages: controlledTotalPages,
+  pageSize: controlledPageSize,
+  pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
   onPageChange,
   onPageSizeChange,
-  totalItems,
+  totalItems: controlledTotalItems,
   className = '',
   showPagination = true,
   isLoading = false,
 }: DataTableProps<T>) {
+  const isControlled = onPageChange !== undefined;
+
+  const [internalPage, setInternalPage] = React.useState(1);
+  const [internalPageSize, setInternalPageSize] = React.useState(controlledPageSize || 10);
+
+  const activePage = isControlled ? (controlledPage ?? 1) : internalPage;
+  const activePageSize = isControlled ? (controlledPageSize ?? 10) : internalPageSize;
+
+  const actualTotal = controlledTotalItems ?? data.length;
+  const computedTotalPages =
+    controlledTotalPages ?? Math.max(1, Math.ceil(actualTotal / (activePageSize || 10)));
+
+  // Auto-slice if data is not already sliced by parent
+  const displayedData = React.useMemo(() => {
+    if (isControlled && controlledTotalItems !== undefined && data.length <= activePageSize) {
+      return data;
+    }
+    const start = (activePage - 1) * activePageSize;
+    return data.slice(start, start + activePageSize);
+  }, [data, isControlled, controlledTotalItems, activePage, activePageSize]);
+
+  const handlePageChange = (newPage: number) => {
+    if (isControlled) {
+      onPageChange?.(newPage);
+    } else {
+      setInternalPage(newPage);
+    }
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    if (isControlled) {
+      onPageSizeChange?.(newSize);
+      onPageChange?.(1);
+    } else {
+      setInternalPageSize(newSize);
+      setInternalPage(1);
+    }
+  };
+
   const isAllSelected =
-    data.length > 0 && selectable && selectedIds.length === data.length;
+    displayedData.length > 0 &&
+    selectable &&
+    displayedData.every((item) => selectedIds.includes(keyExtractor(item)));
 
   const totalCols = columns.length + (selectable ? 1 : 0);
+
+  // Generate multi-page numbers: e.g. 1, 2, 3...
+  const pageNumbers = React.useMemo(() => {
+    const pages: (number | string)[] = [];
+    if (computedTotalPages <= 7) {
+      for (let i = 1; i <= computedTotalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (activePage > 3) pages.push('...');
+      const start = Math.max(2, activePage - 1);
+      const end = Math.min(computedTotalPages - 1, activePage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (activePage < computedTotalPages - 2) pages.push('...');
+      pages.push(computedTotalPages);
+    }
+    return pages;
+  }, [computedTotalPages, activePage]);
+
+  const from = actualTotal === 0 ? 0 : (activePage - 1) * activePageSize + 1;
+  const to = Math.min(activePage * activePageSize, actualTotal);
 
   return (
     <div
@@ -119,7 +182,7 @@ export function DataTable<T>({
           {/* Table Body */}
           <tbody>
             {isLoading ? (
-              Array.from({ length: Math.min(pageSize, 6) }).map((_, rIdx) => (
+              Array.from({ length: Math.min(activePageSize, 6) }).map((_, rIdx) => (
                 <tr key={`skeleton-${rIdx}`} className="border-b border-neutral-100 animate-pulse">
                   {selectable && (
                     <td className="py-4 px-3.5">
@@ -140,8 +203,8 @@ export function DataTable<T>({
                   ))}
                 </tr>
               ))
-            ) : data.length > 0 ? (
-              data.map((item, index) => {
+            ) : displayedData.length > 0 ? (
+              displayedData.map((item, index) => {
                 const key = keyExtractor(item);
                 const isChecked = selectable && selectedIds.includes(key);
 
@@ -203,35 +266,51 @@ export function DataTable<T>({
       {showPagination && (
         <div className="p-3.5 border-t border-neutral-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-500 bg-white">
           <div>
-            {(() => {
-              const actualTotal = totalItems ?? data.length;
-              const from = actualTotal === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-              const to = Math.min(currentPage * pageSize, actualTotal);
-              return `Menampilkan ${from} - ${to} dari ${actualTotal} ${entityName}`;
-            })()}
+            Menampilkan <span className="font-medium text-neutral-800">{from} - {to}</span> dari{' '}
+            <span className="font-medium text-neutral-800">{actualTotal}</span> {entityName}
           </div>
 
           <div className="flex items-center gap-1.5">
             <button
-              disabled={currentPage <= 1}
-              onClick={() => onPageChange?.(currentPage - 1)}
-              className="size-8 rounded-lg border border-neutral-200 text-neutral-400 flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-40 hover:bg-neutral-50"
+              type="button"
+              disabled={activePage <= 1}
+              onClick={() => handlePageChange(activePage - 1)}
+              className="size-8 rounded-lg border border-neutral-200 text-neutral-500 hover:bg-neutral-50 flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-40 transition-colors"
+              aria-label="Halaman sebelumnya"
             >
               <ChevronLeft className="size-4" />
             </button>
 
-            <button className="size-8 rounded-lg border border-[#E5484D] bg-[#FFF5F5] text-[#E5484D] font-medium flex items-center justify-center text-xs shadow-2xs">
-              {currentPage}
-            </button>
+            {pageNumbers.map((p, idx) =>
+              typeof p === 'number' ? (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handlePageChange(p)}
+                  className={`min-w-8 h-8 px-2 rounded-lg text-xs font-semibold flex items-center justify-center transition-colors ${
+                    activePage === p
+                      ? 'border border-[#FF5C38] bg-[#FFF5F2] text-[#FF5C38] shadow-2xs'
+                      : 'border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50'
+                  }`}
+                >
+                  {p}
+                </button>
+              ) : (
+                <span
+                  key={idx}
+                  className="size-8 flex items-center justify-center text-neutral-400 select-none text-xs"
+                >
+                  ...
+                </span>
+              )
+            )}
 
             <button
-              disabled={
-                currentPage >=
-                (totalPages ??
-                  Math.ceil((totalItems ?? data.length) / (pageSize || 10)))
-              }
-              onClick={() => onPageChange?.(currentPage + 1)}
-              className="size-8 rounded-lg border border-neutral-200 text-neutral-400 flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-40 hover:bg-neutral-50"
+              type="button"
+              disabled={activePage >= computedTotalPages || computedTotalPages === 0}
+              onClick={() => handlePageChange(activePage + 1)}
+              className="size-8 rounded-lg border border-neutral-200 text-neutral-500 hover:bg-neutral-50 flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-40 transition-colors"
+              aria-label="Halaman berikutnya"
             >
               <ChevronRight className="size-4" />
             </button>
@@ -241,9 +320,9 @@ export function DataTable<T>({
             <span>Tampilkan</span>
             <div className="relative">
               <select
-                value={pageSize}
-                onChange={(e) => onPageSizeChange?.(Number(e.target.value))}
-                className="h-8 pl-2.5 pr-7 rounded-lg border border-neutral-200 bg-white text-xs text-neutral-700 appearance-none cursor-pointer focus:outline-none"
+                value={activePageSize}
+                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                className="h-8 pl-2.5 pr-7 rounded-lg border border-neutral-200 bg-white text-xs text-neutral-700 appearance-none cursor-pointer focus:outline-none focus:border-neutral-300 font-medium"
               >
                 {pageSizeOptions.map((opt) => (
                   <option key={opt} value={opt}>

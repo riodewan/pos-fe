@@ -269,15 +269,6 @@ export function IngredientUnitManagement({
           emptyDescription="Tambahkan satuan ukur untuk mendukung penimbangan bahan dan resep menu."
           entityName="satuan"
         />
-
-        <Pagination
-          totalItems={filteredUnits.length}
-          totalPages={1}
-          currentPage={1}
-          itemsPerPage={10}
-          onPageChange={() => {}}
-          itemName="satuan"
-        />
       </div>
 
       {/* Drawer: Form Satuan */}

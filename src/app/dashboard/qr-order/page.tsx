@@ -234,6 +234,22 @@ export default function QrOrderPage() {
     });
   }, [disposableQrs, dispStatusFilter, dispSearch]);
 
+  // Pagination State
+  const [tableQrPage, setTableQrPage] = useState(1);
+  const [tableQrPageSize, setTableQrPageSize] = useState(10);
+  const [dispQrPage, setDispQrPage] = useState(1);
+  const [dispQrPageSize, setDispQrPageSize] = useState(10);
+
+  const paginatedTableQrs = useMemo(() => {
+    const start = (tableQrPage - 1) * tableQrPageSize;
+    return filteredTableQrs.slice(start, start + tableQrPageSize);
+  }, [filteredTableQrs, tableQrPage, tableQrPageSize]);
+
+  const paginatedDisposableQrs = useMemo(() => {
+    const start = (dispQrPage - 1) * dispQrPageSize;
+    return filteredDisposableQrs.slice(start, start + dispQrPageSize);
+  }, [filteredDisposableQrs, dispQrPage, dispQrPageSize]);
+
   const toggleSelectTableQr = (id: string, e?: React.SyntheticEvent) => {
     e?.stopPropagation();
     setSelectedTableQrIds((prev) =>
@@ -498,7 +514,7 @@ export default function QrOrderPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-100 text-neutral-800">
-                      {filteredTableQrs.map((row) => {
+                      {paginatedTableQrs.map((row) => {
                         const isSelected = selectedTableQrIds.includes(row.id);
                         const isRotating = isRotatingId === row.id;
                         const isMenuOpen = activeMenuTableId === row.id;
@@ -650,11 +666,13 @@ export default function QrOrderPage() {
                 </div>
 
                 <Pagination
-                  currentPage={1}
-                  totalPages={1}
+                  currentPage={tableQrPage}
+                  totalPages={Math.max(1, Math.ceil(filteredTableQrs.length / tableQrPageSize))}
                   totalItems={filteredTableQrs.length}
-                  itemsPerPage={10}
-                  onPageChange={() => {}}
+                  itemsPerPage={tableQrPageSize}
+                  pageSizeOptions={[10, 25, 50, 100]}
+                  onPageChange={setTableQrPage}
+                  onPageSizeChange={setTableQrPageSize}
                   itemName="QR Meja"
                 />
               </div>
@@ -754,7 +772,7 @@ export default function QrOrderPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-100 text-neutral-800">
-                      {filteredDisposableQrs.map((row) => {
+                      {paginatedDisposableQrs.map((row) => {
                         const isSelected = selectedDispIds.includes(row.id);
                         return (
                           <tr
@@ -816,11 +834,13 @@ export default function QrOrderPage() {
                 </div>
 
                 <Pagination
-                  currentPage={1}
-                  totalPages={1}
+                  currentPage={dispQrPage}
+                  totalPages={Math.max(1, Math.ceil(filteredDisposableQrs.length / dispQrPageSize))}
                   totalItems={filteredDisposableQrs.length}
-                  itemsPerPage={10}
-                  onPageChange={() => {}}
+                  itemsPerPage={dispQrPageSize}
+                  pageSizeOptions={[10, 25, 50, 100]}
+                  onPageChange={setDispQrPage}
+                  onPageSizeChange={setDispQrPageSize}
                   itemName="QR"
                 />
               </div>

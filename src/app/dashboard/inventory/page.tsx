@@ -665,18 +665,6 @@ function InventoryContent() {
                 emptyDescription="Tambahkan bahan baku atau barang inventori untuk mulai memantau stok dan pemakaian di outletmu."
                 entityName="bahan"
               />
-
-              {/* Bottom Pagination matching Screenshot 2 */}
-              {!isLoading && filteredIngredients.length > 0 && (
-                <Pagination
-                  totalItems={filteredIngredients.length}
-                  totalPages={Math.ceil(filteredIngredients.length / itemsPerPage) || 1}
-                  currentPage={currentPage}
-                  itemsPerPage={itemsPerPage}
-                  onPageChange={setCurrentPage}
-                  itemName="bahan"
-                />
-              )}
             </div>
           )}
         </div>

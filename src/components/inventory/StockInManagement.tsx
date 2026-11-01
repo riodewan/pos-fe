@@ -235,15 +235,6 @@ export function StockInManagement({
           emptyDescription="Catat penerimaan bahan baku yang masuk dari vendor atau pembelian langsung."
           entityName="stok masuk"
         />
-
-        <Pagination
-          totalItems={filteredRecords.length}
-          totalPages={1}
-          currentPage={1}
-          itemsPerPage={10}
-          onPageChange={() => {}}
-          itemName="stok masuk"
-        />
       </div>
 
       {/* Drawer: Catat Stok Masuk */}

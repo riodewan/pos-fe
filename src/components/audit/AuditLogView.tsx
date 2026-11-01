@@ -42,7 +42,7 @@ export function AuditLogView({ isEmbedded = false }: AuditLogViewProps) {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
 
   // Selected Log for detail modal
@@ -585,7 +585,7 @@ export function AuditLogView({ isEmbedded = false }: AuditLogViewProps) {
         currentPage={currentPage}
         totalItems={totalItems}
         pageSize={pageSize}
-        pageSizeOptions={[15, 30, 50]}
+        pageSizeOptions={[10, 25, 50, 100]}
         onPageChange={setCurrentPage}
         onPageSizeChange={setPageSize}
         emptyTitle="TIDAK ADA LOG AUDIT DITEMUKAN"

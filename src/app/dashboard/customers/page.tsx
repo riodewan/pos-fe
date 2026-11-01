@@ -481,7 +481,7 @@ export default function CustomersPage() {
         currentPage={currentPage}
         totalPages={totalPages}
         pageSize={pageSize}
-        pageSizeOptions={[10, 20, 50]}
+        pageSizeOptions={[10, 25, 50, 100]}
         totalItems={filteredCustomers.length}
         onPageChange={(p) => setCurrentPage(p)}
         onPageSizeChange={(s) => {

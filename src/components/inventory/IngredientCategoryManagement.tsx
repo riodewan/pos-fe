@@ -311,15 +311,6 @@ export function IngredientCategoryManagement({
           emptyDescription="Tambahkan kategori bahan baku untuk mempermudah pengelompokan inventori."
           entityName="kategori bahan"
         />
-
-        <Pagination
-          totalItems={filteredCategories.length}
-          totalPages={1}
-          currentPage={1}
-          itemsPerPage={10}
-          onPageChange={() => {}}
-          itemName="kategori"
-        />
       </div>
 
       {/* Drawer: Form Kategori */}

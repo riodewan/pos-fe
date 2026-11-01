@@ -561,10 +561,6 @@ export default function MenuCatalogPage() {
             emptyDescription="Kamu belum menambahkan menu. Klik tombol di bawah untuk mulai membuat menu pertamamu."
             entityName="menu"
             showPagination={!isLoading && filteredMenuItems.length > 0}
-            currentPage={1}
-            totalPages={1}
-            pageSize={20}
-            totalItems={filteredMenuItems.length}
           />
         </div>
       )}
