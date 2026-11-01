@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -24,6 +24,9 @@ import {
   CupSoda,
   Eye,
   RefreshCw,
+  Store as StoreIcon,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
@@ -38,18 +41,21 @@ import {
 } from '@/components/dashboard';
 import { getLandingPageForRole } from '@/constants/navigation';
 
+type DateFilterPreset = 'TODAY' | '7D' | '30D' | 'THIS_MONTH';
+
 export default function DashboardOverviewPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, activeTenant, isLoading } = useAuth();
-  const { activeStore } = useStore();
+  const { activeStore, stores, selectStore } = useStore();
 
   const [report, setReport] = useState<DashboardReport | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [showFirstLoginModal, setShowFirstLoginModal] = useState(false);
-
-  // Preview Mode: 'populated' matches Screenshot 1, 'empty' matches Screenshot 2
-  const [previewMode, setPreviewMode] = useState<'populated' | 'empty'>('populated');
+  const [dateFilter, setDateFilter] = useState<DateFilterPreset>('30D');
+  const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
+  const [storeDropdownOpen, setStoreDropdownOpen] = useState(false);
 
   const roleName = user?.is_internal
     ? 'SUPER_ADMIN'
@@ -81,186 +87,236 @@ export default function DashboardOverviewPage() {
     }
   }, [searchParams]);
 
-  const fetchDashboardData = useCallback(async () => {
-    if (isLoading || !activeStore || !isOwnerOrManager) {
-      setLoading(false);
-      return;
+  // Dynamic greeting based on current time
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    let text = 'Selamat pagi';
+    if (hour >= 11 && hour < 15) text = 'Selamat siang';
+    else if (hour >= 15 && hour < 18) text = 'Selamat sore';
+    else if (hour >= 18 || hour < 4) text = 'Selamat malam';
+
+    const firstName = user?.name ? user.name.split(' ')[0] : '';
+    return firstName ? `${text}, ${firstName}!` : `${text}!`;
+  }, [user]);
+
+  // Calculate start & end date based on selected preset
+  const { startDate, endDate, dateLabel } = useMemo(() => {
+    const now = new Date();
+    const todayStr = getISODateOnly();
+
+    if (dateFilter === 'TODAY') {
+      return {
+        startDate: todayStr,
+        endDate: todayStr,
+        dateLabel: 'Hari Ini',
+      };
     }
 
-    setLoading(true);
-    const end_date = getISODateOnly();
-    const start_date = getPastDateISO(30);
-
-    try {
-      const res = await reportsService.getDashboardOverview(start_date, end_date);
-      setReport(res.data);
-    } catch (err) {
-      console.warn('Dashboard report notice (using default mockup state):', err);
-    } finally {
-      setLoading(false);
+    if (dateFilter === '7D') {
+      return {
+        startDate: getPastDateISO(7),
+        endDate: todayStr,
+        dateLabel: '7 Hari Terakhir',
+      };
     }
-  }, [activeStore, isOwnerOrManager, isLoading]);
+
+    if (dateFilter === 'THIS_MONTH') {
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const firstDayStr = firstDay.toISOString().split('T')[0];
+      return {
+        startDate: firstDayStr,
+        endDate: todayStr,
+        dateLabel: 'Bulan Ini',
+      };
+    }
+
+    // Default 30D
+    return {
+      startDate: getPastDateISO(30),
+      endDate: todayStr,
+      dateLabel: '30 Hari Terakhir',
+    };
+  }, [dateFilter]);
+
+  // Fetch real dashboard data from backend
+  const fetchDashboardData = useCallback(
+    async (isManualRefresh = false) => {
+      if (isLoading || !isOwnerOrManager) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        if (isManualRefresh) setIsRefreshing(true);
+        else setLoading(true);
+
+        const res = await reportsService.getDashboardOverview(startDate, endDate);
+        if (res?.data) {
+          setReport(res.data);
+        }
+      } catch (err) {
+        console.error('Error fetching dashboard overview:', err);
+      } finally {
+        setLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [startDate, endDate, isLoading, isOwnerOrManager]
+  );
 
   useEffect(() => {
-    if (!isLoading && isOwnerOrManager && activeStore) {
+    if (!isLoading && isOwnerOrManager) {
       fetchDashboardData();
     }
-  }, [fetchDashboardData, isLoading, isOwnerOrManager, activeStore]);
+  }, [fetchDashboardData, isLoading, isOwnerOrManager, activeStore?.id]);
 
-  const isEmpty = previewMode === 'empty';
+  // Format trend data for SalesTrendChart
+  const salesTrendData = useMemo(() => {
+    if (!report?.sales_trend) return [];
+    return report.sales_trend.map((item) => ({
+      date: item.date,
+      sales: item.total_revenue,
+      orders: item.order_count,
+    }));
+  }, [report]);
 
-  // Populated mock data matching Figma Screenshot 1
-  const populatedTopProducts = [
-    {
-      id: 1,
-      name: 'Kopi Susu Gula Aren',
-      qty: 40,
-      sales: 1200000,
-      icon: <Coffee className="size-4" />,
-      iconBg: 'bg-amber-100 text-amber-800',
-    },
-    {
-      id: 2,
-      name: 'Americano',
-      qty: 35,
-      sales: 875000,
-      icon: <Coffee className="size-4" />,
-      iconBg: 'bg-stone-200 text-stone-800',
-    },
-    {
-      id: 3,
-      name: 'Cafe Latte',
-      qty: 20,
-      sales: 700000,
-      icon: <Coffee className="size-4" />,
-      iconBg: 'bg-orange-100 text-orange-800',
-    },
-    {
-      id: 4,
-      name: 'Matcha Latte',
-      qty: 18,
-      sales: 630000,
-      icon: <Coffee className="size-4" />,
-      iconBg: 'bg-emerald-100 text-emerald-800',
-    },
-    {
-      id: 5,
-      name: 'Croissant Butter',
-      qty: 13,
-      sales: 390000,
-      icon: <UtensilsCrossed className="size-4" />,
-      iconBg: 'bg-amber-200 text-amber-900',
-    },
-  ];
+  const kpis = report?.kpis;
+  const topProducts = report?.top_products || [];
+  const lowStocks = report?.low_stocks || [];
+  const channels = report?.channels || [];
+  const todayOrders = report?.today_orders || {
+    total: 0,
+    new: 0,
+    processing: 0,
+    ready: 0,
+    completed: 0,
+    cancelled: 0,
+  };
 
-  const populatedLowStock = [
-    {
-      id: 1,
-      name: 'Susu Fresh',
-      remaining: '2 l',
-      status: 'Sangat Rendah',
-      isCritical: true,
-      icon: <Milk className="size-4" />,
-      iconBg: 'bg-blue-50 text-blue-600',
-    },
-    {
-      id: 2,
-      name: 'Biji Kopi Arabika',
-      remaining: '500 g',
-      status: 'Rendah',
-      isCritical: false,
-      icon: <Coffee className="size-4" />,
-      iconBg: 'bg-amber-100 text-amber-800',
-    },
-    {
-      id: 3,
-      name: 'Gula Aren',
-      remaining: '1 kg',
-      status: 'Rendah',
-      isCritical: false,
-      icon: <Package className="size-4" />,
-      iconBg: 'bg-amber-50 text-amber-800',
-    },
-    {
-      id: 4,
-      name: 'Sirup Vanilla',
-      remaining: '1 botol',
-      status: 'Rendah',
-      isCritical: false,
-      icon: <Wine className="size-4" />,
-      iconBg: 'bg-yellow-50 text-yellow-700',
-    },
-    {
-      id: 5,
-      name: 'Cup 16 oz',
-      remaining: '35 pcs',
-      status: 'Rendah',
-      isCritical: false,
-      icon: <CupSoda className="size-4" />,
-      iconBg: 'bg-neutral-100 text-neutral-600',
-    },
-  ];
+  const hasSalesData = (kpis?.total_orders ?? 0) > 0;
 
-  if (isLoading || loading) {
-    return <PageLoader text="Memuat ringkasan dashboard..." />;
+  if (isLoading || (loading && !report)) {
+    return <PageLoader text="Memuat ringkasan dashboard..." subtext="Mengambil metrik performa outlet" />;
   }
 
   return (
-    <div className="p-5 sm:p-6 lg:p-7 space-y-5 max-w-[1520px] mx-auto animate-in fade-in duration-200">
-      {/* Top Header Row matching Figma: Greeting, Outlet dropdown, Date Picker */}
+    <div className="p-5 sm:p-6 lg:p-7 space-y-6 max-w-[1520px] mx-auto animate-in fade-in duration-200">
+      {/* Top Header Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-[26px] font-extrabold text-[#111827] tracking-tight">
-            Selamat pagi,
+            {greeting}
           </h1>
           <p className="text-xs text-[#6B7280] mt-0.5 font-normal">
-            Ringkasan performa outlet anda hari ini.
+            Ringkasan performa real-time outlet Anda berdasarkan transaksi di database.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Mode Switcher: Populated vs Empty preview for QA/User */}
+          {/* Refresh Button */}
           <button
             type="button"
-            onClick={() => setPreviewMode(isEmpty ? 'populated' : 'empty')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-300 bg-white hover:bg-neutral-50 text-xs font-semibold text-neutral-700 transition-colors shadow-2xs"
-            title="Klik untuk berpindah antara tampilan data terisi dan kosong"
+            onClick={() => fetchDashboardData(true)}
+            disabled={isRefreshing}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-neutral-200/90 bg-white hover:bg-neutral-50 text-xs font-semibold text-neutral-700 transition-colors shadow-2xs cursor-pointer"
+            title="Segarkan data performa outlet"
           >
-            <Eye className="size-3.5 text-[#2563EB]" />
-            <span>Mode: {isEmpty ? 'Data Kosong' : 'Data Terisi'}</span>
+            <RefreshCw className={`size-3.5 text-neutral-500 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>{isRefreshing ? 'Menyinkronkan...' : 'Segarkan'}</span>
           </button>
 
-          {/* Outlet Selector Dropdown Pill */}
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-neutral-200/90 shadow-2xs text-xs font-semibold text-[#111827] cursor-pointer hover:bg-neutral-50 transition-colors">
-            <span>{activeStore?.name || 'Kopi Mantap (Main Outlet)'}</span>
-            <ChevronDown className="size-3.5 text-neutral-400" />
+          {/* Outlet Selector Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setStoreDropdownOpen(!storeDropdownOpen);
+                setDateDropdownOpen(false);
+              }}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-neutral-200/90 shadow-2xs text-xs font-semibold text-[#111827] cursor-pointer hover:bg-neutral-50 transition-colors"
+            >
+              <StoreIcon className="size-3.5 text-[#FF5C38]" />
+              <span>{activeStore?.name || 'Semua Outlet'}</span>
+              <ChevronDown className="size-3.5 text-neutral-400" />
+            </button>
+
+            {storeDropdownOpen && stores.length > 0 && (
+              <div className="absolute right-0 mt-1.5 w-48 bg-white border border-neutral-200 rounded-xl shadow-lg z-30 py-1 text-xs animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-3 py-1.5 text-[10.5px] font-bold text-neutral-400 uppercase tracking-wider border-b border-neutral-100">
+                  Pilih Outlet Aktif
+                </div>
+                {stores.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => {
+                      selectStore(s.id);
+                      setStoreDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 hover:bg-neutral-50 flex items-center justify-between transition-colors ${
+                      activeStore?.id === s.id ? 'font-bold text-[#FF5C38] bg-orange-50/50' : 'text-neutral-700'
+                    }`}
+                  >
+                    <span className="truncate">{s.name}</span>
+                    {activeStore?.id === s.id && <Check className="size-3 text-[#FF5C38]" />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Date Picker Pill */}
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-neutral-200/90 shadow-2xs text-xs font-semibold text-[#111827] cursor-pointer hover:bg-neutral-50 transition-colors">
-            <span>Today (14/10/2026)</span>
-            <Calendar className="size-3.5 text-neutral-400" />
-          </div>
+          {/* Date Picker Filter Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setDateDropdownOpen(!dateDropdownOpen);
+                setStoreDropdownOpen(false);
+              }}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-neutral-200/90 shadow-2xs text-xs font-semibold text-[#111827] cursor-pointer hover:bg-neutral-50 transition-colors"
+            >
+              <Calendar className="size-3.5 text-neutral-500" />
+              <span>{dateLabel}</span>
+              <ChevronDown className="size-3.5 text-neutral-400" />
+            </button>
 
-          {/* Trigger to re-open first login modal anytime */}
-          <button
-            onClick={() => setShowFirstLoginModal(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-[#FF5C38] border border-orange-200 text-xs font-semibold transition-colors shadow-2xs"
-            title="Buka kembali alur Profil Outlet First Login"
-          >
-            <Sparkles className="size-3.5" />
-            <span className="hidden md:inline">Lengkapi Profil</span>
-          </button>
+            {dateDropdownOpen && (
+              <div className="absolute right-0 mt-1.5 w-44 bg-white border border-neutral-200 rounded-xl shadow-lg z-30 py-1 text-xs animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-3 py-1.5 text-[10.5px] font-bold text-neutral-400 uppercase tracking-wider border-b border-neutral-100">
+                  Rentang Waktu
+                </div>
+                {[
+                  { id: 'TODAY', label: 'Hari Ini' },
+                  { id: '7D', label: '7 Hari Terakhir' },
+                  { id: '30D', label: '30 Hari Terakhir' },
+                  { id: 'THIS_MONTH', label: 'Bulan Ini' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setDateFilter(item.id as DateFilterPreset);
+                      setDateDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 hover:bg-neutral-50 flex items-center justify-between transition-colors ${
+                      dateFilter === item.id ? 'font-bold text-[#FF5C38] bg-orange-50/50' : 'text-neutral-700'
+                    }`}
+                  >
+                    <span>{item.label}</span>
+                    {dateFilter === item.id && <Check className="size-3 text-[#FF5C38]" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Main Grid Layout: Left 9 Columns & Right 3 Columns */}
+      {/* Main Grid: Left 8-9 cols, Right 3-4 cols */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* ========================================================== */}
-        {/* LEFT SECTION (9 COLS): KPIS, CHARTS, AND DATA TABLES       */}
-        {/* ========================================================== */}
+        {/* LEFT COLUMN (8-9 COLS) */}
         <div className="lg:col-span-8 xl:col-span-9 space-y-5">
-          {/* Row 1: 4 Metric KPI Cards using Global KpiCard Component */}
+          {/* Row 1: KPI Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             {/* KPI 1: Total Penjualan */}
             <KpiCard
@@ -268,10 +324,10 @@ export default function DashboardOverviewPage() {
               iconBgColor="bg-emerald-50"
               iconTextColor="text-emerald-600"
               title="Total Penjualan"
-              value={isEmpty ? 'Rp0' : 'Rp12.500.000'}
-              percentage={isEmpty ? 0 : '12,5%'}
-              comparisonLabel="Dari kemarin"
-              isPositive={!isEmpty}
+              value={formatRupiah(kpis?.total_revenue ?? 0)}
+              percentage={kpis?.sales_growth !== undefined ? `${kpis.sales_growth}%` : '0%'}
+              comparisonLabel="vs periode sebelumnya"
+              isPositive={(kpis?.sales_growth ?? 0) >= 0}
               sparklineColor="#10B981"
             />
 
@@ -281,10 +337,10 @@ export default function DashboardOverviewPage() {
               iconBgColor="bg-blue-50"
               iconTextColor="text-blue-600"
               title="Total Transaksi"
-              value={isEmpty ? 'Rp0' : '245'}
-              percentage={isEmpty ? 0 : '8,2%'}
-              comparisonLabel="Dari kemarin"
-              isPositive={!isEmpty}
+              value={(kpis?.total_orders ?? 0).toLocaleString('id-ID')}
+              percentage={kpis?.orders_growth !== undefined ? `${kpis.orders_growth}%` : '0%'}
+              comparisonLabel="vs periode sebelumnya"
+              isPositive={(kpis?.orders_growth ?? 0) >= 0}
               sparklineColor="#3B82F6"
             />
 
@@ -293,11 +349,11 @@ export default function DashboardOverviewPage() {
               icon={<CreditCard className="size-3.5" />}
               iconBgColor="bg-purple-50"
               iconTextColor="text-purple-600"
-              title="Average Order Value (AOV)"
-              value={isEmpty ? 'Rp0' : 'Rp51.020'}
-              percentage={isEmpty ? 0 : '3,1%'}
-              comparisonLabel="Dari kemarin"
-              isPositive={!isEmpty}
+              title="Average Order Value"
+              value={formatRupiah(kpis?.average_order_value ?? 0)}
+              percentage={kpis?.aov_growth !== undefined ? `${kpis.aov_growth}%` : '0%'}
+              comparisonLabel="vs periode sebelumnya"
+              isPositive={(kpis?.aov_growth ?? 0) >= 0}
               sparklineColor="#A855F7"
             />
 
@@ -307,81 +363,91 @@ export default function DashboardOverviewPage() {
               iconBgColor="bg-amber-50"
               iconTextColor="text-amber-600"
               title="Profit Estimasi"
-              value={isEmpty ? 'Rp0' : 'Rp4.800.000'}
-              percentage={isEmpty ? 0 : '10,4%'}
-              comparisonLabel="Dari kemarin"
-              isPositive={!isEmpty}
+              value={formatRupiah(kpis?.estimated_profit ?? (kpis?.net_sales ?? 0) * 0.45)}
+              percentage={kpis?.profit_growth !== undefined ? `${kpis.profit_growth}%` : '0%'}
+              comparisonLabel="vs periode sebelumnya"
+              isPositive={(kpis?.profit_growth ?? 0) >= 0}
               sparklineColor="#F59E0B"
             />
           </div>
 
-          {/* Row 2: Charts (Penjualan Bar + Donut Distribusi per Channel) */}
+          {/* Row 2: Charts (Sales Trend Bar & Line Chart + Donut Distribution per Channel) */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
             {/* Chart 1: Penjualan Dual-Axis Bar & Line Chart */}
             <div className="md:col-span-7 xl:col-span-8">
-              <SalesTrendChart isEmpty={isEmpty} />
+              <SalesTrendChart
+                data={salesTrendData}
+                timeframe={dateLabel}
+                isEmpty={!hasSalesData}
+              />
             </div>
 
             {/* Chart 2: Distribusi Transaksi per Channel Donut */}
             <div className="md:col-span-5 xl:col-span-4">
-              <ChannelDistributionChart isEmpty={isEmpty} />
+              <ChannelDistributionChart
+                channels={channels}
+                isEmpty={channels.length === 0}
+              />
             </div>
           </div>
 
-          {/* Row 3: Produk Terlaris Hari Ini & Stok Tipis */}
+          {/* Row 3: Produk Terlaris & Stok Tipis */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Card 1: Produk Terlaris Hari Ini */}
+            {/* Card 1: Produk Terlaris */}
             <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-xs flex flex-col justify-between min-h-[300px]">
               <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
-                <h3 className="text-sm font-bold text-neutral-900 tracking-tight">
-                  Produk Terlaris Hari Ini
-                </h3>
+                <div>
+                  <h3 className="text-sm font-bold text-neutral-900 tracking-tight">
+                    Produk Terlaris
+                  </h3>
+                  <p className="text-[11px] text-neutral-400 mt-0.5">
+                    Item menu dengan volume penjualan tertinggi pada periode ini
+                  </p>
+                </div>
                 <Link
                   href="/dashboard/catalog"
-                  className="text-xs text-neutral-400 hover:text-neutral-700 font-medium transition-colors"
+                  className="text-xs text-[#FF5C38] hover:text-[#E04B28] font-semibold transition-colors shrink-0"
                 >
-                  Lihat semua produk &rsaquo;
+                  Lihat menu &rsaquo;
                 </Link>
               </div>
 
-              {isEmpty ? (
+              {topProducts.length === 0 ? (
                 <EmptyState
                   title="BELUM ADA PRODUK TERJUAL"
-                  description="Produk terlaris akan muncul setelah ada penjualan."
-                  actionText="Lihat Produk"
+                  description="Produk terlaris akan otomatis tampil di sini setelah ada pesanan selesai."
+                  actionText="Buka Katalog Menu"
                   actionHref="/dashboard/catalog"
                 />
               ) : (
-                <div className="divide-y divide-neutral-100">
+                <div className="divide-y divide-neutral-100 flex-1">
                   <div className="grid grid-cols-12 py-2 text-[10.5px] font-semibold text-neutral-400 uppercase tracking-wider">
                     <span className="col-span-1 text-center">#</span>
                     <span className="col-span-6">Produk</span>
-                    <span className="col-span-2 text-center">Qty Terjual</span>
-                    <span className="col-span-3 text-right">Total Penjualan</span>
+                    <span className="col-span-2 text-center">Terjual</span>
+                    <span className="col-span-3 text-right">Penjualan</span>
                   </div>
-                  {populatedTopProducts.map((p) => (
+                  {topProducts.map((p, idx) => (
                     <div
-                      key={p.id}
+                      key={p.product_id || idx}
                       className="grid grid-cols-12 py-2.5 items-center text-xs hover:bg-neutral-50/60 rounded-lg transition-colors px-1"
                     >
-                      <span className="col-span-1 text-center text-neutral-400 font-medium">
-                        {p.id}
+                      <span className="col-span-1 text-center text-neutral-400 font-bold">
+                        {idx + 1}
                       </span>
                       <div className="col-span-6 flex items-center gap-2.5 min-w-0 pr-2">
-                        <div
-                          className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${p.iconBg}`}
-                        >
-                          {p.icon}
+                        <div className="size-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 border border-orange-100">
+                          <Coffee className="size-4" />
                         </div>
                         <span className="font-semibold text-neutral-900 truncate">
-                          {p.name}
+                          {p.product_name}
                         </span>
                       </div>
                       <span className="col-span-2 text-center font-bold text-neutral-800">
-                        {p.qty}
+                        {p.quantity_sold ?? p.total_quantity ?? 0}
                       </span>
                       <span className="col-span-3 text-right font-bold text-[#2563EB]">
-                        {formatRupiah(p.sales)}
+                        {formatRupiah(p.total_sales)}
                       </span>
                     </div>
                   ))}
@@ -389,62 +455,70 @@ export default function DashboardOverviewPage() {
               )}
             </div>
 
-            {/* Card 2: Stok Tipis */}
+            {/* Card 2: Stok Tipis & Perlu Restock */}
             <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-xs flex flex-col justify-between min-h-[300px]">
               <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
-                <h3 className="text-sm font-bold text-neutral-900 tracking-tight">
-                  Stok Tipis
-                </h3>
+                <div>
+                  <h3 className="text-sm font-bold text-neutral-900 tracking-tight">
+                    Stok Tipis & Perlu Restock
+                  </h3>
+                  <p className="text-[11px] text-neutral-400 mt-0.5">
+                    Bahan baku yang berada di bawah atau mendekati batas minimum
+                  </p>
+                </div>
                 <Link
                   href="/dashboard/inventory"
-                  className="text-xs text-neutral-400 hover:text-neutral-700 font-medium transition-colors"
+                  className="text-xs text-[#FF5C38] hover:text-[#E04B28] font-semibold transition-colors shrink-0"
                 >
-                  Lihat Inventori &rsaquo;
+                  Kelola stok &rsaquo;
                 </Link>
               </div>
 
-              {isEmpty ? (
-                <EmptyState
-                  title="BELUM ADA DATA STOK"
-                  description="Tambahkan stok untuk memantau persediaan outlet."
-                  actionText="Kelola Stok"
-                  actionHref="/dashboard/inventory"
-                />
+              {lowStocks.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center py-8 text-center">
+                  <div className="size-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2.5 border border-emerald-100">
+                    <CheckCircle2 className="size-6" />
+                  </div>
+                  <h4 className="text-xs font-bold text-neutral-800 uppercase tracking-wider">
+                    Semua Stok Aman
+                  </h4>
+                  <p className="text-[11px] text-neutral-400 max-w-xs mt-1">
+                    Seluruh bahan baku inventori outlet saat ini berada di atas batas minimum stok.
+                  </p>
+                </div>
               ) : (
-                <div className="divide-y divide-neutral-100">
+                <div className="divide-y divide-neutral-100 flex-1">
                   <div className="grid grid-cols-12 py-2 text-[10.5px] font-semibold text-neutral-400 uppercase tracking-wider">
                     <span className="col-span-1 text-center">#</span>
-                    <span className="col-span-6">Produk</span>
-                    <span className="col-span-2 text-center">Sisa</span>
+                    <span className="col-span-6">Bahan Baku</span>
+                    <span className="col-span-2 text-center">Sisa Stok</span>
                     <span className="col-span-3 text-right">Status</span>
                   </div>
-                  {populatedLowStock.map((s) => (
+                  {lowStocks.map((s, idx) => (
                     <div
-                      key={s.id}
+                      key={s.id || idx}
                       className="grid grid-cols-12 py-2.5 items-center text-xs hover:bg-neutral-50/60 rounded-lg transition-colors px-1"
                     >
                       <span className="col-span-1 text-center text-neutral-400 font-medium">
-                        {s.id}
+                        {idx + 1}
                       </span>
                       <div className="col-span-6 flex items-center gap-2.5 min-w-0 pr-2">
-                        <div
-                          className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${s.iconBg}`}
-                        >
-                          {s.icon}
+                        <div className="size-8 rounded-lg bg-neutral-100 text-neutral-600 flex items-center justify-center shrink-0 border border-neutral-200">
+                          <Package className="size-4" />
                         </div>
                         <span className="font-semibold text-neutral-900 truncate">
                           {s.name}
                         </span>
                       </div>
-                      <span className="col-span-2 text-center font-bold text-red-500">
-                        {s.remaining}
+                      <span className="col-span-2 text-center font-bold text-neutral-800">
+                        {Number(s.remaining).toLocaleString('id-ID')} {s.unit_code}
                       </span>
                       <div className="col-span-3 flex justify-end">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                            s.isCritical
-                              ? 'bg-rose-50 text-rose-600 border border-rose-200'
-                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          className={`px-2 py-0.5 rounded-full text-[10.5px] font-semibold border ${
+                            s.is_critical || s.status === 'Habis' || s.status === 'Sangat Rendah'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
                           }`}
                         >
                           {s.status}
@@ -459,93 +533,93 @@ export default function DashboardOverviewPage() {
         </div>
 
         {/* ========================================================== */}
-        {/* RIGHT SECTION (3 COLS): PESANAN HARI INI & FITUR TERBARU   */}
+        {/* RIGHT COLUMN (3-4 COLS): PESANAN HARI INI & PANDUAN CEPAT  */}
         {/* ========================================================== */}
         <div className="lg:col-span-4 xl:col-span-3 space-y-5">
-          {/* Card 1: Pesanan hari ini using Global DashboardWidgetCard */}
+          {/* Card 1: Pesanan hari ini using real database breakdown */}
           <DashboardWidgetCard
-            title="Pesanan hari ini"
-            badge={isEmpty ? 0 : 248}
-            headerHref="/dashboard/pos?tab=orders"
+            title="Pesanan Hari Ini"
+            badge={todayOrders.total}
+            headerHref="/dashboard/orders"
           >
             <div className="space-y-3">
-              {/* Item: Baru */}
+              {/* Item: Baru (Pending) */}
               <div className="flex items-center justify-between p-1.5 rounded-xl hover:bg-neutral-50 transition-colors">
                 <div className="flex items-center gap-3">
                   <span className="size-7 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 shadow-2xs">
                     <Sparkles className="size-3.5" />
                   </span>
                   <span className="text-xs font-medium text-neutral-800">
-                    Baru
+                    Baru (Pending)
                   </span>
                 </div>
                 <span
                   className={`text-sm font-bold ${
-                    isEmpty ? 'text-neutral-900' : 'text-[#EA580C]'
+                    todayOrders.new > 0 ? 'text-[#EA580C]' : 'text-neutral-500'
                   }`}
                 >
-                  {isEmpty ? 0 : 12}
+                  {todayOrders.new}
                 </span>
               </div>
 
-              {/* Item: Diproses */}
+              {/* Item: Diproses (Confirmed / Preparing) */}
               <div className="flex items-center justify-between p-1.5 rounded-xl hover:bg-neutral-50 transition-colors">
                 <div className="flex items-center gap-3">
                   <span className="size-7 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 shadow-2xs">
                     <Play className="size-3 fill-current ml-0.5" />
                   </span>
                   <span className="text-xs font-medium text-neutral-800">
-                    Diproses
+                    Diproses (Dapur)
                   </span>
                 </div>
                 <span
                   className={`text-sm font-bold ${
-                    isEmpty ? 'text-neutral-900' : 'text-[#D97706]'
+                    todayOrders.processing > 0 ? 'text-[#D97706]' : 'text-neutral-500'
                   }`}
                 >
-                  {isEmpty ? 0 : 8}
+                  {todayOrders.processing}
                 </span>
               </div>
 
-              {/* Item: Siap diambil */}
+              {/* Item: Siap diambil (Ready) */}
               <div className="flex items-center justify-between p-1.5 rounded-xl hover:bg-neutral-50 transition-colors">
                 <div className="flex items-center gap-3">
                   <span className="size-7 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs">
                     <ShoppingBag className="size-3.5" />
                   </span>
                   <span className="text-xs font-medium text-neutral-800">
-                    Siap diambil
+                    Siap Disajikan
                   </span>
                 </div>
                 <span
                   className={`text-sm font-bold ${
-                    isEmpty ? 'text-neutral-900' : 'text-[#2563EB]'
+                    todayOrders.ready > 0 ? 'text-[#2563EB]' : 'text-neutral-500'
                   }`}
                 >
-                  {isEmpty ? 0 : 5}
+                  {todayOrders.ready}
                 </span>
               </div>
 
-              {/* Item: Selesai */}
+              {/* Item: Selesai (Completed) */}
               <div className="flex items-center justify-between p-1.5 rounded-xl hover:bg-neutral-50 transition-colors">
                 <div className="flex items-center gap-3">
                   <span className="size-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs">
                     <Check className="size-3.5 stroke-[2.5]" />
                   </span>
                   <span className="text-xs font-medium text-neutral-800">
-                    Selesai
+                    Selesai (Dibayar)
                   </span>
                 </div>
                 <span
                   className={`text-sm font-bold ${
-                    isEmpty ? 'text-neutral-900' : 'text-[#16A34A]'
+                    todayOrders.completed > 0 ? 'text-[#16A34A]' : 'text-neutral-500'
                   }`}
                 >
-                  {isEmpty ? 0 : 220}
+                  {todayOrders.completed}
                 </span>
               </div>
 
-              {/* Item: Dibatalkan */}
+              {/* Item: Dibatalkan (Cancelled) */}
               <div className="flex items-center justify-between p-1.5 rounded-xl hover:bg-neutral-50 transition-colors">
                 <div className="flex items-center gap-3">
                   <span className="size-7 rounded-full bg-neutral-100 text-neutral-500 flex items-center justify-center shrink-0 shadow-2xs">
@@ -555,71 +629,81 @@ export default function DashboardOverviewPage() {
                     Dibatalkan
                   </span>
                 </div>
-                <span className="text-sm font-bold text-neutral-900">
-                  {isEmpty ? 0 : 3}
+                <span className="text-sm font-bold text-neutral-500">
+                  {todayOrders.cancelled}
                 </span>
               </div>
             </div>
           </DashboardWidgetCard>
 
-          {/* Card 2: Fitur Terbaru using Global DashboardWidgetCard */}
+          {/* Card 2: Akses Cepat Operasional */}
           <DashboardWidgetCard
-            title="Fitur Terbaru"
-            badge="10"
-            headerHref="#"
+            title="Akses Cepat Operasional"
+            headerHref="/dashboard/pos"
           >
-            <div className="space-y-4">
-              {/* Feature 1 */}
-              <div className="flex items-start gap-3 p-1 hover:bg-neutral-50/60 rounded-xl transition-colors cursor-pointer">
-                <div className="size-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 mt-0.5">
-                  <Package className="size-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-1">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-orange-100 text-orange-600 shrink-0">
-                        Baru
-                      </span>
-                      <h4 className="text-xs font-semibold text-neutral-900 truncate">
-                        Pembelian stok
-                      </h4>
-                    </div>
-                    <span className="text-neutral-400 text-xs font-medium">&rsaquo;</span>
+            <div className="space-y-3">
+              {/* Action 1: Buka Kasir POS */}
+              <Link
+                href="/dashboard/pos"
+                className="flex items-center justify-between p-2 rounded-xl border border-neutral-100 hover:bg-neutral-50/80 transition-colors group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="size-8 rounded-lg bg-orange-50 text-[#FF5C38] flex items-center justify-center shrink-0">
+                    <ShoppingBag className="size-4" />
                   </div>
-                  <p className="text-[10px] text-neutral-400 mt-0.5 font-normal">
-                    14 Okt 2026
-                  </p>
-                  <p className="text-[11px] text-neutral-500 leading-relaxed mt-1">
-                    Sekarang anda dapat mencatat pembelian bahan baku langsung di NemuPOS
-                  </p>
+                  <div>
+                    <h4 className="text-xs font-semibold text-neutral-900 group-hover:text-[#FF5C38] transition-colors">
+                      Kasir POS
+                    </h4>
+                    <p className="text-[10.5px] text-neutral-400">
+                      Buka terminal kasir & catat pesanan
+                    </p>
+                  </div>
                 </div>
-              </div>
+                <span className="text-neutral-400 group-hover:text-neutral-700 text-xs">&rsaquo;</span>
+              </Link>
 
-              {/* Feature 2 */}
-              <div className="flex items-start gap-3 p-1 hover:bg-neutral-50/60 rounded-xl transition-colors cursor-pointer">
-                <div className="size-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 mt-0.5">
-                  <Layers className="size-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-1">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-orange-100 text-orange-600 shrink-0">
-                        Baru
-                      </span>
-                      <h4 className="text-xs font-semibold text-neutral-900 truncate">
-                        Penyesuaian stok
-                      </h4>
-                    </div>
-                    <span className="text-neutral-400 text-xs font-medium">&rsaquo;</span>
+              {/* Action 2: Kitchen Display System (KDS) */}
+              <Link
+                href="/dashboard/kds"
+                className="flex items-center justify-between p-2 rounded-xl border border-neutral-100 hover:bg-neutral-50/80 transition-colors group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="size-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                    <UtensilsCrossed className="size-4" />
                   </div>
-                  <p className="text-[10px] text-neutral-400 mt-0.5 font-normal">
-                    14 Okt 2026
-                  </p>
-                  <p className="text-[11px] text-neutral-500 leading-relaxed mt-1">
-                    Perbaiki selisih stok dengan fitur penyesuaian stok.
-                  </p>
+                  <div>
+                    <h4 className="text-xs font-semibold text-neutral-900 group-hover:text-blue-600 transition-colors">
+                      Kitchen Display (KDS)
+                    </h4>
+                    <p className="text-[10.5px] text-neutral-400">
+                      Antrean pesanan dapur & barista
+                    </p>
+                  </div>
                 </div>
-              </div>
+                <span className="text-neutral-400 group-hover:text-neutral-700 text-xs">&rsaquo;</span>
+              </Link>
+
+              {/* Action 3: Kelola Stok & Opname */}
+              <Link
+                href="/dashboard/inventory"
+                className="flex items-center justify-between p-2 rounded-xl border border-neutral-100 hover:bg-neutral-50/80 transition-colors group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="size-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                    <Package className="size-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-semibold text-neutral-900 group-hover:text-amber-600 transition-colors">
+                      Inventori Stok
+                    </h4>
+                    <p className="text-[10.5px] text-neutral-400">
+                      Pantau saldo bahan & stock opname
+                    </p>
+                  </div>
+                </div>
+                <span className="text-neutral-400 group-hover:text-neutral-700 text-xs">&rsaquo;</span>
+              </Link>
             </div>
           </DashboardWidgetCard>
         </div>

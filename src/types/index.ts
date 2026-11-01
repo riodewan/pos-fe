@@ -392,33 +392,80 @@ export interface PublicQrResolved {
 // Reporting & Analytics
 // ==========================================
 export interface DashboardReport {
+  period?: {
+    start_date: string;
+    end_date: string;
+  };
   kpis: {
     gross_sales: number;
     total_discounts: number;
     net_sales: number;
-    tax: number;
-    service_charge: number;
+    total_tax?: number;
+    total_service?: number;
+    tax?: number;
+    service_charge?: number;
     total_revenue: number;
     total_orders: number;
     average_order_value: number;
+    estimated_profit?: number;
+    sales_growth?: number;
+    orders_growth?: number;
+    aov_growth?: number;
+    profit_growth?: number;
   };
-  daily_trends: Array<{
+  daily_trends?: Array<{
     date: string;
     total_revenue: number;
     orders_count: number;
   }>;
+  sales_trend?: Array<{
+    date: string;
+    order_count: number;
+    gross_sales: number;
+    discount_amount: number;
+    net_sales: number;
+    total_revenue: number;
+  }>;
   top_products: Array<{
-    product_id: ULID;
+    product_id: string;
     product_name: string;
-    total_quantity: number;
+    quantity_sold?: number;
+    total_quantity?: number;
     total_sales: number;
+    average_price?: number;
   }>;
   payment_methods: Array<{
-    method: PaymentMethod;
+    method: string;
     total_amount: number;
-    transactions_count: number;
+    payment_count?: number;
+    transactions_count?: number;
     percentage: number;
   }>;
+  channels?: Array<{
+    name: string;
+    count: number;
+    total_amount: number;
+    percentage: number;
+    color: string;
+  }>;
+  low_stocks?: Array<{
+    id: string;
+    name: string;
+    remaining: number;
+    unit_code: string;
+    unit_name?: string;
+    min_stock: number;
+    status: string;
+    is_critical: boolean;
+  }>;
+  today_orders?: {
+    total: number;
+    new: number;
+    processing: number;
+    ready: number;
+    completed: number;
+    cancelled: number;
+  };
 }
 
 export interface InventoryUsageReport {

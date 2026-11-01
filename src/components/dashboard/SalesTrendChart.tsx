@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { formatRupiah } from '@/utils';
 
 export interface DailySalesItem {
   date: string;
@@ -26,45 +27,54 @@ export function SalesTrendChart({
 }: SalesTrendChartProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  const populatedItems: DailySalesItem[] = [
-    { date: '8 Okt', sales: 2800000, orders: 110 },
-    { date: '9 Okt', sales: 8200000, orders: 190 },
-    { date: '10 Okt', sales: 6600000, orders: 240 },
-    { date: '11 Okt', sales: 6800000, orders: 220 },
-    { date: '12 Okt', sales: 2900000, orders: 140 },
-    { date: '13 Okt', sales: 4300000, orders: 180 },
-    { date: '14 Okt', sales: 5900000, orders: 290 },
-  ];
+  // Generate dynamic 7-day fallback based on current date
+  const fallbackItems: DailySalesItem[] = useMemo(() => {
+    const list: DailySalesItem[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const label = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+      list.push({ date: label, sales: 0, orders: 0 });
+    }
+    return list;
+  }, []);
 
-  const emptyItems: DailySalesItem[] = [
-    { date: '8 Okt', sales: 0, orders: 0 },
-    { date: '9 Okt', sales: 0, orders: 0 },
-    { date: '10 Okt', sales: 0, orders: 0 },
-    { date: '11 Okt', sales: 0, orders: 0 },
-    { date: '12 Okt', sales: 0, orders: 0 },
-    { date: '13 Okt', sales: 0, orders: 0 },
-    { date: '14 Okt', sales: 0, orders: 0 },
-  ];
+  const items = useMemo(() => {
+    if (isEmpty) return fallbackItems;
+    if (data && data.length > 0) {
+      return data.map((item) => {
+        // format date if full YYYY-MM-DD
+        let label = item.date;
+        if (/^\d{4}-\d{2}-\d{2}/.test(item.date)) {
+          const d = new Date(item.date);
+          label = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+        }
+        return {
+          ...item,
+          date: label,
+        };
+      });
+    }
+    return fallbackItems;
+  }, [isEmpty, data, fallbackItems]);
 
-  const items = isEmpty
-    ? emptyItems
-    : data && data.length > 0
-    ? data
-    : populatedItems;
+  const maxSales = useMemo(() => {
+    const max = Math.max(1000000, ...items.map((i) => i.sales));
+    return Math.ceil(max / 500000) * 500000 || 1000000;
+  }, [items]);
 
-  const maxSales = 10000000;
-  const maxOrders = 400;
+  const maxOrders = useMemo(() => {
+    const max = Math.max(10, ...items.map((i) => i.orders));
+    return Math.ceil(max / 10) * 10 || 10;
+  }, [items]);
 
-  // Calculate points for the overlay trend line (yellow)
-  // Chart inner width: 100%, height: 160px
-  // SVG coordinates: 0 to 700 width, 0 to 160 height
+  // Calculate points for the overlay trend line
   const svgWidth = 600;
   const svgHeight = 150;
   const colStep = svgWidth / (items.length - 1 || 1);
 
   const linePoints = items.map((item, idx) => {
     const x = idx * colStep;
-    // Map orders (0 to 400) to height (svgHeight to 10)
     const y = svgHeight - (item.orders / maxOrders) * (svgHeight - 20);
     return { x, y };
   });
@@ -77,8 +87,6 @@ export function SalesTrendChart({
     ''
   );
 
-  const areaD = `${pathD} L ${svgWidth} ${svgHeight} L 0 ${svgHeight} Z`;
-
   return (
     <div
       className={`p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-xs flex flex-col justify-between ${className}`}
@@ -86,7 +94,7 @@ export function SalesTrendChart({
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-bold text-neutral-900 tracking-tight">
-          Penjualan
+          Tren Penjualan
         </h3>
 
         {/* Timeframe selector pill */}
@@ -122,92 +130,97 @@ export function SalesTrendChart({
         </div>
       </div>
 
-      {/* Chart Canvas with Dual Y-Axis */}
-      <div className="relative flex items-stretch gap-2 h-44 text-[10.5px]">
-        {/* Left Y-Axis (Sales in Rupiah) */}
-        <div className="w-16 flex flex-col justify-between text-right text-neutral-400 select-none pb-6">
-          <span>10.000.000</span>
-          <span>8.000.000</span>
-          <span>4.000.000</span>
-          <span>2.000.000</span>
-          <span>0</span>
+      {/* Chart Canvas Area */}
+      <div className="relative h-[180px] w-full pt-4">
+        {/* Background Grid Lines */}
+        <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-7">
+          <div className="w-full border-b border-dashed border-neutral-100" />
+          <div className="w-full border-b border-dashed border-neutral-100" />
+          <div className="w-full border-b border-dashed border-neutral-100" />
+          <div className="w-full border-b border-neutral-200" />
         </div>
 
-        {/* Middle Area: Dashed gridlines, Bars, and Trend Line */}
-        <div className="flex-1 relative flex flex-col justify-between pb-6">
-          {/* 5 Horizontal Grid lines */}
-          <div className="absolute inset-x-0 top-0 border-b border-dashed border-neutral-200" />
-          <div className="absolute inset-x-0 top-[25%] border-b border-dashed border-neutral-200" />
-          <div className="absolute inset-x-0 top-[50%] border-b border-dashed border-neutral-200" />
-          <div className="absolute inset-x-0 top-[75%] border-b border-dashed border-neutral-200" />
-          <div className="absolute inset-x-0 bottom-6 border-b border-neutral-200" />
+        {/* Bar & Line container */}
+        <div className="relative h-full flex flex-col justify-between">
+          <div className="relative h-[150px] w-full">
+            {/* SVG Trend Line for Orders */}
+            <svg
+              className="absolute inset-0 w-full h-full pointer-events-none z-10 overflow-visible"
+              viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+              preserveAspectRatio="none"
+            >
+              <path
+                d={pathD}
+                fill="none"
+                stroke="#F59E0B"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {linePoints.map((pt, i) => (
+                <circle
+                  key={i}
+                  cx={pt.x}
+                  cy={pt.y}
+                  r="3.5"
+                  fill="#FFFFFF"
+                  stroke="#F59E0B"
+                  strokeWidth="2"
+                />
+              ))}
+            </svg>
 
-          {/* SVG Overlay: Line Trend (Orders count) */}
-          <svg
-            className="absolute inset-x-0 top-0 h-[calc(100%-24px)] w-full pointer-events-none z-10 overflow-visible"
-            viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-            preserveAspectRatio="none"
-          >
-            <defs>
-              <linearGradient id="yellowGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.25" />
-                <stop offset="100%" stopColor="#F59E0B" stopOpacity="0.0" />
-              </linearGradient>
-            </defs>
-            <path d={areaD} fill="url(#yellowGradient)" />
-            <path
-              d={pathD}
-              fill="none"
-              stroke="#F59E0B"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-
-          {/* Vertical Bar Columns */}
-          <div className="absolute inset-x-0 top-0 bottom-6 flex items-end justify-between px-3 z-0">
-            {items.map((item, idx) => {
-              const heightPercent = Math.min(
-                100,
-                Math.max(0, (item.sales / maxSales) * 100)
-              );
-              return (
-                <div
-                  key={idx}
-                  className="group relative flex flex-col items-center justify-end h-full w-8"
-                >
-                  {/* Tooltip on hover */}
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-8 px-2 py-1 rounded bg-neutral-900 text-white text-[10px] font-semibold whitespace-nowrap pointer-events-none z-30 shadow-md">
-                    Rp {item.sales.toLocaleString('id-ID')}
-                  </div>
-                  {/* Bar */}
+            {/* Bars Column */}
+            <div className="absolute inset-0 flex items-end justify-between px-2 sm:px-4 z-0">
+              {items.map((item, idx) => {
+                const heightPct = maxSales > 0 ? (item.sales / maxSales) * 100 : 0;
+                return (
                   <div
-                    style={{ height: `${heightPercent}%` }}
-                    className="w-4 sm:w-5 bg-[#2563EB] group-hover:bg-[#1D4ED8] rounded-t-sm transition-all duration-300"
-                  />
-                </div>
-              );
-            })}
+                    key={idx}
+                    className="flex-1 flex flex-col items-center justify-end h-full group relative"
+                  >
+                    {/* Tooltip on hover */}
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full mb-2 bg-neutral-900 text-white text-[10px] rounded-lg px-2.5 py-1 pointer-events-none whitespace-nowrap shadow-lg z-30">
+                      <p className="font-semibold">{item.date}</p>
+                      <p className="text-emerald-400 font-mono">{formatRupiah(item.sales)}</p>
+                      <p className="text-amber-400 font-mono">{item.orders} pesanan</p>
+                    </div>
+
+                    {/* Blue Bar */}
+                    <div
+                      style={{ height: `${Math.max(4, heightPct)}%` }}
+                      className={`w-5 sm:w-7 rounded-t-md transition-all duration-300 ${
+                        item.sales > 0
+                          ? 'bg-[#2563EB] group-hover:bg-[#1D4ED8]'
+                          : 'bg-neutral-100'
+                      }`}
+                    />
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* X-Axis Labels */}
-          <div className="absolute inset-x-0 bottom-0 h-6 flex justify-between px-2 pt-1.5 text-[10px] text-neutral-500 font-medium select-none">
+          {/* X Axis Labels */}
+          <div className="flex justify-between items-center px-2 sm:px-4 text-[11px] font-medium text-neutral-400 pt-1">
             {items.map((item, idx) => (
-              <span key={idx} className="w-8 text-center">
+              <span key={idx} className="flex-1 text-center truncate">
                 {item.date}
               </span>
             ))}
           </div>
         </div>
+      </div>
 
-        {/* Right Y-Axis (Orders Count) */}
-        <div className="w-8 flex flex-col justify-between text-left text-neutral-400 select-none pb-6 pl-1">
-          <span>400</span>
-          <span>300</span>
-          <span>200</span>
-          <span>100</span>
-          <span>0</span>
+      {/* Legend Footer */}
+      <div className="flex items-center justify-center gap-6 pt-3 mt-1 border-t border-neutral-100 text-xs text-neutral-500">
+        <div className="flex items-center gap-2">
+          <span className="size-2.5 rounded-full bg-[#2563EB]" />
+          <span>Nominal Penjualan (Rp)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="size-2.5 rounded-full bg-[#F59E0B]" />
+          <span>Jumlah Transaksi</span>
         </div>
       </div>
     </div>
