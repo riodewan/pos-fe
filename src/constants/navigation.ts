@@ -109,11 +109,4 @@ export const SIDEBAR_NAV_ITEMS: NavItem[] = [
     roles: ['OWNER', 'SUPER_ADMIN'],
     group: 'Bisnis',
   },
-  {
-    href: ROUTES.DASHBOARD.AUDIT_LOGS,
-    label: 'Log Audit',
-    icon: History,
-    roles: ['OWNER', 'MANAGER', 'SUPER_ADMIN'],
-    group: 'Bisnis',
-  },
 ];

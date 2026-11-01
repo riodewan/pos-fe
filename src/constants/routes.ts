@@ -26,7 +26,7 @@ export const ROUTES = {
     PROFILE: '/dashboard/settings/profile',
     ACCOUNT: '/dashboard/settings/account',
     NOTIFICATIONS: '/dashboard/notifications',
-    AUDIT_LOGS: '/dashboard/audit-logs',
+    STAFF: '/dashboard/staff',
   },
   PUBLIC: {
     QR_ORDER: (token: string) => `/q/${token}`,

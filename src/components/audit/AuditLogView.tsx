@@ -602,3 +602,4 @@ export function AuditLogView({ isEmbedded = false }: AuditLogViewProps) {
     </div>
   );
 }
+

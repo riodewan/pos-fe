@@ -270,3 +270,4 @@ export function AuditDetailModal({ log, isOpen, onClose }: AuditDetailModalProps
     </div>
   );
 }
+

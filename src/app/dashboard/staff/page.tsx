@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Users,
   ShieldCheck,
@@ -36,7 +37,15 @@ type ActiveTab = 'staff' | 'roles' | 'activity';
 
 export default function StaffPage() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<ActiveTab>('staff');
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(
+    tabParam === 'activity' || tabParam === 'audit'
+      ? 'activity'
+      : tabParam === 'roles'
+      ? 'roles'
+      : 'staff'
+  );
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -495,7 +504,7 @@ export default function StaffPage() {
           }`}
         >
           <History className="size-4" />
-          Aktivitas Login
+          Log Audit
         </button>
       </div>
 
