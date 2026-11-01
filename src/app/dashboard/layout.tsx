@@ -255,62 +255,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   OPERASIONAL
                 </p>
                 <div className="space-y-1">
-                  <div>
-                    <Link
-                      href="/dashboard/inventory"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={cn(
-                        'flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium transition-colors',
-                        pathname === '/dashboard/inventory'
-                          ? 'bg-white/10 text-white font-semibold'
-                          : 'text-neutral-400 hover:bg-white/5 hover:text-white'
-                      )}
-                    >
-                      <Package className="size-4 shrink-0 text-neutral-400" />
-                      <span className="truncate">Inventori & Stok</span>
-                    </Link>
-
-                    {/* Submenu under Inventori & Stok matching Figma Sidebar */}
-                    {pathname.startsWith('/dashboard/inventory') && (
-                      <div className="pl-9 pr-2 py-1.5 space-y-1.5 border-l border-white/10 ml-5 text-xs">
-                        <Link
-                          href="/dashboard/inventory?tab=bahan"
-                          onClick={() => setMobileMenuOpen(false)}
-                          className="block py-0.5 text-neutral-400 hover:text-white transition-colors"
-                        >
-                          Ringkasan Stok
-                        </Link>
-                        <Link
-                          href="/dashboard/inventory?tab=stock-in"
-                          onClick={() => setMobileMenuOpen(false)}
-                          className="block py-0.5 text-neutral-400 hover:text-white transition-colors"
-                        >
-                          Stok & Mutasi
-                        </Link>
-                        <Link
-                          href="/dashboard/inventory?tab=po"
-                          onClick={() => setMobileMenuOpen(false)}
-                          className="block py-0.5 text-neutral-400 hover:text-white transition-colors"
-                        >
-                          Pembelian
-                        </Link>
-                        <Link
-                          href="/dashboard/inventory?tab=adjustment"
-                          onClick={() => setMobileMenuOpen(false)}
-                          className="block py-0.5 text-neutral-400 hover:text-white transition-colors"
-                        >
-                          Penyesuaian Stok
-                        </Link>
-                        <Link
-                          href="/dashboard/inventory?tab=stock-out"
-                          onClick={() => setMobileMenuOpen(false)}
-                          className="block py-0.5 text-neutral-400 hover:text-white transition-colors"
-                        >
-                          Riwayat Stok
-                        </Link>
-                      </div>
+                  <Link
+                    href="/dashboard/inventory"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium transition-colors',
+                      pathname === '/dashboard/inventory'
+                        ? 'bg-white/10 text-white font-semibold'
+                        : 'text-neutral-400 hover:bg-white/5 hover:text-white'
                     )}
-                  </div>
+                  >
+                    <Package className="size-4 shrink-0 text-neutral-400" />
+                    <span className="truncate">Inventori & Stok</span>
+                  </Link>
 
                   <Link
                     href="/dashboard/reports"
