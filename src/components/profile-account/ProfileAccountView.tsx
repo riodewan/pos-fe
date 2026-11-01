@@ -83,6 +83,33 @@ export function ProfileAccountView() {
 
         if (profileRes.status === 'fulfilled' && profileRes.value?.data) {
           const d = profileRes.value.data as any;
+          const notifs = d.notification_preferences;
+          const safeNotifs = {
+            orders: {
+              email: Boolean(notifs?.orders?.email ?? notifs?.order_email ?? true),
+              inApp: Boolean(notifs?.orders?.inApp ?? true),
+            },
+            transactions: {
+              email: Boolean(notifs?.transactions?.email ?? true),
+              inApp: Boolean(notifs?.transactions?.inApp ?? true),
+            },
+            reservations: {
+              email: Boolean(notifs?.reservations?.email ?? true),
+              inApp: Boolean(notifs?.reservations?.inApp ?? true),
+            },
+            dailySummary: {
+              email: Boolean(notifs?.dailySummary?.email ?? notifs?.sales_summary ?? true),
+              inApp: Boolean(notifs?.dailySummary?.inApp ?? true),
+            },
+          };
+
+          const prefs = d.user_preferences;
+          const safePrefs = {
+            language: prefs?.language || 'Bahasa Indonesia',
+            dateFormat: prefs?.dateFormat || 'DD/MM/YYYY',
+            timezone: prefs?.timezone || 'WIB (UTC+7)',
+          };
+
           setProfile((prev) => ({
             ...prev,
             name: d.name || user?.name || '',
@@ -93,8 +120,8 @@ export function ProfileAccountView() {
             outletCount: d.outlet_count || 1,
             joinedDate: d.joined_date || prev.joinedDate,
             lastLogin: d.last_login || prev.lastLogin,
-            notifications: d.notification_preferences || prev.notifications,
-            preferences: d.user_preferences || prev.preferences,
+            notifications: safeNotifs,
+            preferences: safePrefs,
           }));
         }
 
@@ -152,16 +179,20 @@ export function ProfileAccountView() {
     key: keyof UserAccountProfile['notifications'],
     type: 'email' | 'inApp'
   ) => {
-    setProfile((prev) => ({
-      ...prev,
-      notifications: {
-        ...prev.notifications,
-        [key]: {
-          ...prev.notifications[key],
-          [type]: !prev.notifications[key][type],
+    setProfile((prev) => {
+      const currentNotifications = prev.notifications || INITIAL_ACCOUNT_DATA.notifications;
+      const currentCategory = currentNotifications[key] || { email: true, inApp: true };
+      return {
+        ...prev,
+        notifications: {
+          ...currentNotifications,
+          [key]: {
+            ...currentCategory,
+            [type]: !currentCategory[type],
+          },
         },
-      },
-    }));
+      };
+    });
   };
 
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -443,14 +474,14 @@ export function ProfileAccountView() {
                       type="button"
                       onClick={() => handleToggleNotification('orders', 'email')}
                       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        profile.notifications.orders.email
+                        profile.notifications?.orders?.email
                           ? 'bg-[#FF5C38]'
                           : 'bg-neutral-300'
                       }`}
                     >
                       <span
                         className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                          profile.notifications.orders.email
+                          profile.notifications?.orders?.email
                             ? 'translate-x-4'
                             : 'translate-x-0'
                         }`}
@@ -465,14 +496,14 @@ export function ProfileAccountView() {
                       type="button"
                       onClick={() => handleToggleNotification('orders', 'inApp')}
                       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        profile.notifications.orders.inApp
+                        profile.notifications?.orders?.inApp
                           ? 'bg-[#FF5C38]'
                           : 'bg-neutral-300'
                       }`}
                     >
                       <span
                         className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                          profile.notifications.orders.inApp
+                          profile.notifications?.orders?.inApp
                             ? 'translate-x-4'
                             : 'translate-x-0'
                         }`}
@@ -505,14 +536,14 @@ export function ProfileAccountView() {
                       type="button"
                       onClick={() => handleToggleNotification('transactions', 'email')}
                       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        profile.notifications.transactions.email
+                        profile.notifications?.transactions?.email
                           ? 'bg-[#FF5C38]'
                           : 'bg-neutral-300'
                       }`}
                     >
                       <span
                         className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                          profile.notifications.transactions.email
+                          profile.notifications?.transactions?.email
                             ? 'translate-x-4'
                             : 'translate-x-0'
                         }`}
@@ -526,14 +557,14 @@ export function ProfileAccountView() {
                       type="button"
                       onClick={() => handleToggleNotification('transactions', 'inApp')}
                       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        profile.notifications.transactions.inApp
+                        profile.notifications?.transactions?.inApp
                           ? 'bg-[#FF5C38]'
                           : 'bg-neutral-300'
                       }`}
                     >
                       <span
                         className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                          profile.notifications.transactions.inApp
+                          profile.notifications?.transactions?.inApp
                             ? 'translate-x-4'
                             : 'translate-x-0'
                         }`}
@@ -566,14 +597,14 @@ export function ProfileAccountView() {
                       type="button"
                       onClick={() => handleToggleNotification('reservations', 'email')}
                       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        profile.notifications.reservations.email
+                        profile.notifications?.reservations?.email
                           ? 'bg-[#FF5C38]'
                           : 'bg-neutral-300'
                       }`}
                     >
                       <span
                         className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                          profile.notifications.reservations.email
+                          profile.notifications?.reservations?.email
                             ? 'translate-x-4'
                             : 'translate-x-0'
                         }`}
@@ -587,14 +618,14 @@ export function ProfileAccountView() {
                       type="button"
                       onClick={() => handleToggleNotification('reservations', 'inApp')}
                       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        profile.notifications.reservations.inApp
+                        profile.notifications?.reservations?.inApp
                           ? 'bg-[#FF5C38]'
                           : 'bg-neutral-300'
                       }`}
                     >
                       <span
                         className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                          profile.notifications.reservations.inApp
+                          profile.notifications?.reservations?.inApp
                             ? 'translate-x-4'
                             : 'translate-x-0'
                         }`}
@@ -627,14 +658,14 @@ export function ProfileAccountView() {
                       type="button"
                       onClick={() => handleToggleNotification('dailySummary', 'email')}
                       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        profile.notifications.dailySummary.email
+                        profile.notifications?.dailySummary?.email
                           ? 'bg-[#FF5C38]'
                           : 'bg-neutral-300'
                       }`}
                     >
                       <span
                         className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                          profile.notifications.dailySummary.email
+                          profile.notifications?.dailySummary?.email
                             ? 'translate-x-4'
                             : 'translate-x-0'
                         }`}
@@ -648,14 +679,14 @@ export function ProfileAccountView() {
                       type="button"
                       onClick={() => handleToggleNotification('dailySummary', 'inApp')}
                       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        profile.notifications.dailySummary.inApp
+                        profile.notifications?.dailySummary?.inApp
                           ? 'bg-[#FF5C38]'
                           : 'bg-neutral-300'
                       }`}
                     >
                       <span
                         className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                          profile.notifications.dailySummary.inApp
+                          profile.notifications?.dailySummary?.inApp
                             ? 'translate-x-4'
                             : 'translate-x-0'
                         }`}
