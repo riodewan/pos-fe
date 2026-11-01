@@ -1,11 +1,4 @@
-export type StaffRole =
-  | 'Owner'
-  | 'Manager'
-  | 'Kasir'
-  | 'Dapur'
-  | 'Barista'
-  | 'Server'
-  | (string & {});
+export type StaffRole = string;
 
 export type StaffStatus = 'Aktif' | 'Nonaktif';
 
@@ -17,6 +10,16 @@ export interface PermissionModule {
     id: string;
     name: string;
   }[];
+}
+
+export interface AccessiblePageData {
+  id: string;
+  name: string;
+  path: string;
+  group: 'Operasional' | 'Katalog & Stok' | 'Bisnis & Pengelolaan' | string;
+  description: string;
+  required_permissions: string[];
+  is_accessible: boolean;
 }
 
 export interface StaffMember {
@@ -34,7 +37,7 @@ export interface StaffMember {
 
 export interface RoleDefinition {
   id: string;
-  name: StaffRole;
+  name: string;
   description: string;
   staffCount: number;
   color?: string;
@@ -42,6 +45,7 @@ export interface RoleDefinition {
   badgeText?: string;
   permissions: string[];
   permissionIds?: string[];
+  accessiblePages?: AccessiblePageData[];
   isDefault?: boolean;
 }
 

@@ -77,9 +77,7 @@ export default function StaffPage() {
             email: user.email || '',
             phone: user.phone || '-',
             avatarUrl: user.avatar_url || undefined,
-            role: (['Owner', 'Manager', 'Kasir', 'Dapur', 'Barista', 'Server'].includes(primaryRole)
-              ? primaryRole
-              : 'Kasir') as StaffRole,
+            role: primaryRole as StaffRole,
             status: user.is_active !== false ? 'Aktif' : 'Nonaktif',
             lastLogin: item.joined_at
               ? new Date(item.joined_at).toLocaleDateString('id-ID', {
@@ -88,7 +86,7 @@ export default function StaffPage() {
                   year: 'numeric',
                 })
               : '-',
-            permissions: ['pos', 'tables'],
+            permissions: roles[0]?.role?.permissions?.map((p: any) => p.name) || ['pos', 'tables'],
           };
         });
         setStaffList(mapped);
@@ -253,45 +251,26 @@ export default function StaffPage() {
 
   // Role badges rendering matching Screenshot 3
   const renderRoleBadge = (role: StaffRole) => {
-    switch (role) {
-      case 'Owner':
-        return (
-          <span className="font-semibold text-rose-600 text-xs">
-            Owner
-          </span>
-        );
-      case 'Manager':
-        return (
-          <span className="font-semibold text-blue-600 text-xs">
-            Manager
-          </span>
-        );
-      case 'Kasir':
-        return (
-          <span className="font-semibold text-purple-600 text-xs">
-            Kasir
-          </span>
-        );
-      case 'Dapur':
-        return (
-          <span className="font-semibold text-amber-600 text-xs">
-            Dapur
-          </span>
-        );
-      case 'Barista':
-        return (
-          <span className="font-semibold text-emerald-600 text-xs">
-            Barista
-          </span>
-        );
-      case 'Server':
-        return (
-          <span className="font-semibold text-sky-600 text-xs">
-            Server
-          </span>
-        );
+    const norm = (role || '').toLowerCase();
+    switch (norm) {
+      case 'owner':
+        return <span className="font-semibold text-rose-600 text-xs">Owner</span>;
+      case 'manager':
+        return <span className="font-semibold text-blue-600 text-xs">Manager</span>;
+      case 'cashier':
+      case 'kasir':
+        return <span className="font-semibold text-purple-600 text-xs">Kasir</span>;
+      case 'inventory':
+      case 'gudang':
+        return <span className="font-semibold text-amber-600 text-xs">Inventori</span>;
+      case 'dapur':
+        return <span className="font-semibold text-amber-600 text-xs">Dapur</span>;
+      case 'barista':
+        return <span className="font-semibold text-emerald-600 text-xs">Barista</span>;
+      case 'server':
+        return <span className="font-semibold text-sky-600 text-xs">Server</span>;
       default:
-        return <span className="text-xs text-neutral-600">{role}</span>;
+        return <span className="font-semibold text-indigo-600 text-xs">{role}</span>;
     }
   };
 

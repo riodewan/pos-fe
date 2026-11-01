@@ -5,7 +5,6 @@ import {
   ShieldCheck,
   Users,
   CheckCircle2,
-  XCircle,
   Plus,
   Edit3,
   Trash2,
@@ -22,11 +21,8 @@ import {
   Settings,
   ClipboardList,
   ChefHat,
-  Layers,
-  Sparkles,
-  ExternalLink,
 } from 'lucide-react';
-import { RoleDefinition, StaffRole } from '@/types/staff';
+import { RoleDefinition, AccessiblePageData } from '@/types/staff';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { Modal } from '@/components/common/Modal';
@@ -40,220 +36,22 @@ interface MasterPermission {
   description: string;
 }
 
-export interface DashboardPageInfo {
-  id: string;
-  name: string;
-  path: string;
-  group: 'Operasional' | 'Katalog & Stok' | 'Bisnis & Pengelolaan';
-  icon: React.ElementType;
-  description: string;
-  keyFeatures: string[];
-}
-
-export const DASHBOARD_PAGES: DashboardPageInfo[] = [
-  // Operasional
-  {
-    id: 'dashboard',
-    name: 'Ringkasan Dashboard',
-    path: '/dashboard',
-    group: 'Operasional',
-    icon: LayoutGrid,
-    description: 'Melihat ringkasan metrik penjualan harian, pendapatan kotor/bersih, dan grafik tren outlet.',
-    keyFeatures: ['Grafik penjualan', 'Statistik omset', 'Aktivitas terkini'],
-  },
-  {
-    id: 'pos',
-    name: 'Kasir POS (Terminal Kasir)',
-    path: '/dashboard/pos',
-    group: 'Operasional',
-    icon: CreditCard,
-    description: 'Operasional transaksi kasir, input pesanan dine-in & takeaway, terima bayar tunai/QRIS, cetak struk.',
-    keyFeatures: ['Input transaksi', 'Penerimaan pembayaran', 'Buka/tutup shift'],
-  },
-  {
-    id: 'orders',
-    name: 'Daftar Pesanan & Antrean',
-    path: '/dashboard/orders',
-    group: 'Operasional',
-    icon: ClipboardList,
-    description: 'Memantau seluruh antrean pesanan berjalan, status pesanan di dapur, dan rincian item pesanan.',
-    keyFeatures: ['Monitor pesanan aktif', 'Ubah status pesanan', 'Batalkan pesanan'],
-  },
-  {
-    id: 'transactions',
-    name: 'Riwayat Transaksi & Struk',
-    path: '/dashboard/transactions',
-    group: 'Operasional',
-    icon: CreditCard,
-    description: 'Melihat riwayat struk penjualan yang telah selesai, detail pembayaran, dan pencatatan refund.',
-    keyFeatures: ['Histori pembayaran', 'Cetak ulang struk', 'Proses refund kasir'],
-  },
-  {
-    id: 'tables',
-    name: 'Meja & Denah Ruangan',
-    path: '/dashboard/tables',
-    group: 'Operasional',
-    icon: LayoutGrid,
-    description: 'Melihat denah ruangan outlet, status keterisian meja (kosong/terisi), dan reservasi tamu.',
-    keyFeatures: ['Visual denah meja', 'Status meja terisi', 'Pemesanan reservasi'],
-  },
-  {
-    id: 'kds',
-    name: 'Kitchen Display System (KDS)',
-    path: '/dashboard/kds',
-    group: 'Operasional',
-    icon: ChefHat,
-    description: 'Layar antrean persiapan pesanan langsung untuk station dapur makanan dan station barista minuman.',
-    keyFeatures: ['Antrean pesanan dapur', 'Status makanan siap', 'Display minuman barista'],
-  },
-  // Katalog & Stok
-  {
-    id: 'catalog',
-    name: 'Katalog Menu & Produk',
-    path: '/dashboard/catalog',
-    group: 'Katalog & Stok',
-    icon: Coffee,
-    description: 'Melihat dan mengelola daftar produk, variasi harga, kategori menu, dan ketersediaan stok produk.',
-    keyFeatures: ['Daftar menu & varian', 'Ubah harga & promo', 'Status habis/tersedia'],
-  },
-  {
-    id: 'recipes',
-    name: 'Resep & Kalkulasi HPP',
-    path: '/dashboard/recipes',
-    group: 'Katalog & Stok',
-    icon: BookOpen,
-    description: 'Menyusun takaran gramasi bahan baku tiap produk serta memonitor harga pokok penjualan (HPP).',
-    keyFeatures: ['Komposisi gramasi', 'Kalkulasi HPP modal', 'Standar porsi resep'],
-  },
-  {
-    id: 'inventory',
-    name: 'Inventori & Stok Bahan',
-    path: '/dashboard/inventory',
-    group: 'Katalog & Stok',
-    icon: Package,
-    description: 'Mencatat stok masuk/keluar, purchase order (PO) supplier, penyesuaian stok opname, dan wastage.',
-    keyFeatures: ['Stok bahan baku', 'Purchase Order (PO)', 'Stok opname & wastage'],
-  },
-  // Bisnis & Pengelolaan
-  {
-    id: 'reports',
-    name: 'Laporan Penjualan',
-    path: '/dashboard/reports',
-    group: 'Bisnis & Pengelolaan',
-    icon: TrendingUp,
-    description: 'Melihat laporan penjualan berkala, produk terlaris (*best seller*), dan export data ke excel/PDF.',
-    keyFeatures: ['Laporan omset berkala', 'Ranking menu terlaris', 'Export laporan finansial'],
-  },
-  {
-    id: 'finance',
-    name: 'Keuangan & Kas Outlet',
-    path: '/dashboard/finance',
-    group: 'Bisnis & Pengelolaan',
-    icon: Banknote,
-    description: 'Rekapitulasi arus kas masuk/keluar harian, audit kasir shift, rekonsiliasi transfer bank & QRIS.',
-    keyFeatures: ['Rekap kasir shift', 'Audit selisih kas', 'Pengeluaran kas kecil'],
-  },
-  {
-    id: 'customers',
-    name: 'Pelanggan & CRM Loyalitas',
-    path: '/dashboard/customers',
-    group: 'Bisnis & Pengelolaan',
-    icon: Users,
-    description: 'Database informasi kontak pelanggan, riwayat kunjungan belanja, dan pencatatan poin loyalitas.',
-    keyFeatures: ['Data kontak pelanggan', 'Histori belanja tamu', 'Status membership'],
-  },
-  {
-    id: 'staff',
-    name: 'Staf & Hak Akses',
-    path: '/dashboard/staff',
-    group: 'Bisnis & Pengelolaan',
-    icon: ShieldCheck,
-    description: 'Menambah anggota tim outlet, mengatur jabatan, dan menentukan izin peran (Role-Based Access).',
-    keyFeatures: ['Kelola staf tim', 'Hak akses peran (RBAC)', 'Log aktivitas login'],
-  },
-  {
-    id: 'settings',
-    name: 'Pengaturan Outlet',
-    path: '/dashboard/settings',
-    group: 'Bisnis & Pengelolaan',
-    icon: Settings,
-    description: 'Mengatur profil bisnis, jam buka/tutup, format struk printer, tarif pajak & service, metode bayar.',
-    keyFeatures: ['Profil bisnis & logo', 'Tarif pajak & biaya', 'Format struk & printer'],
-  },
-];
-
-export function isPageAccessibleByRole(
-  pageId: string,
-  roleName: string,
-  permissionIds: string[] = []
-): boolean {
-  const normRole = (roleName || '').toLowerCase().trim();
-  const perms = (permissionIds || []).map((p) => p.toLowerCase());
-
-  // Owner has absolute access to every page
-  if (normRole === 'owner') return true;
-
-  switch (pageId) {
-    case 'dashboard':
-      return normRole === 'manager' || perms.includes('report.sales') || perms.includes('audit.view');
-    case 'pos':
-      return (
-        ['manager', 'kasir', 'cashier'].includes(normRole) ||
-        perms.includes('order.create') ||
-        perms.includes('payment.process')
-      );
-    case 'orders':
-      return (
-        ['manager', 'kasir', 'cashier', 'server', 'dapur', 'barista', 'kitchen'].includes(normRole) ||
-        perms.includes('order.view')
-      );
-    case 'transactions':
-      return (
-        ['manager', 'kasir', 'cashier'].includes(normRole) ||
-        perms.includes('payment.view')
-      );
-    case 'tables':
-      return (
-        ['manager', 'kasir', 'cashier', 'server'].includes(normRole) ||
-        perms.includes('table.view')
-      );
-    case 'kds':
-      return (
-        ['manager', 'barista', 'dapur', 'kitchen', 'kasir', 'cashier'].includes(normRole) ||
-        perms.includes('order.view')
-      );
-    case 'catalog':
-      return (
-        ['manager', 'kasir', 'cashier', 'inventory', 'dapur', 'barista'].includes(normRole) ||
-        perms.includes('product.view') ||
-        perms.includes('menu.view')
-      );
-    case 'recipes':
-      return (
-        ['manager', 'inventory', 'dapur'].includes(normRole) ||
-        perms.includes('recipe.view')
-      );
-    case 'inventory':
-      return (
-        ['manager', 'inventory', 'dapur'].includes(normRole) ||
-        perms.includes('inventory.view') ||
-        perms.includes('purchase.view') ||
-        perms.includes('ingredient.view')
-      );
-    case 'reports':
-      return normRole === 'manager' || perms.includes('report.sales') || perms.includes('report.financial');
-    case 'finance':
-      return normRole === 'manager' || perms.includes('report.financial');
-    case 'customers':
-      return ['manager', 'kasir', 'cashier'].includes(normRole) || perms.includes('order.create');
-    case 'staff':
-      return normRole === 'manager' || perms.includes('user.view') || perms.includes('role.view');
-    case 'settings':
-      return perms.includes('tenant.settings') || perms.includes('tenant.update');
-    default:
-      return false;
-  }
-}
+const PAGE_ICON_MAP: Record<string, React.ElementType> = {
+  dashboard: LayoutGrid,
+  pos: CreditCard,
+  orders: ClipboardList,
+  transactions: CreditCard,
+  tables: LayoutGrid,
+  kds: ChefHat,
+  catalog: Coffee,
+  recipes: BookOpen,
+  inventory: Package,
+  reports: TrendingUp,
+  finance: Banknote,
+  customers: Users,
+  staff: ShieldCheck,
+  settings: Settings,
+};
 
 const DEFAULT_COLOR_MAP: Record<string, { badgeBg: string; badgeText: string; color: string }> = {
   owner: { color: '#FF5C38', badgeBg: 'bg-rose-50', badgeText: 'text-rose-600 border-rose-200' },
@@ -283,7 +81,7 @@ export function RolePermissionTab() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [modalActiveTab, setModalActiveTab] = useState<'pages' | 'permissions'>('pages');
   const [editDescription, setEditDescription] = useState('');
-  const [editSelectedPermIds, setEditSelectedPermIds] = useState<string[]>([]);
+  const [editSelectedPermNames, setEditSelectedPermNames] = useState<string[]>([]);
   const [pageFilter, setPageFilter] = useState<'all' | 'accessible' | 'locked'>('all');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -292,9 +90,8 @@ export function RolePermissionTab() {
   const [newRoleName, setNewRoleName] = useState('');
   const [newRoleDesc, setNewRoleDesc] = useState('');
   const [newRolePermIds, setNewRolePermIds] = useState<string[]>([]);
-  const [addModalTab, setAddModalTab] = useState<'permissions' | 'pages'>('permissions');
 
-  // Fetch roles & permissions
+  // Fetch roles & permissions directly from backend database
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -303,10 +100,8 @@ export function RolePermissionTab() {
         tenantService.getPermissions(),
       ]);
 
-      let loadedPerms: MasterPermission[] = [];
       if (permsRes.status === 'fulfilled' && Array.isArray(permsRes.value?.data)) {
-        loadedPerms = permsRes.value.data;
-        setMasterPermissions(loadedPerms);
+        setMasterPermissions(permsRes.value.data);
       }
 
       if (rolesRes.status === 'fulfilled' && Array.isArray(rolesRes.value?.data)) {
@@ -316,28 +111,29 @@ export function RolePermissionTab() {
 
           const rolePerms = Array.isArray(r.permissions) ? r.permissions : [];
           const permissionLabels = rolePerms.map(
-            (p: any) => p.description || p.name || 'Izin'
+            (p: any) => p.description || p.name
           );
-          const permissionIds = rolePerms.map((p: any) => p.id || p.name);
+          const permissionNames = rolePerms.map((p: any) => p.name || p.id);
 
           return {
             id: r.id,
-            name: r.name as StaffRole,
-            description: r.description || 'Pengaturan akses peran staf.',
+            name: r.name,
+            description: r.description || 'Pengaturan hak akses peran staf.',
             staffCount: typeof r.staff_count === 'number' ? r.staff_count : 0,
             color: style.color,
             badgeBg: style.badgeBg,
             badgeText: style.badgeText,
-            permissions: permissionLabels.length > 0 ? permissionLabels : ['Akses Standar Modul'],
-            permissionIds,
+            permissions: permissionLabels,
+            permissionIds: permissionNames,
+            accessiblePages: Array.isArray(r.accessible_pages) ? r.accessible_pages : [],
             isDefault: Boolean(r.is_default),
           };
         });
         setRoles(mapped);
       }
     } catch (err) {
-      console.error('Error fetching roles/permissions:', err);
-      toast.error('Gagal memuat data peran & izin.');
+      console.error('Error fetching database roles/permissions:', err);
+      toast.error('Gagal memuat data peran dari database.');
     } finally {
       setIsLoading(false);
     }
@@ -347,7 +143,7 @@ export function RolePermissionTab() {
     fetchData();
   }, [fetchData]);
 
-  // Group master permissions by module for the modal checklist
+  // Group master permissions from database by module
   const permissionsByModule = useMemo(() => {
     const groups: Record<string, MasterPermission[]> = {};
     for (const p of masterPermissions) {
@@ -361,16 +157,16 @@ export function RolePermissionTab() {
   const handleOpenEdit = (role: RoleDefinition) => {
     setSelectedRole(role);
     setEditDescription(role.description || '');
-    setEditSelectedPermIds(role.permissionIds || []);
-    setModalActiveTab('pages'); // Default to showing accessible pages
+    setEditSelectedPermNames(role.permissionIds || []);
+    setModalActiveTab('pages');
     setPageFilter('all');
     setIsEditModalOpen(true);
   };
 
-  const handleToggleEditPerm = (permId: string) => {
-    if (selectedRole?.name === 'Owner') return; // Owner has permanent all-access
-    setEditSelectedPermIds((prev) =>
-      prev.includes(permId) ? prev.filter((id) => id !== permId) : [...prev, permId]
+  const handleToggleEditPerm = (permName: string) => {
+    if (selectedRole?.name === 'Owner') return;
+    setEditSelectedPermNames((prev) =>
+      prev.includes(permName) ? prev.filter((name) => name !== permName) : [...prev, permName]
     );
   };
 
@@ -386,13 +182,13 @@ export function RolePermissionTab() {
       setIsSaving(true);
       await tenantService.updateRole(selectedRole.id, {
         description: editDescription,
-        permissions: editSelectedPermIds,
+        permissions: editSelectedPermNames,
       });
-      toast.success(`Hak akses peran ${selectedRole.name} berhasil diperbarui.`);
+      toast.success(`Hak akses peran ${selectedRole.name} berhasil diperbarui di database.`);
       setIsEditModalOpen(false);
       fetchData();
     } catch (err: any) {
-      console.error('Error saving role:', err);
+      console.error('Error saving role to database:', err);
       toast.error(err?.response?.data?.message || 'Gagal menyimpan pembaruan peran.');
     } finally {
       setIsSaving(false);
@@ -408,11 +204,11 @@ export function RolePermissionTab() {
     try {
       setIsSaving(true);
       await tenantService.deleteRole(selectedRole.id);
-      toast.success(`Peran ${selectedRole.name} berhasil dihapus.`);
+      toast.success(`Peran ${selectedRole.name} berhasil dihapus dari database.`);
       setIsEditModalOpen(false);
       fetchData();
     } catch (err: any) {
-      console.error('Error deleting role:', err);
+      console.error('Error deleting role from database:', err);
       toast.error(err?.response?.data?.message || 'Gagal menghapus peran.');
     } finally {
       setIsSaving(false);
@@ -432,32 +228,26 @@ export function RolePermissionTab() {
         description: newRoleDesc.trim() || undefined,
         permissions: newRolePermIds,
       });
-      toast.success(`Peran baru "${newRoleName}" berhasil dibuat.`);
+      toast.success(`Peran "${newRoleName}" berhasil disimpan ke database.`);
       setIsAddModalOpen(false);
       setNewRoleName('');
       setNewRoleDesc('');
       setNewRolePermIds([]);
       fetchData();
     } catch (err: any) {
-      console.error('Error creating role:', err);
+      console.error('Error creating role in database:', err);
       toast.error(err?.response?.data?.message || 'Gagal membuat peran baru.');
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Group pages for the modal
-  const pagesByGroup = useMemo(() => {
-    const groups: Record<string, DashboardPageInfo[]> = {
-      'Operasional': [],
-      'Katalog & Stok': [],
-      'Bisnis & Pengelolaan': [],
-    };
-    for (const page of DASHBOARD_PAGES) {
-      groups[page.group].push(page);
-    }
-    return groups;
-  }, []);
+  // Helper to determine if a page is accessible given current permissions
+  const checkPageAccessibility = (page: AccessiblePageData, roleName: string, activePerms: string[]) => {
+    if (roleName.toLowerCase() === 'owner') return true;
+    const required = page.required_permissions || [];
+    return required.some((req) => activePerms.includes(req));
+  };
 
   return (
     <div className="space-y-6">
@@ -469,17 +259,17 @@ export function RolePermissionTab() {
           </div>
           <div>
             <h3 className="text-sm font-bold text-neutral-900">
-              Hak Akses Berbasis Peran (RBAC)
+              Hak Akses Berbasis Peran (Database RBAC)
             </h3>
             <p className="text-xs text-neutral-500">
-              Setiap peran mengatur halaman dashboard apa saja yang dapat dibuka dan fitur apa yang diizinkan untuk operasional outlet.
+              Data peran, staf, dan hak akses diambil langsung dari tabel database sistem secara *real-time*.
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <span className="text-xs text-neutral-500 font-medium">
-            Total {roles.length} Peran Terdefinisi
+            Total {roles.length} Peran di Database
           </span>
           <Button
             variant="primary"
@@ -497,15 +287,19 @@ export function RolePermissionTab() {
       {isLoading ? (
         <div className="p-12 flex flex-col items-center justify-center gap-2">
           <Loader2 className="size-6 animate-spin text-[#FF5C38]" />
-          <p className="text-xs text-neutral-400">Memuat daftar peran & izin...</p>
+          <p className="text-xs text-neutral-400">Memuat daftar peran dari database...</p>
+        </div>
+      ) : roles.length === 0 ? (
+        <div className="p-12 text-center border border-dashed border-neutral-200 rounded-xl bg-white">
+          <ShieldCheck className="size-8 text-neutral-300 mx-auto mb-2" />
+          <p className="text-sm font-semibold text-neutral-700">Belum ada peran terdaftar di database</p>
+          <p className="text-xs text-neutral-400 mt-1">Gunakan tombol Tambah Peran untuk membuat peran baru.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {roles.map((r) => {
-            // Calculate accessible pages for this role
-            const accessiblePages = DASHBOARD_PAGES.filter((p) =>
-              isPageAccessibleByRole(p.id, r.name, r.permissionIds)
-            );
+            const pages = r.accessiblePages || [];
+            const accessiblePages = pages.filter((p) => p.is_accessible);
             const accessibleCount = accessiblePages.length;
 
             return (
@@ -532,14 +326,14 @@ export function RolePermissionTab() {
                     {r.description}
                   </p>
 
-                  {/* Accessible Pages Counter Badge */}
+                  {/* Accessible Pages Counter Badge from Database */}
                   <div className="mb-3.5 flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-neutral-50 border border-neutral-100 text-xs">
                     <span className="text-[11px] font-semibold text-neutral-600 flex items-center gap-1.5">
                       <LayoutGrid className="size-3.5 text-neutral-400" />
                       Akses Halaman
                     </span>
                     <span className="font-bold text-[#FF5C38] text-[11px]">
-                      {accessibleCount} / {DASHBOARD_PAGES.length} Halaman
+                      {accessibleCount} / {pages.length} Halaman
                     </span>
                   </div>
 
@@ -684,11 +478,11 @@ export function RolePermissionTab() {
                 <span>Halaman Yang Dapat Diakses</span>
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-neutral-100 text-neutral-600 font-bold">
                   {
-                    DASHBOARD_PAGES.filter((p) =>
-                      isPageAccessibleByRole(p.id, selectedRole.name, editSelectedPermIds)
+                    (selectedRole.accessiblePages || []).filter((p) =>
+                      checkPageAccessibility(p, selectedRole.name, editSelectedPermNames)
                     ).length
                   }
-                  /{DASHBOARD_PAGES.length}
+                  /{(selectedRole.accessiblePages || []).length}
                 </span>
               </button>
 
@@ -702,9 +496,9 @@ export function RolePermissionTab() {
                 }`}
               >
                 <ShieldCheck className="size-4" />
-                <span>Izin Modul Detail (RBAC)</span>
+                <span>Izin Modul Detail (Database RBAC)</span>
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-neutral-100 text-neutral-600 font-bold">
-                  {selectedRole.name === 'Owner' ? 'Penuh' : `${editSelectedPermIds.length} Izin`}
+                  {selectedRole.name === 'Owner' ? 'Akses Penuh' : `${editSelectedPermNames.length} Izin`}
                 </span>
               </button>
             </div>
@@ -724,7 +518,7 @@ export function RolePermissionTab() {
                           : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                       }`}
                     >
-                      Semua Halaman ({DASHBOARD_PAGES.length})
+                      Semua Halaman ({(selectedRole.accessiblePages || []).length})
                     </button>
                     <button
                       type="button"
@@ -737,8 +531,8 @@ export function RolePermissionTab() {
                     >
                       Dapat Diakses (
                       {
-                        DASHBOARD_PAGES.filter((p) =>
-                          isPageAccessibleByRole(p.id, selectedRole.name, editSelectedPermIds)
+                        (selectedRole.accessiblePages || []).filter((p) =>
+                          checkPageAccessibility(p, selectedRole.name, editSelectedPermNames)
                         ).length
                       }
                       )
@@ -754,9 +548,9 @@ export function RolePermissionTab() {
                     >
                       Terkunci (
                       {
-                        DASHBOARD_PAGES.filter(
+                        (selectedRole.accessiblePages || []).filter(
                           (p) =>
-                            !isPageAccessibleByRole(p.id, selectedRole.name, editSelectedPermIds)
+                            !checkPageAccessibility(p, selectedRole.name, editSelectedPermNames)
                         ).length
                       }
                       )
@@ -770,113 +564,96 @@ export function RolePermissionTab() {
                   )}
                 </div>
 
-                {/* Page Cards grouped by module category */}
-                <div className="max-h-[380px] overflow-y-auto pr-1 space-y-4">
-                  {Object.entries(pagesByGroup).map(([groupName, groupPages]) => {
-                    const displayedPages = groupPages.filter((page) => {
-                      const isAccessible = isPageAccessibleByRole(
-                        page.id,
-                        selectedRole.name,
-                        editSelectedPermIds
-                      );
-                      if (pageFilter === 'accessible') return isAccessible;
-                      if (pageFilter === 'locked') return !isAccessible;
-                      return true;
-                    });
+                {/* Page Cards from database */}
+                <div className="max-h-[380px] overflow-y-auto pr-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                    {(selectedRole.accessiblePages || [])
+                      .filter((page) => {
+                        const isAccessible = checkPageAccessibility(
+                          page,
+                          selectedRole.name,
+                          editSelectedPermNames
+                        );
+                        if (pageFilter === 'accessible') return isAccessible;
+                        if (pageFilter === 'locked') return !isAccessible;
+                        return true;
+                      })
+                      .map((page) => {
+                        const isAccessible = checkPageAccessibility(
+                          page,
+                          selectedRole.name,
+                          editSelectedPermNames
+                        );
+                        const IconComponent = PAGE_ICON_MAP[page.id] || LayoutGrid;
 
-                    if (displayedPages.length === 0) return null;
-
-                    return (
-                      <div key={groupName} className="space-y-2">
-                        <p className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider px-1">
-                          Kelompok {groupName}
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                          {displayedPages.map((page) => {
-                            const isAccessible = isPageAccessibleByRole(
-                              page.id,
-                              selectedRole.name,
-                              editSelectedPermIds
-                            );
-                            const IconComponent = page.icon;
-
-                            return (
-                              <div
-                                key={page.id}
-                                className={`p-3 rounded-xl border transition-all ${
-                                  isAccessible
-                                    ? 'bg-white border-emerald-200/90 shadow-2xs hover:border-emerald-300'
-                                    : 'bg-neutral-50/70 border-neutral-200 opacity-60'
-                                }`}
-                              >
-                                <div className="flex items-start justify-between gap-2 mb-1.5">
-                                  <div className="flex items-center gap-2">
-                                    <div
-                                      className={`size-7 rounded-lg flex items-center justify-center shrink-0 ${
-                                        isAccessible
-                                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                                          : 'bg-neutral-200/60 text-neutral-400'
-                                      }`}
-                                    >
-                                      <IconComponent className="size-4" />
-                                    </div>
-                                    <div>
-                                      <h4 className="text-xs font-bold text-neutral-900 leading-tight">
-                                        {page.name}
-                                      </h4>
-                                      <span className="text-[10px] text-neutral-400 font-mono">
-                                        {page.path}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  <div>
-                                    {isAccessible ? (
-                                      <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
-                                        <CheckCircle2 className="size-3 text-emerald-600" />
-                                        Dapat Diakses
-                                      </span>
-                                    ) : (
-                                      <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-neutral-500 bg-neutral-100 border border-neutral-200 px-2 py-0.5 rounded-full shrink-0">
-                                        <Lock className="size-3 text-neutral-400" />
-                                        Terkunci
-                                      </span>
-                                    )}
-                                  </div>
+                        return (
+                          <div
+                            key={page.id}
+                            className={`p-3 rounded-xl border transition-all ${
+                              isAccessible
+                                ? 'bg-white border-emerald-200/90 shadow-2xs hover:border-emerald-300'
+                                : 'bg-neutral-50/70 border-neutral-200 opacity-60'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2 mb-1.5">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={`size-7 rounded-lg flex items-center justify-center shrink-0 ${
+                                    isAccessible
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                      : 'bg-neutral-200/60 text-neutral-400'
+                                  }`}
+                                >
+                                  <IconComponent className="size-4" />
                                 </div>
-
-                                <p className="text-[11px] text-neutral-600 leading-relaxed mb-2">
-                                  {page.description}
-                                </p>
-
-                                {/* Key Features Tags */}
-                                <div className="flex flex-wrap gap-1 pt-1 border-t border-neutral-100">
-                                  {page.keyFeatures.map((feat, idx) => (
-                                    <span
-                                      key={idx}
-                                      className="text-[10px] px-1.5 py-0.2 rounded bg-neutral-100 text-neutral-600 font-medium"
-                                    >
-                                      • {feat}
-                                    </span>
-                                  ))}
+                                <div>
+                                  <h4 className="text-xs font-bold text-neutral-900 leading-tight">
+                                    {page.name}
+                                  </h4>
+                                  <span className="text-[10px] text-neutral-400 font-mono">
+                                    {page.path}
+                                  </span>
                                 </div>
                               </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
+
+                              <div>
+                                {isAccessible ? (
+                                  <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
+                                    <CheckCircle2 className="size-3 text-emerald-600" />
+                                    Dapat Diakses
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-neutral-500 bg-neutral-100 border border-neutral-200 px-2 py-0.5 rounded-full shrink-0">
+                                    <Lock className="size-3 text-neutral-400" />
+                                    Terkunci
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <p className="text-[11px] text-neutral-600 leading-relaxed mb-2">
+                              {page.description}
+                            </p>
+
+                            <div className="flex flex-wrap gap-1 pt-1 border-t border-neutral-100">
+                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-neutral-100 text-neutral-500 font-mono">
+                                Izin: {page.required_permissions.join(', ')}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* TAB 2: GRANULAR RBAC PERMISSIONS CHECKLIST */}
+            {/* TAB 2: GRANULAR RBAC PERMISSIONS CHECKLIST FROM DATABASE */}
             {modalActiveTab === 'permissions' && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs font-bold text-neutral-800">
-                    Daftar Hak Akses Modul Teknis (API Endpoints & RBAC):
+                    Daftar Hak Akses Modul Teknis (Tabel Permissions Database):
                   </p>
                   {selectedRole.name === 'Owner' && (
                     <span className="text-[11px] text-amber-600 font-medium">
@@ -896,13 +673,13 @@ export function RolePermissionTab() {
                           {perms.map((p) => {
                             const isChecked =
                               selectedRole.name === 'Owner' ||
-                              editSelectedPermIds.includes(p.id) ||
-                              editSelectedPermIds.includes(p.name);
+                              editSelectedPermNames.includes(p.name) ||
+                              editSelectedPermNames.includes(p.id);
                             return (
                               <button
                                 type="button"
                                 key={p.id}
-                                onClick={() => handleToggleEditPerm(p.id)}
+                                onClick={() => handleToggleEditPerm(p.name)}
                                 disabled={selectedRole.name === 'Owner'}
                                 className={`flex items-start gap-2.5 p-2 rounded-lg border text-left text-xs transition-colors ${
                                   isChecked
@@ -920,7 +697,7 @@ export function RolePermissionTab() {
                                   {isChecked && <Check className="size-3" />}
                                 </div>
                                 <div className="min-w-0">
-                                  <p className="font-semibold text-[11px] leading-tight truncate">
+                                  <p className="font-semibold text-[11px] leading-tight truncate font-mono">
                                     {p.name}
                                   </p>
                                   <p className="text-[10px] text-neutral-500 line-clamp-1">
@@ -935,17 +712,7 @@ export function RolePermissionTab() {
                     ))}
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {selectedRole.permissions.map((p, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-2.5 p-2 rounded-md bg-white border border-neutral-200/60 text-xs text-neutral-800"
-                      >
-                        <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                        <span>{p}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <p className="text-xs text-neutral-400">Tidak ada izin di database.</p>
                 )}
               </div>
             )}
@@ -958,7 +725,7 @@ export function RolePermissionTab() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         title="Tambah Peran Staf Baru"
-        subtitle="Buat peran baru dan sesuaikan halaman serta fitur apa yang dapat diakses."
+        subtitle="Simpan peran baru ke database dan tentukan hak akses fitur."
         size="lg"
         footer={
           <div className="flex items-center justify-end gap-2 w-full">
@@ -977,7 +744,7 @@ export function RolePermissionTab() {
               onClick={handleCreateRole}
               isLoading={isSaving}
             >
-              Buat Peran
+              Simpan ke Database
             </Button>
           </div>
         }
@@ -1010,7 +777,7 @@ export function RolePermissionTab() {
 
           <div>
             <p className="text-xs font-bold text-neutral-800 mb-2">
-              Pilih Hak Akses & Izin Fitur:
+              Pilih Hak Akses (Dari Tabel Database):
             </p>
             {masterPermissions.length > 0 ? (
               <div className="space-y-3 max-h-72 overflow-y-auto pr-1 border border-neutral-200/80 rounded-xl p-3 bg-neutral-50/50">
@@ -1043,7 +810,7 @@ export function RolePermissionTab() {
                               {isChecked && <Check className="size-3" />}
                             </div>
                             <div className="min-w-0">
-                              <p className="font-semibold text-[11px] leading-tight truncate">
+                              <p className="font-semibold text-[11px] leading-tight truncate font-mono">
                                 {p.name}
                               </p>
                               <p className="text-[10px] text-neutral-500 line-clamp-1">
@@ -1058,7 +825,7 @@ export function RolePermissionTab() {
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-neutral-400">Tidak ada daftar izin tersedia.</p>
+              <p className="text-xs text-neutral-400">Tidak ada daftar izin tersedia di database.</p>
             )}
           </div>
         </form>
