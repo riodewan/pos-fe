@@ -16,6 +16,7 @@ import {
   Banknote,
   Users,
   ShieldCheck,
+  History,
   Printer,
   ChefHat,
   Mail,
@@ -192,6 +193,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             isActive: (p, tab) =>
               p.startsWith('/dashboard/staff') ||
               (p === '/dashboard/settings' && tab === 'staff'),
+          },
+          {
+            href: '/dashboard/audit-logs',
+            label: 'Log Audit',
+            icon: History,
+            permissions: ['audit.view'],
+            roles: ['OWNER', 'MANAGER', 'SUPER_ADMIN'],
+            isActive: (p) => p.startsWith('/dashboard/audit-logs'),
           },
         ],
       },
