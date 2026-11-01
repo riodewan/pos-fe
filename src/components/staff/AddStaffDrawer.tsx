@@ -44,7 +44,7 @@ export function AddStaffDrawer({
       name: name.trim(),
       initials,
       email: email.trim(),
-      phone: phone.trim() || '08121232423457',
+      phone: phone.trim() || '-',
       role,
       status,
       lastLogin: 'Baru saja',

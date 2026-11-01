@@ -23,8 +23,14 @@ export const tenantService = {
   getTeamUsers: () =>
     api.get<ApiResponse<any[]>>('/tenant/users', { skipStore: true }),
 
-  addTeamUser: (data: { email: string; name?: string; password?: string; role_id: string; store_id?: string }) =>
+  addTeamUser: (data: { email: string; name?: string; phone?: string; job_title?: string; password?: string; role_id: string; store_id?: string }) =>
     api.post<ApiResponse<any>>('/tenant/users', data, { skipStore: true }),
+
+  updateTeamUser: (userId: string, data: { name?: string; email?: string; phone?: string; job_title?: string; role_id?: string; store_id?: string; is_active?: boolean; password?: string }) =>
+    api.put<ApiResponse<any>>(`/tenant/users/${userId}`, data, { skipStore: true }),
+
+  toggleTeamUserStatus: (userId: string) =>
+    api.patch<ApiResponse<any>>(`/tenant/users/${userId}/toggle`, {}, { skipStore: true }),
 
   updateUserRoles: (userId: string, roles: Array<{ role_id: string; store_id?: string }>) =>
     api.put<ApiResponse<any>>(`/tenant/users/${userId}/roles`, { roles }, { skipStore: true }),
@@ -34,6 +40,18 @@ export const tenantService = {
 
   getRoles: () =>
     api.get<ApiResponse<Role[]>>('/tenant/roles', { skipStore: true }),
+
+  createRole: (data: { name: string; description?: string; permissions?: string[] }) =>
+    api.post<ApiResponse<Role>>('/tenant/roles', data, { skipStore: true }),
+
+  updateRole: (id: string, data: { name?: string; description?: string; permissions?: string[] }) =>
+    api.put<ApiResponse<Role>>(`/tenant/roles/${id}`, data, { skipStore: true }),
+
+  deleteRole: (id: string) =>
+    api.delete<ApiResponse<null>>(`/tenant/roles/${id}`, { skipStore: true }),
+
+  getPermissions: () =>
+    api.get<ApiResponse<any[]>>('/tenant/permissions', { skipStore: true }),
 
   // Customers (CRM & Loyalty)
   getCustomers: (params?: Record<string, string | number>) =>

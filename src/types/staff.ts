@@ -4,7 +4,8 @@ export type StaffRole =
   | 'Kasir'
   | 'Dapur'
   | 'Barista'
-  | 'Server';
+  | 'Server'
+  | (string & {});
 
 export type StaffStatus = 'Aktif' | 'Nonaktif';
 
@@ -36,10 +37,12 @@ export interface RoleDefinition {
   name: StaffRole;
   description: string;
   staffCount: number;
-  color: string;
-  badgeBg: string;
-  badgeText: string;
+  color?: string;
+  badgeBg?: string;
+  badgeText?: string;
   permissions: string[];
+  permissionIds?: string[];
+  isDefault?: boolean;
 }
 
 export interface LoginActivity {

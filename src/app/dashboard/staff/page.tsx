@@ -76,6 +76,7 @@ export default function StaffPage() {
             initials,
             email: user.email || '',
             phone: user.phone || '-',
+            avatarUrl: user.avatar_url || undefined,
             role: (['Owner', 'Manager', 'Kasir', 'Dapur', 'Barista', 'Server'].includes(primaryRole)
               ? primaryRole
               : 'Kasir') as StaffRole,
@@ -163,22 +164,40 @@ export default function StaffPage() {
   };
 
   const handleSaveStaff = async (updated: StaffMember) => {
-    setStaffList((prev) =>
-      prev.map((s) => (s.id === updated.id ? updated : s))
-    );
-    toast.success(`Data staf ${updated.name} berhasil diperbarui.`);
+    try {
+      const matchedRole = availableRoles.find(
+        (r) => r.name.toLowerCase() === updated.role.toLowerCase()
+      );
+      await tenantService.updateTeamUser(updated.id, {
+        name: updated.name,
+        email: updated.email,
+        phone: updated.phone === '-' ? undefined : updated.phone,
+        role_id: matchedRole?.id,
+        is_active: updated.status === 'Aktif',
+      });
+      setStaffList((prev) =>
+        prev.map((s) => (s.id === updated.id ? updated : s))
+      );
+      toast.success(`Data staf ${updated.name} berhasil diperbarui.`);
+      setIsDetailOpen(false);
+      fetchStaffAndRoles();
+    } catch (err: any) {
+      console.error('Error saving staff:', err);
+      toast.error(err?.response?.data?.message || 'Gagal memperbarui data staf.');
+    }
   };
 
   const handleDeleteStaff = async (id: string) => {
     try {
       await tenantService.removeTeamUser(id);
       toast.success('Staf berhasil dihapus dari sistem.');
-    } catch (err: any) {
-      console.warn('Backend remove staff warning:', err);
-      toast.info('Staf dihapus dari daftar.');
-    } finally {
       setStaffList((prev) => prev.filter((s) => s.id !== id));
       setSelectedIds((prev) => prev.filter((item) => item !== id));
+      setIsDetailOpen(false);
+      fetchStaffAndRoles();
+    } catch (err: any) {
+      console.error('Error deleting staff:', err);
+      toast.error(err?.response?.data?.message || 'Gagal menghapus staf dari sistem.');
     }
   };
 
@@ -187,36 +206,49 @@ export default function StaffPage() {
       const matchedRole = availableRoles.find(
         (r) => r.name.toLowerCase() === newStaff.role.toLowerCase()
       );
-      const roleId = matchedRole?.id || availableRoles[0]?.id || 'role-kasir';
+      const roleId = matchedRole?.id || availableRoles[0]?.id;
+
+      if (!roleId) {
+        toast.error('Peran tidak valid atau belum tersedia.');
+        return;
+      }
 
       await tenantService.addTeamUser({
         name: newStaff.name,
         email: newStaff.email,
+        phone: newStaff.phone === '-' ? undefined : newStaff.phone,
         role_id: roleId,
         password: 'password123',
       });
       toast.success(`Staf "${newStaff.name}" berhasil ditambahkan!`);
+      setIsAddOpen(false);
       fetchStaffAndRoles();
     } catch (err: any) {
-      console.warn('Backend add staff warning:', err);
-      toast.info(`Staf "${newStaff.name}" ditambahkan ke daftar.`);
-      setStaffList((prev) => [newStaff, ...prev]);
+      console.error('Error adding staff:', err);
+      toast.error(err?.response?.data?.message || 'Gagal menambahkan staf.');
     }
   };
 
-  const handleToggleStatus = (id: string, e: React.MouseEvent) => {
+  const handleToggleStatus = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setStaffList((prev) =>
-      prev.map((s) => {
-        if (s.id === id) {
-          const nextStatus = s.status === 'Aktif' ? 'Nonaktif' : 'Aktif';
-          toast.info(`Status staf ${s.name} diubah menjadi ${nextStatus}.`);
-          return { ...s, status: nextStatus };
-        }
-        return s;
-      })
-    );
-    setActionMenuOpenId(null);
+    try {
+      await tenantService.toggleTeamUserStatus(id);
+      setStaffList((prev) =>
+        prev.map((s) => {
+          if (s.id === id) {
+            const nextStatus = s.status === 'Aktif' ? 'Nonaktif' : 'Aktif';
+            toast.success(`Status staf ${s.name} diubah menjadi ${nextStatus}.`);
+            return { ...s, status: nextStatus };
+          }
+          return s;
+        })
+      );
+    } catch (err: any) {
+      console.error('Error toggling staff status:', err);
+      toast.error(err?.response?.data?.message || 'Gagal mengubah status staf.');
+    } finally {
+      setActionMenuOpenId(null);
+    }
   };
 
   // Role badges rendering matching Screenshot 3
