@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Store,
   Sliders,
@@ -13,13 +13,10 @@ import {
   ExternalLink,
   MapPin,
   Check,
-  Power,
-  Globe,
-  Mail,
-  Phone,
-  Layers,
   FileImage,
   Loader2,
+  X,
+  RefreshCw,
 } from 'lucide-react';
 import { OutletProfile, OperatingHourItem, OutletPhotoItem } from '@/types/profile-outlet';
 import { ReceiptPreview } from './ReceiptPreview';
@@ -30,13 +27,24 @@ import { Button } from '@/components/common/Button';
 import { PageLoader } from '@/components/common/PageLoader';
 import { tenantService } from '@/services/tenant.service';
 import { useToast } from '@/context/ToastContext';
+import { useAuth } from '@/context/AuthContext';
+import { useStore } from '@/context/StoreContext';
 
-// Clean Initial Empty Data (No dummy data)
+const DEFAULT_HOURS: OperatingHourItem[] = [
+  { day: 'Senin', openTime: '08:00', closeTime: '22:00', isOpen: true },
+  { day: 'Selasa', openTime: '08:00', closeTime: '22:00', isOpen: true },
+  { day: 'Rabu', openTime: '08:00', closeTime: '22:00', isOpen: true },
+  { day: 'Kamis', openTime: '08:00', closeTime: '22:00', isOpen: true },
+  { day: 'Jumat', openTime: '08:00', closeTime: '23:00', isOpen: true },
+  { day: 'Sabtu', openTime: '08:00', closeTime: '23:00', isOpen: true },
+  { day: 'Minggu', openTime: '08:00', closeTime: '22:00', isOpen: true },
+];
+
 const EMPTY_OUTLET: OutletProfile = {
   id: '',
   name: '',
   branchName: '',
-  category: '',
+  category: 'Coffee Shop',
   description: '',
   logoUrl: '',
   thumbnailUrl: null,
@@ -49,19 +57,11 @@ const EMPTY_OUTLET: OutletProfile = {
     showLogo: true,
     displayName: '',
     shortAddress: '',
-    footerMessage: '',
+    footerMessage: 'Terima kasih atas kunjungan Anda!',
   },
   operationalStatus: 'AKTIF',
   publicationStatus: 'DIPUBLIKASIKAN',
-  operatingHours: [
-    { day: 'Senin', openTime: '08:00', closeTime: '22:00', isOpen: true },
-    { day: 'Selasa', openTime: '08:00', closeTime: '22:00', isOpen: true },
-    { day: 'Rabu', openTime: '08:00', closeTime: '22:00', isOpen: true },
-    { day: 'Kamis', openTime: '08:00', closeTime: '22:00', isOpen: true },
-    { day: 'Jumat', openTime: '08:00', closeTime: '23:00', isOpen: true },
-    { day: 'Sabtu', openTime: '08:00', closeTime: '23:00', isOpen: true },
-    { day: 'Minggu', openTime: '08:00', closeTime: '22:00', isOpen: true },
-  ],
+  operatingHours: DEFAULT_HOURS,
   facilities: [],
   photos: [],
 };
@@ -74,6 +74,9 @@ interface StoreOption {
 
 export function ProfileOutletView() {
   const { toast } = useToast();
+  const { activeTenant } = useAuth();
+  const { activeStore, refreshStores } = useStore();
+
   const [activeTab, setActiveTab] = useState<'info' | 'ops' | 'media'>('info');
   const [stores, setStores] = useState<StoreOption[]>([]);
   const [selectedOutletId, setSelectedOutletId] = useState<string>('');
@@ -83,20 +86,16 @@ export function ProfileOutletView() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [saveSuccessNotification, setSaveSuccessNotification] = useState(false);
 
-  // Toggle for Thumbnail state (Screenshot 1: filled image vs Screenshot 2: empty dashed upload box)
-  const [hasThumbnail, setHasThumbnail] = useState(true);
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
+  const thumbInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Fetch outlet profile and store list
-  const fetchProfileAndStores = useCallback(async () => {
+  // Fetch outlet profile by specific ID or current active store
+  const loadProfile = useCallback(async (storeId?: string) => {
     try {
       setIsLoading(true);
-      const [profileRes, storesRes] = await Promise.allSettled([
-        tenantService.getOutletProfile(),
-        tenantService.getStores(),
-      ]);
-
-      if (profileRes.status === 'fulfilled' && profileRes.value?.data) {
-        const d = (profileRes.value.data as any);
+      const res = await tenantService.getOutletProfile(storeId);
+      if (res?.data) {
+        const d = res.data as any;
         setOutlet({
           id: d.id || '',
           name: d.name || '',
@@ -110,7 +109,12 @@ export function ProfileOutletView() {
           website: d.website || '',
           address: d.address || '',
           mapsUrl: d.maps_url || '',
-          receiptConfig: d.receipt_config || EMPTY_OUTLET.receiptConfig,
+          receiptConfig: d.receipt_config || {
+            showLogo: true,
+            displayName: d.name || '',
+            shortAddress: d.address || '',
+            footerMessage: 'Terima kasih atas kunjungan Anda!',
+          },
           operationalStatus:
             d.operational_status === 'OPEN' || d.operational_status === 'AKTIF'
               ? 'AKTIF'
@@ -122,32 +126,51 @@ export function ProfileOutletView() {
           operatingHours:
             Array.isArray(d.operating_hours) && d.operating_hours.length > 0
               ? d.operating_hours
-              : EMPTY_OUTLET.operatingHours,
-          facilities:
-            Array.isArray(d.facilities) && d.facilities.length > 0
-              ? d.facilities
-              : EMPTY_OUTLET.facilities,
-          photos:
-            Array.isArray(d.photos) && d.photos.length > 0
-              ? d.photos
-              : EMPTY_OUTLET.photos,
+              : DEFAULT_HOURS,
+          facilities: Array.isArray(d.facilities) ? d.facilities : [],
+          photos: Array.isArray(d.photos) ? d.photos : [],
         });
         setSelectedOutletId(d.id || '');
       }
-
-      if (storesRes.status === 'fulfilled' && Array.isArray(storesRes.value?.data)) {
-        setStores(storesRes.value.data);
-      }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching outlet profile:', err);
+      toast.error('Gagal memuat profil outlet.');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [toast]);
+
+  // Initial load: stores list & profile
+  const fetchAllInitial = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const storesRes = await tenantService.getStores();
+      const storeList: StoreOption[] = Array.isArray(storesRes?.data) ? storesRes.data : [];
+      setStores(storeList);
+
+      const targetId = activeStore?.id || storeList[0]?.id;
+      if (targetId) {
+        setSelectedOutletId(targetId);
+        await loadProfile(targetId);
+      } else {
+        await loadProfile();
+      }
+    } catch (err) {
+      console.error('Error fetching initial outlet data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeStore?.id, loadProfile]);
 
   useEffect(() => {
-    fetchProfileAndStores();
-  }, [fetchProfileAndStores]);
+    fetchAllInitial();
+  }, [fetchAllInitial]);
+
+  // When user switches outlet in the dropdown
+  const handleSelectOutlet = async (storeId: string) => {
+    setSelectedOutletId(storeId);
+    await loadProfile(storeId);
+  };
 
   // Form handlers
   const handleInputChange = (field: keyof OutletProfile, value: any) => {
@@ -164,13 +187,51 @@ export function ProfileOutletView() {
     }));
   };
 
+  // Image upload helpers (converts image to Data URL for instant preview and persistent storage)
+  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Format file harus berupa gambar.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setOutlet((prev) => ({ ...prev, logoUrl: reader.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+    if (logoInputRef.current) logoInputRef.current.value = '';
+  };
+
+  const handleThumbnailFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Format file harus berupa gambar.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setOutlet((prev) => ({ ...prev, thumbnailUrl: reader.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+    if (thumbInputRef.current) thumbInputRef.current.value = '';
+  };
+
   const handleToggleOperationalStatus = async () => {
     const nextStatus = outlet.operationalStatus === 'AKTIF' ? 'NON_AKTIF' : 'AKTIF';
     setOutlet((prev) => ({ ...prev, operationalStatus: nextStatus }));
     try {
-      await tenantService.updateOutletProfile({
-        operational_status: nextStatus === 'AKTIF' ? 'OPEN' : 'CLOSED',
-      });
+      await tenantService.updateOutletProfile(
+        {
+          operational_status: nextStatus === 'AKTIF' ? 'OPEN' : 'CLOSED',
+        },
+        selectedOutletId
+      );
       toast.success(
         `Status operasional diubah menjadi ${nextStatus === 'AKTIF' ? 'Aktif' : 'Non Aktif'}`
       );
@@ -180,12 +241,16 @@ export function ProfileOutletView() {
   };
 
   const handleTogglePublicationStatus = async () => {
-    const nextStatus = outlet.publicationStatus === 'DIPUBLIKASIKAN' ? 'NON_AKTIF' : 'DIPUBLIKASIKAN';
+    const nextStatus =
+      outlet.publicationStatus === 'DIPUBLIKASIKAN' ? 'NON_AKTIF' : 'DIPUBLIKASIKAN';
     setOutlet((prev) => ({ ...prev, publicationStatus: nextStatus }));
     try {
-      await tenantService.updateOutletProfile({
-        publication_status: nextStatus === 'DIPUBLIKASIKAN' ? 'PUBLISHED' : 'HIDDEN',
-      });
+      await tenantService.updateOutletProfile(
+        {
+          publication_status: nextStatus === 'DIPUBLIKASIKAN' ? 'PUBLISHED' : 'HIDDEN',
+        },
+        selectedOutletId
+      );
       toast.success(
         `Status publikasi diubah menjadi ${nextStatus === 'DIPUBLIKASIKAN' ? 'Dipublikasikan' : 'Non Aktif'}`
       );
@@ -198,7 +263,9 @@ export function ProfileOutletView() {
     try {
       setIsSaving(true);
       const payload = {
+        store_id: selectedOutletId,
         name: outlet.name,
+        code: outlet.branchName,
         address: outlet.address,
         phone: outlet.phone,
         email: outlet.email,
@@ -216,10 +283,11 @@ export function ProfileOutletView() {
         photos: outlet.photos,
       };
 
-      await tenantService.updateOutletProfile(payload);
+      await tenantService.updateOutletProfile(payload, selectedOutletId);
       setSaveSuccessNotification(true);
       toast.success('Profil outlet berhasil disimpan!');
       setTimeout(() => setSaveSuccessNotification(false), 3000);
+      refreshStores();
     } catch (err: any) {
       console.error('Failed to save outlet profile:', err);
       toast.error(err.response?.data?.message || 'Gagal menyimpan profil outlet.');
@@ -236,17 +304,22 @@ export function ProfileOutletView() {
     address: string;
   }) => {
     try {
-      await tenantService.createStore({
+      const res = await tenantService.createStore({
         name: newOutlet.name,
-        code: newOutlet.branchName.toLowerCase().replace(/\s+/g, '-'),
+        code: newOutlet.branchName.toUpperCase().replace(/\s+/g, '-'),
         phone: newOutlet.phone,
         address: newOutlet.address,
       });
       toast.success('Outlet baru berhasil dibuat!');
       setIsAddModalOpen(false);
-      const res = await tenantService.getStores();
-      if (Array.isArray(res?.data)) {
-        setStores(res.data);
+
+      const refreshed = await refreshStores();
+      setStores(refreshed);
+
+      const newId = (res as any)?.data?.id;
+      if (newId) {
+        setSelectedOutletId(newId);
+        await loadProfile(newId);
       }
     } catch (err: any) {
       console.error('Failed to create store:', err);
@@ -255,13 +328,22 @@ export function ProfileOutletView() {
   };
 
   const handleDeleteStore = async () => {
-    if (!outlet.id) return;
+    if (!selectedOutletId) return;
+    if (stores.length <= 1) {
+      toast.error('Tidak dapat menghapus satu-satunya outlet yang dimiliki.');
+      return;
+    }
     if (!window.confirm(`Yakin ingin menghapus outlet "${outlet.name}"?`)) return;
 
     try {
-      await tenantService.deleteStore(outlet.id);
+      await tenantService.deleteStore(selectedOutletId);
       toast.success('Outlet berhasil dihapus.');
-      fetchProfileAndStores();
+      const refreshed = await refreshStores();
+      setStores(refreshed);
+      if (refreshed.length > 0) {
+        setSelectedOutletId(refreshed[0].id);
+        await loadProfile(refreshed[0].id);
+      }
     } catch (err: any) {
       console.error('Failed to delete store:', err);
       toast.error(err.response?.data?.message || 'Gagal menghapus outlet.');
@@ -272,16 +354,40 @@ export function ProfileOutletView() {
     return <PageLoader text="Memuat profil outlet..." />;
   }
 
+  const initials =
+    outlet.name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0].toUpperCase())
+      .join('') || 'OP';
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6">
-      {/* Top Header Row matching Screenshots */}
+      {/* Hidden File Inputs for Logo & Thumbnail */}
+      <input
+        ref={logoInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleLogoFileChange}
+        className="hidden"
+      />
+      <input
+        ref={thumbInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleThumbnailFileChange}
+        className="hidden"
+      />
+
+      {/* Top Header Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">
             Profile Outlet
           </h1>
           <p className="text-xs sm:text-sm text-neutral-500 mt-1">
-            Kelola informasi, operasional, dan pengaturan untuk setiap outlet
+            Kelola informasi, operasional, fasilitas, dan media untuk setiap outlet
           </p>
         </div>
 
@@ -298,26 +404,14 @@ export function ProfileOutletView() {
         </div>
       </div>
 
-      {/* Filter / Subheader Row matching Screenshots */}
+      {/* Subheader: Outlet Selector & Tab Controls */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Outlet Switcher Dropdown */}
         <div className="relative inline-block">
           <select
             value={selectedOutletId || outlet.id}
-            onChange={(e) => {
-              const sId = e.target.value;
-              setSelectedOutletId(sId);
-              const found = stores.find((s) => s.id === sId);
-              if (found) {
-                setOutlet((prev) => ({
-                  ...prev,
-                  id: found.id,
-                  name: found.name,
-                  branchName: found.code || '',
-                }));
-              }
-            }}
-            className="appearance-none bg-white border border-neutral-200/90 text-neutral-800 text-xs sm:text-sm font-semibold rounded-xl pl-4 pr-10 py-2.5 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#FF5C38]/20 focus:border-[#FF5C38] cursor-pointer"
+            onChange={(e) => handleSelectOutlet(e.target.value)}
+            className="appearance-none bg-white border border-neutral-200 text-neutral-800 text-xs sm:text-sm font-bold rounded-xl pl-4 pr-10 py-2.5 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#FF5C38]/20 focus:border-[#FF5C38] cursor-pointer"
           >
             {stores.length > 0 ? (
               stores.map((s) => (
@@ -326,20 +420,20 @@ export function ProfileOutletView() {
                 </option>
               ))
             ) : (
-              <option value={outlet.id}>{outlet.name}</option>
+              <option value={outlet.id}>{outlet.name || 'Pilih Outlet'}</option>
             )}
           </select>
           <ChevronDown className="size-4 text-[#FF5C38] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.5]" />
         </div>
 
-        {/* 3 Tabs Segmented Control matching Screenshots */}
+        {/* 3 Tabs Segmented Control */}
         <div className="flex items-center bg-white p-1 rounded-xl border border-neutral-200/90 shadow-2xs">
           <button
             type="button"
             onClick={() => setActiveTab('info')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'info'
-                ? 'bg-red-50/80 text-[#FF5C38] shadow-2xs'
+                ? 'bg-orange-50 text-[#FF5C38] shadow-2xs'
                 : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50'
             }`}
           >
@@ -352,7 +446,7 @@ export function ProfileOutletView() {
             onClick={() => setActiveTab('ops')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'ops'
-                ? 'bg-red-50/80 text-[#FF5C38] shadow-2xs'
+                ? 'bg-orange-50 text-[#FF5C38] shadow-2xs'
                 : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50'
             }`}
           >
@@ -365,7 +459,7 @@ export function ProfileOutletView() {
             onClick={() => setActiveTab('media')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'media'
-                ? 'bg-red-50/80 text-[#FF5C38] shadow-2xs'
+                ? 'bg-orange-50 text-[#FF5C38] shadow-2xs'
                 : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50'
             }`}
           >
@@ -375,93 +469,125 @@ export function ProfileOutletView() {
         </div>
       </div>
 
-      {/* Main Tab Content */}
+      {/* Tab 1: Informasi Outlet */}
       {activeTab === 'info' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-150">
           {/* LEFT COLUMN: Informasi Dasar & Informasi Kontak (7 cols) */}
           <div className="lg:col-span-7 space-y-6">
             {/* Card: Informasi Dasar */}
             <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-2xs p-5 sm:p-6 space-y-5">
-              <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+              <div className="pb-3 border-b border-neutral-100">
                 <h2 className="text-sm sm:text-base font-bold text-neutral-900">
                   Informasi Dasar
                 </h2>
-
-                {/* Screenshot 1 vs Screenshot 2 Quick Demo Mode Switcher */}
-                <div className="flex items-center gap-2 text-[11px] text-neutral-500">
-                  <span>Thumbnail Mode:</span>
-                  <button
-                    type="button"
-                    onClick={() => setHasThumbnail(!hasThumbnail)}
-                    className="px-2 py-0.5 rounded-md border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 font-semibold cursor-pointer"
-                  >
-                    {hasThumbnail ? 'Terisi (Gambar 1)' : 'Kosong Upload (Gambar 2)'}
-                  </button>
-                </div>
               </div>
 
-              {/* Logo & Thumbnail Row */}
+              {/* Logo & Thumbnail Upload Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Logo Box */}
-                <div className="p-4 rounded-xl border border-neutral-200/90 bg-neutral-50/30 flex flex-col items-start justify-between min-h-[170px]">
-                  <div className="size-16 rounded-2xl bg-[#E02626] text-white flex items-center justify-center font-bold text-2xl shadow-xs">
-                    KM
-                  </div>
+                <div className="p-4 rounded-xl border border-neutral-200/90 bg-neutral-50/40 flex flex-col items-start justify-between min-h-[170px]">
+                  {outlet.logoUrl ? (
+                    <div className="relative group size-16 rounded-2xl overflow-hidden border border-neutral-200 bg-white shadow-xs">
+                      <img
+                        src={outlet.logoUrl}
+                        alt="Logo Outlet"
+                        className="size-full object-contain p-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange('logoUrl', '')}
+                        className="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold cursor-pointer"
+                        title="Hapus Logo"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="size-16 rounded-2xl bg-[#FF5C38] text-white flex items-center justify-center font-bold text-2xl shadow-xs">
+                      {initials}
+                    </div>
+                  )}
+
                   <div className="w-full mt-3">
-                    <p className="text-xs font-bold text-blue-600 hover:underline cursor-pointer truncate">
-                      Logo_KopiMantap.webp
+                    <p className="text-xs font-bold text-neutral-800 truncate">
+                      {outlet.logoUrl ? 'Logo Outlet Terpasang' : 'Logo Outlet'}
                     </p>
                     <p className="text-[10px] text-neutral-400 mt-0.5">
-                      WebP, JPG, PNG. Ratio 1:1, Maks. 2MB
+                      Rekomendasi rasio 1:1 (Persegi), PNG/JPG/WebP.
                     </p>
-                    <button
-                      type="button"
-                      className="mt-3 px-3.5 py-1 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 text-xs font-semibold transition-colors cursor-pointer"
-                    >
-                      Pilih file
-                    </button>
+                    <div className="flex items-center gap-2 mt-2.5">
+                      <button
+                        type="button"
+                        onClick={() => logoInputRef.current?.click()}
+                        className="px-3 py-1 rounded-lg border border-neutral-300 text-neutral-700 hover:bg-neutral-100 text-xs font-semibold transition-colors cursor-pointer"
+                      >
+                        {outlet.logoUrl ? 'Ganti Logo' : 'Pilih File'}
+                      </button>
+                      {outlet.logoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => handleInputChange('logoUrl', '')}
+                          className="px-2.5 py-1 text-xs text-red-500 hover:underline font-semibold cursor-pointer"
+                        >
+                          Hapus
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Thumbnail Box: Supports Screenshot 1 (Filled) & Screenshot 2 (Dashed empty upload box) */}
-                {hasThumbnail ? (
-                  <div className="p-4 rounded-xl border border-neutral-200/90 bg-neutral-50/30 flex flex-col items-start justify-between min-h-[170px]">
-                    <div className="w-full h-16 rounded-xl overflow-hidden relative shadow-xs border border-neutral-200">
+                {/* Thumbnail / Sampul Box */}
+                {outlet.thumbnailUrl ? (
+                  <div className="p-4 rounded-xl border border-neutral-200/90 bg-neutral-50/40 flex flex-col items-start justify-between min-h-[170px]">
+                    <div className="w-full h-16 rounded-xl overflow-hidden relative shadow-xs border border-neutral-200 bg-neutral-100">
                       <img
-                        src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&auto=format&fit=crop&q=60"
+                        src={outlet.thumbnailUrl}
                         alt="Thumbnail"
                         className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="w-full mt-3">
-                      <p className="text-xs font-bold text-blue-600 hover:underline cursor-pointer truncate">
-                        Thumbnail_KopiMantap.webp
+                      <p className="text-xs font-bold text-neutral-800 truncate">
+                        Foto Sampul / Banner
                       </p>
                       <p className="text-[10px] text-neutral-400 mt-0.5">
-                        WebP, JPG, PNG. Ratio 1:1, Maks. 2MB
+                        Rasio 16:9 atau 4:3, PNG/JPG/WebP.
                       </p>
-                      <button
-                        type="button"
-                        className="mt-3 px-3.5 py-1 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 text-xs font-semibold transition-colors cursor-pointer"
-                      >
-                        Pilih file
-                      </button>
+                      <div className="flex items-center gap-2 mt-2.5">
+                        <button
+                          type="button"
+                          onClick={() => thumbInputRef.current?.click()}
+                          className="px-3 py-1 rounded-lg border border-neutral-300 text-neutral-700 hover:bg-neutral-100 text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          Ganti Sampul
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInputChange('thumbnailUrl', null)}
+                          className="px-2.5 py-1 text-xs text-red-500 hover:underline font-semibold cursor-pointer"
+                        >
+                          Hapus
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/30 flex flex-col items-center justify-center text-center min-h-[170px]">
-                    <div className="size-10 rounded-xl border border-blue-200 bg-white flex items-center justify-center text-blue-500 mb-2 shadow-2xs">
-                      <FileImage className="size-5" />
+                  <div
+                    onClick={() => thumbInputRef.current?.click()}
+                    className="p-4 rounded-xl border-2 border-dashed border-neutral-300 hover:border-[#FF5C38] bg-neutral-50/50 hover:bg-orange-50/20 flex flex-col items-center justify-center text-center min-h-[170px] transition-all cursor-pointer"
+                  >
+                    <div className="size-10 rounded-xl border border-neutral-200 bg-white flex items-center justify-center text-neutral-400 mb-2 shadow-2xs">
+                      <FileImage className="size-5 text-[#FF5C38]" />
                     </div>
                     <p className="text-xs font-bold text-neutral-800">
-                      Upload Thumbnail
+                      Upload Foto Sampul
                     </p>
                     <p className="text-[10px] text-neutral-400 mt-0.5">
-                      WebP, JPG, PNG. Ratio 1:1, Maks. 2MB
+                      Rasio 16:9 atau 4:3, Maks 5MB
                     </p>
                     <button
                       type="button"
-                      className="mt-3 px-3.5 py-1 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 text-xs font-semibold transition-colors cursor-pointer"
+                      className="mt-2.5 px-3.5 py-1 rounded-lg border border-neutral-300 text-neutral-700 text-xs font-semibold pointer-events-none"
                     >
                       Pilih file
                     </button>
@@ -473,7 +599,7 @@ export function ProfileOutletView() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-                    Nama Outlet
+                    Nama Outlet *
                   </label>
                   <input
                     type="text"
@@ -486,13 +612,13 @@ export function ProfileOutletView() {
 
                 <div>
                   <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-                    Cabang
+                    Kode Cabang / Singkatan
                   </label>
                   <input
                     type="text"
                     value={outlet.branchName}
                     onChange={(e) => handleInputChange('branchName', e.target.value)}
-                    placeholder="Cabang"
+                    placeholder="Contoh: SNP-01"
                     className="w-full px-3.5 py-2 rounded-xl border border-neutral-200 text-xs font-medium text-neutral-900 focus:outline-none focus:border-[#FF5C38] focus:ring-1 focus:ring-[#FF5C38]"
                   />
                 </div>
@@ -514,6 +640,7 @@ export function ProfileOutletView() {
                     <option value="Bakery & Pastry">Bakery & Pastry</option>
                     <option value="Fast Food">Fast Food</option>
                     <option value="Food Court">Food Court</option>
+                    <option value="Bar & Lounge">Bar & Lounge</option>
                   </select>
                   <ChevronDown className="size-4 text-neutral-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
@@ -528,17 +655,17 @@ export function ProfileOutletView() {
                   rows={3}
                   value={outlet.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="Deskripsi singkat outlet..."
+                  placeholder="Ceritakan tentang suasana, menu unggulan, atau konsep outlet Anda..."
                   className="w-full px-3.5 py-2 rounded-xl border border-neutral-200 text-xs font-normal text-neutral-900 focus:outline-none focus:border-[#FF5C38] focus:ring-1 focus:ring-[#FF5C38] resize-none"
                 />
               </div>
             </div>
 
-            {/* Card: Informasi Kontak */}
+            {/* Card: Informasi Kontak & Lokasi */}
             <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-2xs p-5 sm:p-6 space-y-5">
               <div className="pb-3 border-b border-neutral-100">
                 <h2 className="text-sm sm:text-base font-bold text-neutral-900">
-                  Informasi Kontak
+                  Informasi Kontak & Lokasi
                 </h2>
               </div>
 
@@ -552,7 +679,7 @@ export function ProfileOutletView() {
                     type="text"
                     value={outlet.phone}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
-                    placeholder="Masukkan nomor telepon"
+                    placeholder="0812-3456-7890"
                     className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-medium text-neutral-900 focus:outline-none focus:border-[#FF5C38] focus:ring-1 focus:ring-[#FF5C38]"
                   />
                 </div>
@@ -565,7 +692,7 @@ export function ProfileOutletView() {
                     type="email"
                     value={outlet.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    placeholder="Masukkan email"
+                    placeholder="outlet@brand.com"
                     className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-medium text-neutral-900 focus:outline-none focus:border-[#FF5C38] focus:ring-1 focus:ring-[#FF5C38]"
                   />
                 </div>
@@ -578,61 +705,98 @@ export function ProfileOutletView() {
                     type="text"
                     value={outlet.website}
                     onChange={(e) => handleInputChange('website', e.target.value)}
-                    placeholder="Link website (opsional)"
+                    placeholder="https://brand.com"
                     className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-medium text-neutral-900 focus:outline-none focus:border-[#FF5C38] focus:ring-1 focus:ring-[#FF5C38]"
                   />
                 </div>
               </div>
 
-              {/* Alamat Bisnis & Alamat Gmaps Preview */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-                    Alamat Bisnis
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={outlet.address}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
-                    placeholder="Jl. Melati No. 10, Jakarta Barat..."
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 text-xs font-normal text-neutral-900 focus:outline-none focus:border-[#FF5C38] focus:ring-1 focus:ring-[#FF5C38] resize-none h-[115px]"
+              {/* Alamat Bisnis */}
+              <div>
+                <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+                  Alamat Lengkap
+                </label>
+                <textarea
+                  rows={2}
+                  value={outlet.address}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
+                  placeholder="Jl. Senopati No. 45, Kebayoran Baru, Jakarta Selatan"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 text-xs font-normal text-neutral-900 focus:outline-none focus:border-[#FF5C38] focus:ring-1 focus:ring-[#FF5C38] resize-none"
+                />
+              </div>
+
+              {/* Link Google Maps & Preview */}
+              <div>
+                <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+                  Link Google Maps
+                </label>
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="url"
+                    value={outlet.mapsUrl}
+                    onChange={(e) => handleInputChange('mapsUrl', e.target.value)}
+                    placeholder="https://maps.google.com/?q=..."
+                    className="flex-1 px-3 py-2 rounded-xl border border-neutral-200 text-xs font-medium text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-                    Alamat Gmaps
-                  </label>
-                  <div className="relative rounded-xl border border-neutral-200 overflow-hidden bg-neutral-100 h-[115px] group">
-                    {/* Stylized Google Maps Background */}
-                    <div className="absolute inset-0 bg-[#E8ECEF] bg-[radial-gradient(#CBD5E1_1px,transparent_1px)] [background-size:12px_12px] opacity-90" />
-                    
-                    {/* Faux map road lines */}
-                    <svg className="absolute inset-0 size-full opacity-40" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M-10 60 Q 60 40 140 70 T 300 50" fill="none" stroke="#FDE047" strokeWidth="6" />
-                      <path d="M50 -10 Q 70 80 90 150" fill="none" stroke="#FFFFFF" strokeWidth="8" />
-                      <path d="M120 -10 Q 110 50 180 150" fill="none" stroke="#FFFFFF" strokeWidth="5" />
-                    </svg>
-
-                    {/* Red Map Pin in Center */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="flex flex-col items-center animate-bounce">
-                        <MapPin className="size-6 text-[#FF5C38] fill-[#FF5C38] drop-shadow-md" />
-                        <span className="size-2 rounded-full bg-neutral-800/40 blur-2xs -mt-1" />
-                      </div>
-                    </div>
-
-                    {/* Bottom overlay with quick link */}
+                  {outlet.mapsUrl && (
                     <a
-                      href="https://maps.google.com"
+                      href={outlet.mapsUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="absolute bottom-2 right-2 px-2 py-1 rounded-md bg-white/90 backdrop-blur-xs text-[10px] font-bold text-neutral-700 hover:text-[#FF5C38] flex items-center gap-1 shadow-2xs border border-neutral-200/60 transition-colors"
+                      className="px-3 py-2 rounded-xl border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-xs font-bold text-neutral-700 flex items-center gap-1.5 transition-colors shrink-0"
                     >
-                      <span>Buka Maps</span>
-                      <ExternalLink className="size-2.5" />
+                      <span>Tes Buka</span>
+                      <ExternalLink className="size-3" />
                     </a>
+                  )}
+                </div>
+
+                {/* Stylized Google Maps Graphic */}
+                <div className="relative rounded-xl border border-neutral-200 overflow-hidden bg-neutral-100 h-[100px] group">
+                  <div className="absolute inset-0 bg-[#E8ECEF] bg-[radial-gradient(#CBD5E1_1px,transparent_1px)] [background-size:12px_12px] opacity-90" />
+                  <svg
+                    className="absolute inset-0 size-full opacity-40"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M-10 50 Q 60 30 140 60 T 400 40"
+                      fill="none"
+                      stroke="#FDE047"
+                      strokeWidth="6"
+                    />
+                    <path
+                      d="M60 -10 Q 80 60 100 120"
+                      fill="none"
+                      stroke="#FFFFFF"
+                      strokeWidth="8"
+                    />
+                    <path
+                      d="M180 -10 Q 170 50 240 120"
+                      fill="none"
+                      stroke="#FFFFFF"
+                      strokeWidth="5"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="flex flex-col items-center">
+                      <MapPin className="size-6 text-[#FF5C38] fill-[#FF5C38] drop-shadow-md" />
+                      <span className="size-2 rounded-full bg-neutral-800/40 blur-2xs -mt-1" />
+                    </div>
                   </div>
+                  <a
+                    href={
+                      outlet.mapsUrl ||
+                      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        outlet.address || outlet.name
+                      )}`
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    className="absolute bottom-2 right-2 px-2.5 py-1 rounded-md bg-white/95 backdrop-blur-xs text-[10px] font-bold text-neutral-700 hover:text-[#FF5C38] flex items-center gap-1 shadow-2xs border border-neutral-200/80 transition-colors"
+                  >
+                    <span>Buka Google Maps</span>
+                    <ExternalLink className="size-2.5" />
+                  </a>
                 </div>
               </div>
             </div>
@@ -655,7 +819,7 @@ export function ProfileOutletView() {
                       handleReceiptChange('showLogo', !outlet.receiptConfig.showLogo)
                     }
                     className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      outlet.receiptConfig.showLogo ? 'bg-[#2563EB]' : 'bg-neutral-300'
+                      outlet.receiptConfig.showLogo ? 'bg-[#FF5C38]' : 'bg-neutral-300'
                     }`}
                   >
                     <span
@@ -665,57 +829,61 @@ export function ProfileOutletView() {
                     />
                   </button>
                   <span className="text-[11px] font-bold text-neutral-700">
-                    Tampilkan logo di struk
+                    Tampilkan logo
                   </span>
                 </div>
               </div>
 
-              {/* Inputs on the left & Receipt paper on the right */}
+              {/* Form Inputs & Live Receipt Preview */}
               <div className="flex flex-col sm:flex-row gap-4 items-start">
                 <div className="flex-1 space-y-3.5 w-full">
                   <div>
                     <label className="block text-xs font-bold text-neutral-700 mb-1">
-                      Nama Tampil
+                      Nama Tampil di Struk
                     </label>
                     <input
                       type="text"
                       value={outlet.receiptConfig.displayName}
                       onChange={(e) => handleReceiptChange('displayName', e.target.value)}
-                      placeholder="Nama di struk"
+                      placeholder={outlet.name || 'Nama Outlet'}
                       className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-medium text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-neutral-700 mb-1">
-                      Alamat Singkat
+                      Alamat Singkat di Struk
                     </label>
                     <textarea
                       rows={2}
                       value={outlet.receiptConfig.shortAddress}
                       onChange={(e) => handleReceiptChange('shortAddress', e.target.value)}
-                      placeholder="Alamat di struk"
+                      placeholder="Alamat ringkas untuk cetak struk"
                       className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-medium text-neutral-900 focus:outline-none focus:border-[#FF5C38] resize-none"
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-neutral-700 mb-1">
-                      Pesan Tambahan
+                      Pesan Footer Struk
                     </label>
                     <textarea
                       rows={2}
                       value={outlet.receiptConfig.footerMessage}
                       onChange={(e) => handleReceiptChange('footerMessage', e.target.value)}
-                      placeholder="Pesan pada struk"
+                      placeholder="Terima kasih atas kunjungan Anda!"
                       className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-medium text-neutral-900 focus:outline-none focus:border-[#FF5C38] resize-none"
                     />
                   </div>
                 </div>
 
-                {/* Live Real Thermal Receipt Preview */}
+                {/* Thermal Receipt Paper Live Preview */}
                 <div className="w-full sm:w-auto flex justify-center">
-                  <ReceiptPreview config={outlet.receiptConfig} />
+                  <ReceiptPreview
+                    config={outlet.receiptConfig}
+                    logoUrl={outlet.logoUrl}
+                    storeName={outlet.name}
+                  />
                 </div>
               </div>
             </div>
@@ -747,28 +915,28 @@ export function ProfileOutletView() {
                             : 'bg-neutral-500'
                         }`}
                       />
-                      {outlet.operationalStatus === 'AKTIF' ? 'Aktif' : 'Non Aktif'}
+                      {outlet.operationalStatus === 'AKTIF' ? 'Aktif (Menerima Pesanan)' : 'Non-Aktif (Tutup)'}
                     </span>
                   </div>
                   <p className="text-[10px] text-neutral-400 mt-1">
-                    Outlet ini aktif dan dapat menerima pesanan.
+                    Saat non-aktif, kasir tidak dapat memproses transaksi baru.
                   </p>
                 </div>
 
                 <button
                   type="button"
                   onClick={handleToggleOperationalStatus}
-                  className="px-3.5 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs font-bold transition-colors cursor-pointer shrink-0"
+                  className="px-3.5 py-1.5 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-100 text-neutral-800 text-xs font-bold transition-colors cursor-pointer shrink-0"
                 >
                   {outlet.operationalStatus === 'AKTIF' ? 'Nonaktifkan' : 'Aktifkan'}
                 </button>
               </div>
 
-              {/* Status Publikasi (NemuSosial) */}
+              {/* Status Publikasi (Katalog / Web Order) */}
               <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-neutral-50/50 border border-neutral-100">
                 <div>
                   <p className="text-xs font-bold text-neutral-900">
-                    Status Publikasi (NemuSosial)
+                    Status Publikasi Outlet
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <span
@@ -787,35 +955,29 @@ export function ProfileOutletView() {
                       />
                       {outlet.publicationStatus === 'DIPUBLIKASIKAN'
                         ? 'Dipublikasikan'
-                        : 'Non Aktif'}
+                        : 'Draf / Sembunyi'}
                     </span>
                   </div>
                   <p className="text-[10px] text-neutral-400 mt-1">
-                    Profil outlet ini ditampilkan di NemuSosial.
+                    Tampilkan profil outlet pada menu pemesanan QR dan online.
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
-                    className="px-3 py-1.5 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 text-xs font-bold transition-colors cursor-pointer"
-                  >
-                    Lihat Halaman
-                  </button>
-                  <button
-                    type="button"
                     onClick={handleTogglePublicationStatus}
-                    className="px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs font-bold transition-colors cursor-pointer"
+                    className="px-3.5 py-1.5 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-100 text-neutral-800 text-xs font-bold transition-colors cursor-pointer"
                   >
                     {outlet.publicationStatus === 'DIPUBLIKASIKAN'
-                      ? 'Nonaktifkan'
+                      ? 'Sembunyikan'
                       : 'Publikasikan'}
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Bottom Action Buttons matching Screenshots */}
+            {/* Bottom Actions Row */}
             <div className="flex items-center justify-between gap-4 pt-2">
               <button
                 type="button"
@@ -828,8 +990,9 @@ export function ProfileOutletView() {
 
               <div className="flex items-center gap-3">
                 {saveSuccessNotification && (
-                  <span className="text-xs font-bold text-emerald-600 animate-in fade-in">
-                    Perubahan berhasil disimpan!
+                  <span className="text-xs font-bold text-emerald-600 animate-in fade-in flex items-center gap-1">
+                    <CheckCircle2 className="size-3.5" />
+                    Tersimpan!
                   </span>
                 )}
                 <Button
@@ -864,10 +1027,14 @@ export function ProfileOutletView() {
               facilities: facilities,
             }));
             try {
-              await tenantService.updateOutletProfile({
-                operating_hours: hours,
-                facilities: facilities,
-              });
+              await tenantService.updateOutletProfile(
+                {
+                  store_id: selectedOutletId,
+                  operating_hours: hours,
+                  facilities: facilities,
+                },
+                selectedOutletId
+              );
               toast.success('Jam operasional & fasilitas berhasil diperbarui!');
             } catch (err: any) {
               toast.error(err.response?.data?.message || 'Gagal memperbarui jam operasional.');
@@ -886,9 +1053,13 @@ export function ProfileOutletView() {
               photos: photos,
             }));
             try {
-              await tenantService.updateOutletProfile({
-                photos: photos,
-              });
+              await tenantService.updateOutletProfile(
+                {
+                  store_id: selectedOutletId,
+                  photos: photos,
+                },
+                selectedOutletId
+              );
               toast.success('Foto & media berhasil diperbarui!');
             } catch (err: any) {
               toast.error(err.response?.data?.message || 'Gagal memperbarui foto & media.');
@@ -901,6 +1072,7 @@ export function ProfileOutletView() {
       <AddOutletModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
+        defaultBrandName={activeTenant?.name || outlet.name}
         onSave={handleCreateStore}
       />
     </div>

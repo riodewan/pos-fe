@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Store, MapPin, Phone, Building } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/common/Button';
@@ -11,6 +11,7 @@ import { Select } from '@/components/common/Select';
 interface AddOutletModalProps {
   isOpen: boolean;
   onClose: () => void;
+  defaultBrandName?: string;
   onSave: (outletData: {
     name: string;
     branchName: string;
@@ -20,25 +21,40 @@ interface AddOutletModalProps {
   }) => void;
 }
 
-export function AddOutletModal({ isOpen, onClose, onSave }: AddOutletModalProps) {
-  const [name, setName] = useState('Kopi Mantap');
+export function AddOutletModal({
+  isOpen,
+  onClose,
+  defaultBrandName = '',
+  onSave,
+}: AddOutletModalProps) {
+  const [name, setName] = useState(defaultBrandName);
   const [branchName, setBranchName] = useState('');
   const [category, setCategory] = useState('Coffee Shop');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
 
+  useEffect(() => {
+    if (isOpen) {
+      setName(defaultBrandName);
+      setBranchName('');
+      setCategory('Coffee Shop');
+      setPhone('');
+      setAddress('');
+    }
+  }, [isOpen, defaultBrandName]);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!branchName.trim()) return;
+    if (!name.trim() || !branchName.trim()) return;
 
     onSave({
-      name,
-      branchName,
+      name: name.trim(),
+      branchName: branchName.trim(),
       category,
-      phone,
-      address,
+      phone: phone.trim(),
+      address: address.trim(),
     });
     onClose();
   };
@@ -58,7 +74,8 @@ export function AddOutletModal({ isOpen, onClose, onSave }: AddOutletModalProps)
             variant="primary"
             size="sm"
             onClick={handleSubmit}
-            className="bg-[#FF5C38] hover:bg-[#E04B28] text-white font-semibold"
+            disabled={!name.trim() || !branchName.trim()}
+            className="bg-[#FF5C38] hover:bg-[#E04B28] text-white font-semibold disabled:opacity-50"
           >
             Simpan Outlet Baru
           </Button>
@@ -69,10 +86,11 @@ export function AddOutletModal({ isOpen, onClose, onSave }: AddOutletModalProps)
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <div>
             <label className="block text-xs font-bold text-neutral-700 mb-1">
-              Nama Brand / Outlet
+              Nama Brand / Outlet *
             </label>
             <Input
               size="sm"
+              placeholder="Contoh: Kopi Nusantara"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -81,11 +99,11 @@ export function AddOutletModal({ isOpen, onClose, onSave }: AddOutletModalProps)
 
           <div>
             <label className="block text-xs font-bold text-neutral-700 mb-1">
-              Nama Cabang *
+              Nama Cabang / Kode *
             </label>
             <Input
               size="sm"
-              placeholder="Contoh: Senopati, BSD, Bandung"
+              placeholder="Contoh: Senopati, Sudirman, BSD"
               value={branchName}
               onChange={(e) => setBranchName(e.target.value)}
               required
@@ -102,7 +120,7 @@ export function AddOutletModal({ isOpen, onClose, onSave }: AddOutletModalProps)
               onChange={(e) => setCategory(e.target.value)}
             >
               <option value="Coffee Shop">Coffee Shop</option>
-              <option value="Restoran">Restoran</option>
+              <option value="Restoran & Cafe">Restoran & Cafe</option>
               <option value="Kafe & Bakery">Kafe & Bakery</option>
               <option value="Fast Food">Fast Food</option>
               <option value="Bar & Lounge">Bar & Lounge</option>
@@ -115,7 +133,7 @@ export function AddOutletModal({ isOpen, onClose, onSave }: AddOutletModalProps)
             </label>
             <Input
               size="sm"
-              placeholder="081234567890"
+              placeholder="Contoh: 081234567890"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />

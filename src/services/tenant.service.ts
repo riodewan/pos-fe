@@ -83,11 +83,17 @@ export const tenantService = {
     api.post<ApiResponse<null>>('/tenant/notifications/mark-all-read'),
 
   // Store Outlet Profile
-  getOutletProfile: () =>
-    api.get<ApiResponse<any>>('/store/profile'),
+  getOutletProfile: (storeId?: string) =>
+    api.get<ApiResponse<any>>('/store/profile', {
+      params: storeId ? { store_id: storeId } : undefined,
+      headers: storeId ? { 'X-Store-Id': storeId } : undefined,
+    }),
 
-  updateOutletProfile: (data: any) =>
-    api.put<ApiResponse<any>>('/store/profile', data),
+  updateOutletProfile: (data: any, storeId?: string) =>
+    api.put<ApiResponse<any>>('/store/profile', data, {
+      params: storeId ? { store_id: storeId } : undefined,
+      headers: storeId ? { 'X-Store-Id': storeId } : undefined,
+    }),
 
   // Taxes & Fees
   getTaxesFees: () =>
