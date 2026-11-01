@@ -21,7 +21,7 @@ import {
   TableAreaManagement,
   TableCategoryManagement,
 } from '@/components/tables';
-import { EmptyState, Button, Select, SearchInput } from '@/components/common';
+import { EmptyState, Button, Select, SearchInput, PageLoader } from '@/components/common';
 import { posService } from '@/services/pos.service';
 import { useToast } from '@/context/ToastContext';
 import { DiningTable } from '@/types';
@@ -260,6 +260,10 @@ export default function TablesPage() {
     const maxNum = Math.max(...tables.map((t) => t.tableNumber), 0);
     return maxNum + 1;
   }, [tables]);
+
+  if (isLoading) {
+    return <PageLoader text="Memuat data meja..." />;
+  }
 
   return (
     <div className="p-6 lg:p-8 space-y-4 max-w-[1600px] mx-auto">

@@ -24,6 +24,7 @@ import { Button } from '@/components/common/Button';
 import { Select } from '@/components/common/Select';
 import { SearchInput } from '@/components/common/SearchInput';
 import { DataTable, ColumnDef } from '@/components/common/DataTable';
+import { PageLoader } from '@/components/common/PageLoader';
 import { StaffDetailDrawer } from '@/components/staff/StaffDetailDrawer';
 import { AddStaffDrawer } from '@/components/staff/AddStaffDrawer';
 import { RolePermissionTab } from '@/components/staff/RolePermissionTab';
@@ -400,6 +401,10 @@ export default function StaffPage() {
       ),
     },
   ];
+
+  if (isLoading) {
+    return <PageLoader text="Memuat data staf..." />;
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">

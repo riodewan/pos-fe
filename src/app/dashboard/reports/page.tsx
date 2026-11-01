@@ -35,6 +35,7 @@ import {
   SearchInput,
   Pagination,
   CardSkeleton,
+  PageLoader,
 } from '@/components/common';
 
 type ReportTab = 'summary' | 'products' | 'cogs' | 'cashiers';
@@ -257,6 +258,10 @@ export default function ReportsPage() {
       ),
     },
   ];
+
+  if (loading) {
+    return <PageLoader text="Memuat laporan analitik..." />;
+  }
 
   return (
     <div className="p-6 lg:p-8 space-y-5 max-w-[1600px] mx-auto">

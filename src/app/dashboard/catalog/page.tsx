@@ -23,6 +23,7 @@ import {
   Button,
   SearchInput,
   Select,
+  PageLoader,
 } from '@/components/common';
 import {
   MenuDetailsDrawer,
@@ -390,6 +391,10 @@ export default function MenuCatalogPage() {
       width: '48px',
     },
   ];
+
+  if (isLoading) {
+    return <PageLoader text="Memuat katalog menu..." />;
+  }
 
   return (
     <div className="p-6 lg:p-8 space-y-4 max-w-[1600px] mx-auto">

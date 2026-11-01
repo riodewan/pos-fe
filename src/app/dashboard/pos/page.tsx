@@ -44,6 +44,7 @@ import { Button } from '@/components/common/Button';
 import { Select } from '@/components/common/Select';
 import { SearchInput } from '@/components/common/SearchInput';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
+import { PageLoader } from '@/components/common/PageLoader';
 import { catalogService, posService } from '@/services';
 import { tenantService } from '@/services/tenant.service';
 import { useStore } from '@/context/StoreContext';
@@ -83,6 +84,7 @@ function PosContent() {
   // Products and cart are loaded from / sent to the backend
   const [products, setProducts] = useState<PosProduct[]>([]);
   const [cart, setCart] = useState<PosCartItem[]>([]);
+  const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
 
   // Active taxes & fees configured in Pengaturan Outlet
   const [taxFees, setTaxFees] = useState<any[]>([]);
@@ -118,11 +120,16 @@ function PosContent() {
 
   // Load real products and tax/fee configuration
   useEffect(() => {
-    async function fetchCatalog() {
+    async function loadData() {
+      setIsLoadingCatalog(true);
       try {
-        const res = await catalogService.getProducts();
-        if (res.data) {
-          const mapped: PosProduct[] = res.data.map((p) => ({
+        const [catRes, taxRes]: [any, any] = await Promise.allSettled([
+          catalogService.getProducts(),
+          tenantService.getTaxesFees(),
+        ]);
+
+        if (catRes.status === 'fulfilled' && catRes.value?.data) {
+          const mapped: PosProduct[] = catRes.value.data.map((p: any) => ({
             id: p.id,
             name: p.name,
             price: Number(p.selling_price),
@@ -131,21 +138,19 @@ function PosContent() {
           }));
           setProducts(mapped);
         }
+
+        if (taxRes.status === 'fulfilled') {
+          const list = (taxRes.value?.data?.data ?? taxRes.value?.data ?? []) as any[];
+          setTaxFees(list.filter((t) => t.is_active));
+        }
       } catch (e) {
         setProducts([]);
-      }
-    }
-    async function fetchTaxFees() {
-      try {
-        const res: any = await tenantService.getTaxesFees();
-        const list = (res?.data?.data ?? res?.data ?? []) as any[];
-        setTaxFees(list.filter((t) => t.is_active));
-      } catch {
         setTaxFees([]);
+      } finally {
+        setIsLoadingCatalog(false);
       }
     }
-    fetchCatalog();
-    fetchTaxFees();
+    loadData();
   }, [activeStore]);
 
   // Handle switching order type
@@ -323,6 +328,10 @@ function PosContent() {
   };
 
 
+
+  if (isLoadingCatalog) {
+    return <PageLoader text="Memuat Point of Sales (POS)..." />;
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-5">

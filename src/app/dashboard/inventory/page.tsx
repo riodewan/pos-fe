@@ -31,6 +31,7 @@ import {
   SearchInput,
   Pagination,
   StatusBadge,
+  PageLoader,
 } from '@/components/common';
 import {
   IngredientDetailDrawer,
@@ -448,6 +449,10 @@ function InventoryContent() {
       ),
     },
   ];
+
+  if (isLoading) {
+    return <PageLoader text="Memuat data inventori & stok..." />;
+  }
 
   return (
     <div className="p-6 lg:p-8 space-y-4 max-w-[1600px] mx-auto">

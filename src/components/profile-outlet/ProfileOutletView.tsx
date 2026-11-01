@@ -27,6 +27,7 @@ import { OperationalFacilitiesTab } from './OperationalFacilitiesTab';
 import { PhotosMediaTab } from './PhotosMediaTab';
 import { AddOutletModal } from './AddOutletModal';
 import { Button } from '@/components/common/Button';
+import { PageLoader } from '@/components/common/PageLoader';
 import { tenantService } from '@/services/tenant.service';
 import { useToast } from '@/context/ToastContext';
 
@@ -268,34 +269,7 @@ export function ProfileOutletView() {
   };
 
   if (isLoading) {
-    return (
-      <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6 animate-pulse">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-2">
-            <div className="h-7 w-48 bg-neutral-200 rounded-lg" />
-            <div className="h-4 w-72 bg-neutral-200 rounded" />
-          </div>
-          <div className="h-10 w-36 bg-neutral-200 rounded-xl" />
-        </div>
-        <div className="h-10 w-64 bg-neutral-200 rounded-xl" />
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-neutral-200/80 space-y-5">
-            <div className="h-5 w-40 bg-neutral-200 rounded" />
-            <div className="h-12 w-full bg-neutral-100 rounded-xl" />
-            <div className="h-12 w-full bg-neutral-100 rounded-xl" />
-            <div className="h-24 w-full bg-neutral-100 rounded-xl" />
-            <div className="grid grid-cols-2 gap-4">
-              <div className="h-12 bg-neutral-100 rounded-xl" />
-              <div className="h-12 bg-neutral-100 rounded-xl" />
-            </div>
-          </div>
-          <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-neutral-200/80 space-y-5">
-            <div className="h-5 w-32 bg-neutral-200 rounded" />
-            <div className="h-64 w-full bg-neutral-100 rounded-2xl" />
-          </div>
-        </div>
-      </div>
-    );
+    return <PageLoader text="Memuat profil outlet..." />;
   }
 
   return (

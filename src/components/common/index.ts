@@ -2,6 +2,7 @@ export * from './PageHeader';
 export * from './StatCard';
 export * from './EmptyState';
 export * from './LoadingScreen';
+export * from './PageLoader';
 export * from './ThemeToggle';
 export * from './NemuLogo';
 export * from './AuthLayout';

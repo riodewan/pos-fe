@@ -21,6 +21,7 @@ import {
   Button,
   Select,
   SearchInput,
+  PageLoader,
 } from '@/components/common';
 import {
   TransactionDetailsDrawer,
@@ -383,6 +384,10 @@ export default function TransactionsPage() {
       ),
     },
   ];
+
+  if (loading) {
+    return <PageLoader text="Memuat riwayat transaksi..." />;
+  }
 
   return (
     <div className="p-6 lg:p-8 space-y-5 max-w-[1600px] mx-auto animate-in fade-in duration-200">

@@ -30,7 +30,7 @@ import { useStore } from '@/context/StoreContext';
 import { reportsService } from '@/services';
 import { DashboardReport } from '@/types';
 import { formatRupiah, getISODateOnly, getPastDateISO } from '@/utils';
-import { KpiCard, EmptyState, DashboardWidgetCard } from '@/components/common';
+import { KpiCard, EmptyState, DashboardWidgetCard, PageLoader } from '@/components/common';
 import {
   FirstLoginModal,
   SalesTrendChart,
@@ -198,6 +198,10 @@ export default function DashboardOverviewPage() {
       iconBg: 'bg-neutral-100 text-neutral-600',
     },
   ];
+
+  if (isLoading || loading) {
+    return <PageLoader text="Memuat ringkasan dashboard..." />;
+  }
 
   return (
     <div className="p-5 sm:p-6 lg:p-7 space-y-5 max-w-[1520px] mx-auto animate-in fade-in duration-200">

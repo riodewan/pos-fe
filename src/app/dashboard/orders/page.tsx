@@ -22,6 +22,7 @@ import {
   Select,
   SearchInput,
   Button,
+  PageLoader,
 } from '@/components/common';
 import { OrderDetailsDrawer, DetailedOrder } from '@/components/orders/OrderDetailsDrawer';
 import { formatRupiah, formatDateTime, formatTimeOnly } from '@/utils';
@@ -424,6 +425,10 @@ export default function OrdersPage() {
       ),
     },
   ];
+
+  if (loading) {
+    return <PageLoader text="Memuat daftar pesanan..." />;
+  }
 
   return (
     <div className="p-5 sm:p-6 lg:p-7 space-y-5 max-w-[1520px] mx-auto animate-in fade-in duration-200">

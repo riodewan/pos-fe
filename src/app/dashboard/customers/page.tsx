@@ -16,6 +16,7 @@ import { Button } from '@/components/common/Button';
 import { Select } from '@/components/common/Select';
 import { SearchInput } from '@/components/common/SearchInput';
 import { DataTable, ColumnDef } from '@/components/common/DataTable';
+import { PageLoader } from '@/components/common/PageLoader';
 import { CustomerDetailDrawer } from '@/components/customers/CustomerDetailDrawer';
 import { AddCustomerDrawer } from '@/components/customers/AddCustomerDrawer';
 import { formatRupiah } from '@/utils';
@@ -379,6 +380,10 @@ export default function CustomersPage() {
       ),
     },
   ];
+
+  if (isLoading) {
+    return <PageLoader text="Memuat data pelanggan..." />;
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
