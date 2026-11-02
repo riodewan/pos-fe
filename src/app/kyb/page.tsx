@@ -32,6 +32,7 @@ interface UploadedFile {
   type: 'pdf' | 'jpg' | 'png';
   status: 'completed' | 'uploading';
   progress?: number;
+  data?: string;
 }
 
 export default function KybPage() {
@@ -44,49 +45,31 @@ export default function KybPage() {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [categoryOptions, setCategoryOptions] = useState<Array<{ id: string; name: string }>>([]);
 
   // Status tracking: 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED'
   const [kybStatus, setKybStatus] = useState<'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED'>('NOT_SUBMITTED');
   const [approvalData, setApprovalData] = useState<any>(null);
 
   // Form Step 1: Informasi Bisnis
-  const [businessName, setBusinessName] = useState('Kopi Mantap');
-  const [businessType, setBusinessType] = useState('Perorangan');
-  const [businessCategory, setBusinessCategory] = useState('Coffee Shop');
-  const [outletCount, setOutletCount] = useState('1 outlet');
-  const [businessAddress, setBusinessAddress] = useState(
-    'Jl. Melati No. 10, Jakarta Barat, Jakarta, Indonesia'
-  );
+  const [businessName, setBusinessName] = useState('');
+  const [businessType, setBusinessType] = useState('');
+  const [businessCategory, setBusinessCategory] = useState('');
+  const [outletCount, setOutletCount] = useState('');
+  const [businessAddress, setBusinessAddress] = useState('');
 
   // Form Step 2: Dokumen Legal
-  const [nibFile, setNibFile] = useState<UploadedFile | null>({
-    name: 'NIB_KopiMantap.pdf',
-    size: '10KB',
-    type: 'pdf',
-    status: 'completed',
-  });
-  const [npwpFile, setNpwpFile] = useState<UploadedFile | null>({
-    name: 'NPWP_KopiMantap.pdf',
-    size: '10KB',
-    type: 'pdf',
-    status: 'completed',
-  });
-  const [siuFile, setSiuFile] = useState<UploadedFile | null>({
-    name: 'SIU_KopiMantap.pdf',
-    size: '40KB',
-    type: 'pdf',
-    status: 'completed',
-  });
+  const [nibFile, setNibFile] = useState<UploadedFile | null>(null);
+  const [npwpFile, setNpwpFile] = useState<UploadedFile | null>(null);
+  const [siuFile, setSiuFile] = useState<UploadedFile | null>(null);
 
   // Form Step 3: Informasi Pemilik
   const [ownerName, setOwnerName] = useState('');
-  const [ownerNik, setOwnerNik] = useState('317545123456789');
-  const [ownerRole, setOwnerRole] = useState('Pemilik');
+  const [ownerNik, setOwnerNik] = useState('');
+  const [ownerRole, setOwnerRole] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
-  const [ownerPhone, setOwnerPhone] = useState('081234567890');
-  const [ownerAddress, setOwnerAddress] = useState(
-    'Jl. Melati No. 10, Jakarta Barat, Jakarta, Indonesia'
-  );
+  const [ownerPhone, setOwnerPhone] = useState('');
+  const [ownerAddress, setOwnerAddress] = useState('');
 
   // File upload input refs
   const nibInputRef = useRef<HTMLInputElement>(null);
@@ -148,6 +131,14 @@ export default function KybPage() {
   }, [user, refreshUser]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+    tenantService
+      .getKybCategories()
+      .then((res) => setCategoryOptions(res?.data || []))
+      .catch(() => setCategoryOptions([]));
+  }, [isAuthenticated]);
+
+  useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.replace('/login');
       return;
@@ -166,15 +157,30 @@ export default function KybPage() {
     if (!file) return;
 
     const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!ext || !['pdf', 'png', 'jpg', 'jpeg'].includes(ext)) {
+      setErrorMessage('Format dokumen harus PDF, JPG, atau PNG.');
+      return;
+    }
+    if (file.size > 1.5 * 1024 * 1024) {
+      setErrorMessage('Ukuran dokumen maksimal 1,5MB.');
+      return;
+    }
+    setErrorMessage(null);
+
     const fileType = ext === 'pdf' ? 'pdf' : ext === 'png' ? 'png' : 'jpg';
     const sizeKb = Math.round(file.size / 1024);
 
-    setter({
-      name: file.name,
-      size: `${sizeKb}KB`,
-      type: fileType,
-      status: 'completed',
-    });
+    const reader = new FileReader();
+    reader.onload = () => {
+      setter({
+        name: file.name,
+        size: `${sizeKb}KB`,
+        type: fileType,
+        status: 'completed',
+        data: typeof reader.result === 'string' ? reader.result : undefined,
+      });
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSimpanNanti = () => {
@@ -198,9 +204,9 @@ export default function KybPage() {
         business_category: businessCategory,
         outlet_count: outletCount,
         business_address: businessAddress,
-        nib_file: nibFile ? { name: nibFile.name, size: nibFile.size } : null,
-        npwp_file: npwpFile ? { name: npwpFile.name, size: npwpFile.size } : null,
-        siu_file: siuFile ? { name: siuFile.name, size: siuFile.size } : null,
+        nib_file: nibFile ? { name: nibFile.name, size: nibFile.size, data: nibFile.data } : null,
+        npwp_file: npwpFile ? { name: npwpFile.name, size: npwpFile.size, data: npwpFile.data } : null,
+        siu_file: siuFile ? { name: siuFile.name, size: siuFile.size, data: siuFile.data } : null,
         owner_name: ownerName || user?.name || '',
         owner_nik: ownerNik,
         owner_role: ownerRole,
@@ -219,7 +225,9 @@ export default function KybPage() {
     } catch (err: any) {
       console.error('Error submitting KYB:', err);
       setErrorMessage(
-        err.response?.data?.message ||
+        (err?.errors && Object.values(err.errors).flat().join(' ')) ||
+          err?.message ||
+          err.response?.data?.message ||
           'Gagal mengirim data verifikasi. Silakan periksa kembali isian form atau coba beberapa saat lagi.'
       );
     } finally {
@@ -403,13 +411,10 @@ export default function KybPage() {
                     className="w-full h-11 pl-4 pr-10 rounded-xl border border-[#E5E7EB] bg-white text-[15px] text-[#111827] focus:outline-none focus:border-[#374151] transition-colors appearance-none cursor-pointer"
                   >
                     <option value="">Pilih kategori bisnis</option>
-                    <option value="Coffee Shop">Coffee Shop</option>
-                    <option value="Restoran & Kafe">Restoran & Kafe</option>
-                    <option value="Fast Food">Fast Food</option>
-                    <option value="Bakery & Pastry">Bakery & Pastry</option>
-                    <option value="Bar & Lounge">Bar & Lounge</option>
-                    <option value="Retail / Minimarket">Retail / Minimarket</option>
-                  </select>
+                  {categoryOptions.map((cat) => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
+                </select>
                   <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 size-4 text-[#9CA3AF] pointer-events-none" />
                 </div>
               </div>
@@ -882,24 +887,24 @@ export default function KybPage() {
                 <div className="space-y-1.5 text-xs">
                   <div className="flex">
                     <span className="text-[#6B7280] w-36 sm:w-40 shrink-0">Nama Bisnis</span>
-                    <span className="font-medium text-[#111827]">{businessName || 'Kopi Mantap'}</span>
+                    <span className="font-medium text-[#111827]">{businessName || '-'}</span>
                   </div>
                   <div className="flex">
                     <span className="text-[#6B7280] w-36 sm:w-40 shrink-0">Jenis Usaha</span>
-                    <span className="font-medium text-[#111827]">{businessType || 'Perorangan'}</span>
+                    <span className="font-medium text-[#111827]">{businessType || '-'}</span>
                   </div>
                   <div className="flex">
                     <span className="text-[#6B7280] w-36 sm:w-40 shrink-0">Kategori Bisnis</span>
-                    <span className="font-medium text-[#111827]">{businessCategory || 'Coffee Shop'}</span>
+                    <span className="font-medium text-[#111827]">{businessCategory || '-'}</span>
                   </div>
                   <div className="flex">
                     <span className="text-[#6B7280] w-36 sm:w-40 shrink-0">Jumlah Outlet</span>
-                    <span className="font-medium text-[#111827]">{outletCount || '1 outlet'}</span>
+                    <span className="font-medium text-[#111827]">{outletCount || '-'}</span>
                   </div>
                   <div className="flex">
                     <span className="text-[#6B7280] w-36 sm:w-40 shrink-0">Alamat Bisnis</span>
                     <span className="font-medium text-[#111827] leading-relaxed">
-                      {businessAddress || 'Jl. Melati No. 10, Jakarta Barat, Jakarta, Indonesia'}
+                      {businessAddress || '-'}
                     </span>
                   </div>
                 </div>
@@ -921,7 +926,7 @@ export default function KybPage() {
                       <span className="size-4 rounded bg-[#E53E3E] text-white text-[8px] font-bold flex items-center justify-center">
                         PDF
                       </span>
-                      <span>{nibFile ? nibFile.name : 'NIB_KopiMantap.pdf'}</span>
+                      <span>{nibFile ? nibFile.name : 'Belum diunggah'}</span>
                     </div>
                   </div>
                   <div className="flex items-center">
@@ -930,7 +935,7 @@ export default function KybPage() {
                       <span className="size-4 rounded bg-[#2563EB] text-white text-[8px] font-bold flex items-center justify-center">
                         JPG
                       </span>
-                      <span>{npwpFile ? npwpFile.name : 'NPWP_KopiMantap.pdf'}</span>
+                      <span>{npwpFile ? npwpFile.name : 'Belum diunggah'}</span>
                     </div>
                   </div>
                   <div className="flex items-center">
@@ -939,7 +944,7 @@ export default function KybPage() {
                       <span className="size-4 rounded bg-[#E53E3E] text-white text-[8px] font-bold flex items-center justify-center">
                         PDF
                       </span>
-                      <span>{siuFile ? siuFile.name : 'SIU_KopiMantap.pdf'}</span>
+                      <span>{siuFile ? siuFile.name : 'Belum diunggah'}</span>
                     </div>
                   </div>
                 </div>
@@ -957,28 +962,28 @@ export default function KybPage() {
                 <div className="space-y-1.5 text-xs">
                   <div className="flex">
                     <span className="text-[#6B7280] w-36 sm:w-40 shrink-0">Nama Lengkap</span>
-                    <span className="font-medium text-[#111827]">{ownerName || 'Andi Pratama'}</span>
+                    <span className="font-medium text-[#111827]">{ownerName || '-'}</span>
                   </div>
                   <div className="flex">
                     <span className="text-[#6B7280] w-36 sm:w-40 shrink-0">Nomor Identitas</span>
-                    <span className="font-medium text-[#111827]">{ownerNik || '317545123456789'}</span>
+                    <span className="font-medium text-[#111827]">{ownerNik || '-'}</span>
                   </div>
                   <div className="flex">
                     <span className="text-[#6B7280] w-36 sm:w-40 shrink-0">Jabatan</span>
-                    <span className="font-medium text-[#111827]">{ownerRole || 'Pemilik'}</span>
+                    <span className="font-medium text-[#111827]">{ownerRole || '-'}</span>
                   </div>
                   <div className="flex">
                     <span className="text-[#6B7280] w-36 sm:w-40 shrink-0">Email</span>
-                    <span className="font-medium text-[#111827]">{ownerEmail || 'andi.pratama@example.com'}</span>
+                    <span className="font-medium text-[#111827]">{ownerEmail || '-'}</span>
                   </div>
                   <div className="flex">
                     <span className="text-[#6B7280] w-36 sm:w-40 shrink-0">Nomor Handphone</span>
-                    <span className="font-medium text-[#111827]">{ownerPhone || '081234567890'}</span>
+                    <span className="font-medium text-[#111827]">{ownerPhone || '-'}</span>
                   </div>
                   <div className="flex">
                     <span className="text-[#6B7280] w-36 sm:w-40 shrink-0">Alamat sesuai KTP</span>
                     <span className="font-medium text-[#111827] leading-relaxed">
-                      {ownerAddress || 'Jl. Melati No. 10, Jakarta Barat, Jakarta, Indonesia'}
+                      {ownerAddress || '-'}
                     </span>
                   </div>
                 </div>
@@ -1110,7 +1115,7 @@ export default function KybPage() {
                     Catatan Review dari Super Admin:
                   </p>
                   <p className="text-xs text-red-800 leading-relaxed font-medium bg-white/70 p-3 rounded-xl border border-red-100">
-                    {approvalData?.review_notes || 'Mohon periksa kembali keabsahan data NIB / NPWP atau lampirkan dokumen yang terbaca jelas.'}
+                    {approvalData?.review_notes || 'Tidak ada catatan dari reviewer.'}
                   </p>
                 </div>
 

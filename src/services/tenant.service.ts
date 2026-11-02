@@ -134,6 +134,9 @@ export const tenantService = {
   submitKyb: (data: any) =>
     api.post<ApiResponse<any>>('/tenant/kyb/submit', data, { skipStore: true }),
 
+  getKybCategories: () =>
+    api.get<ApiResponse<Array<{ id: string; name: string; slug: string }>>>('/tenant/kyb/categories', { skipStore: true }),
+
   getKybStatus: () =>
     api.get<ApiResponse<{
       has_submitted: boolean;
