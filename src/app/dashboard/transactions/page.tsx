@@ -168,7 +168,7 @@ export default function TransactionsPage() {
       setTransactions(mapped);
     } catch (err: any) {
       console.error('Failed to fetch transactions:', err);
-      toast.error('Gagal memuat transaksi dari database.');
+      toast.error('Gagal memuat transaksi. Silakan coba lagi.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -491,7 +491,7 @@ export default function TransactionsPage() {
         onToggleSelectAll={toggleSelectAll}
         onRowClick={handleOpenTransaction}
         emptyTitle="BELUM ADA TRANSAKSI"
-        emptyDescription="Transaksi pembayaran yang diproses akan tersimpan otomatis di database dan tampil di sini."
+        emptyDescription="Transaksi pembayaran yang diproses akan tersimpan otomatis dan tampil di sini."
         entityName="transaksi"
       />
 

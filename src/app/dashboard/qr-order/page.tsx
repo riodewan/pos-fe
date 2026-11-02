@@ -406,7 +406,7 @@ export default function QrOrderPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900">QR Order</h1>
           <p className="text-xs text-neutral-500 mt-1">
-            Kelola QR menu untuk meja, area, maupun sekali pakai langsung tersinkron dengan database.
+            Kelola QR menu untuk meja, area, maupun sekali pakai yang selalu tersinkron otomatis.
           </p>
         </div>
 
@@ -435,7 +435,7 @@ export default function QrOrderPage() {
           {/* CARD 1: QR PER MEJA */}
           <Card
             title="QR Per Meja"
-            subtitle="QR unik untuk setiap meja di database. Ditempel di meja agar pelanggan bisa langsung memesan mandiri."
+            subtitle="QR unik untuk setiap meja. Ditempel di meja agar pelanggan bisa langsung memesan mandiri."
             className="p-5 lg:p-6"
           >
             {/* Filter Bar */}

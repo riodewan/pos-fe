@@ -133,7 +133,7 @@ export function RolePermissionTab() {
       }
     } catch (err) {
       console.error('Error fetching database roles/permissions:', err);
-      toast.error('Gagal memuat data peran dari database.');
+      toast.error('Gagal memuat data peran. Silakan coba lagi.');
     } finally {
       setIsLoading(false);
     }
@@ -184,7 +184,7 @@ export function RolePermissionTab() {
         description: editDescription,
         permissions: editSelectedPermNames,
       });
-      toast.success(`Hak akses peran ${selectedRole.name} berhasil diperbarui di database.`);
+      toast.success(`Hak akses peran ${selectedRole.name} berhasil disimpan.`);
       setIsEditModalOpen(false);
       fetchData();
     } catch (err: any) {
@@ -204,7 +204,7 @@ export function RolePermissionTab() {
     try {
       setIsSaving(true);
       await tenantService.deleteRole(selectedRole.id);
-      toast.success(`Peran ${selectedRole.name} berhasil dihapus dari database.`);
+      toast.success(`Peran ${selectedRole.name} berhasil dihapus.`);
       setIsEditModalOpen(false);
       fetchData();
     } catch (err: any) {
@@ -228,7 +228,7 @@ export function RolePermissionTab() {
         description: newRoleDesc.trim() || undefined,
         permissions: newRolePermIds,
       });
-      toast.success(`Peran "${newRoleName}" berhasil disimpan ke database.`);
+      toast.success(`Peran "${newRoleName}" berhasil disimpan.`);
       setIsAddModalOpen(false);
       setNewRoleName('');
       setNewRoleDesc('');
@@ -259,17 +259,17 @@ export function RolePermissionTab() {
           </div>
           <div>
             <h3 className="text-sm font-bold text-neutral-900">
-              Hak Akses Berbasis Peran (Database RBAC)
+              Manajemen Peran & Hak Akses
             </h3>
             <p className="text-xs text-neutral-500">
-              Data peran, staf, dan hak akses diambil langsung dari tabel database sistem secara *real-time*.
+              Kelola peran staf dan hak akses fitur sesuai kebutuhan operasional outlet Anda.
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <span className="text-xs text-neutral-500 font-medium">
-            Total {roles.length} Peran di Database
+            Total {roles.length} Peran
           </span>
           <Button
             variant="primary"
@@ -287,12 +287,12 @@ export function RolePermissionTab() {
       {isLoading ? (
         <div className="p-12 flex flex-col items-center justify-center gap-2">
           <Loader2 className="size-6 animate-spin text-[#FF5C38]" />
-          <p className="text-xs text-neutral-400">Memuat daftar peran dari database...</p>
+          <p className="text-xs text-neutral-400">Memuat daftar peran...</p>
         </div>
       ) : roles.length === 0 ? (
         <div className="p-12 text-center border border-dashed border-neutral-200 rounded-xl bg-white">
           <ShieldCheck className="size-8 text-neutral-300 mx-auto mb-2" />
-          <p className="text-sm font-semibold text-neutral-700">Belum ada peran terdaftar di database</p>
+          <p className="text-sm font-semibold text-neutral-700">Belum ada peran yang dibuat</p>
           <p className="text-xs text-neutral-400 mt-1">Gunakan tombol Tambah Peran untuk membuat peran baru.</p>
         </div>
       ) : (
@@ -496,7 +496,7 @@ export function RolePermissionTab() {
                 }`}
               >
                 <ShieldCheck className="size-4" />
-                <span>Izin Modul Detail (Database RBAC)</span>
+                <span>Izin Modul Detail</span>
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-neutral-100 text-neutral-600 font-bold">
                   {selectedRole.name === 'Owner' ? 'Akses Penuh' : `${editSelectedPermNames.length} Izin`}
                 </span>
@@ -653,7 +653,7 @@ export function RolePermissionTab() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs font-bold text-neutral-800">
-                    Daftar Hak Akses Modul Teknis (Tabel Permissions Database):
+                    Daftar Hak Akses Modul:
                   </p>
                   {selectedRole.name === 'Owner' && (
                     <span className="text-[11px] text-amber-600 font-medium">
@@ -712,7 +712,7 @@ export function RolePermissionTab() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-neutral-400">Tidak ada izin di database.</p>
+                  <p className="text-xs text-neutral-400">Tidak ada izin tersedia.</p>
                 )}
               </div>
             )}
@@ -725,7 +725,7 @@ export function RolePermissionTab() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         title="Tambah Peran Staf Baru"
-        subtitle="Simpan peran baru ke database dan tentukan hak akses fitur."
+        subtitle="Buat peran baru dan tentukan hak akses fiturnya."
         size="lg"
         footer={
           <div className="flex items-center justify-end gap-2 w-full">
@@ -744,7 +744,7 @@ export function RolePermissionTab() {
               onClick={handleCreateRole}
               isLoading={isSaving}
             >
-              Simpan ke Database
+              Simpan Peran
             </Button>
           </div>
         }
@@ -777,7 +777,7 @@ export function RolePermissionTab() {
 
           <div>
             <p className="text-xs font-bold text-neutral-800 mb-2">
-              Pilih Hak Akses (Dari Tabel Database):
+              Pilih Hak Akses:
             </p>
             {masterPermissions.length > 0 ? (
               <div className="space-y-3 max-h-72 overflow-y-auto pr-1 border border-neutral-200/80 rounded-xl p-3 bg-neutral-50/50">
@@ -825,7 +825,7 @@ export function RolePermissionTab() {
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-neutral-400">Tidak ada daftar izin tersedia di database.</p>
+              <p className="text-xs text-neutral-400">Tidak ada daftar izin tersedia.</p>
             )}
           </div>
         </form>

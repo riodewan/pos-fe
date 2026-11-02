@@ -587,7 +587,7 @@ export function PurchaseOrderManagement({
 
             {ingredients.length === 0 ? (
               <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
-                Belum ada bahan baku di database. Tambahkan bahan baku terlebih dahulu pada tab Bahan.
+                Belum ada bahan baku tersedia. Tambahkan bahan baku terlebih dahulu pada tab Bahan.
               </div>
             ) : (
               <div className="space-y-2.5">

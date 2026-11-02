@@ -489,7 +489,7 @@ export function IngredientDetailDrawer({
             {activeTab === 'history' && (
               <div className="space-y-4">
                 <p className="text-xs text-neutral-500">
-                  Riwayat mutasi pergerakan inventori bahan baku ini dari database:
+                  Riwayat mutasi pergerakan stok bahan baku:
                 </p>
 
                 {loadingMovements ? (

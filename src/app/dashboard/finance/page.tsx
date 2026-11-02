@@ -1063,7 +1063,7 @@ export default function FinancePage() {
           />
 
           <div className="p-3.5 rounded-xl border border-neutral-200 bg-neutral-50/50 flex items-center justify-between text-xs">
-            <span className="text-neutral-500">Biaya Transfer Real-time:</span>
+            <span className="text-neutral-500">Biaya Transfer:</span>
             <span className="font-semibold text-neutral-900 font-mono">
               {formatRupiah(transferFee)}
             </span>

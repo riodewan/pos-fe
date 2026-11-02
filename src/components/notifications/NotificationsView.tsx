@@ -337,7 +337,7 @@ export function NotificationsView() {
             )}
           </div>
           <p className="text-xs sm:text-sm text-neutral-500 mt-1">
-            Pantau semua aktivitas operasional dan transaksi penting di outletmu secara real-time.
+            Pantau semua aktivitas operasional dan transaksi penting di outletmu.
           </p>
         </div>
 

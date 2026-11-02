@@ -174,7 +174,7 @@ export default function OrdersPage() {
       setOrders(mapped);
     } catch (err: any) {
       console.error('Failed to fetch orders:', err);
-      toast.error('Gagal memuat pesanan dari database.');
+      toast.error('Gagal memuat pesanan. Silakan coba lagi.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -441,7 +441,7 @@ export default function OrdersPage() {
             Pesanan
           </h1>
           <p className="text-xs text-[#6B7280] mt-0.5">
-            Pantau dan kelola semua pesanan langsung dari database {activeStore?.name ? `(${activeStore.name})` : ''}
+            Pantau dan kelola semua pesanan {activeStore?.name ? `(${activeStore.name})` : ''}
           </p>
         </div>
 
@@ -460,7 +460,7 @@ export default function OrdersPage() {
           {/* Auto Update indicator badge */}
           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-400/80 bg-emerald-50 text-emerald-700 text-xs font-semibold shadow-2xs">
             <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Database Terhubung</span>
+            <span>Sistem Aktif</span>
           </div>
         </div>
       </div>

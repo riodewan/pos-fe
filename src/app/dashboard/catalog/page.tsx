@@ -130,7 +130,7 @@ export default function MenuCatalogPage() {
       setMenuItems(mapped);
     } catch (err) {
       console.error('Failed to load catalog products:', err);
-      showToast('Gagal memuat katalog menu dari database.');
+      showToast('Gagal memuat katalog menu. Silakan coba lagi.');
     } finally {
       setIsLoading(false);
     }
@@ -203,7 +203,7 @@ export default function MenuCatalogPage() {
           cost_price: updated.cost,
           recipe_items: recipePayload,
         } as any);
-        showToast(`Menu ${updated.name} beserta resep berhasil dibuat di database!`);
+        showToast(`Menu ${updated.name} berhasil ditambahkan.`);
       } else {
         await catalogService.updateProduct(updated.id, {
           name: updated.name,
@@ -217,13 +217,13 @@ export default function MenuCatalogPage() {
           cost_price: updated.cost,
           recipe_items: recipePayload,
         } as any);
-        showToast(`Menu ${updated.name} beserta resep berhasil diperbarui di database!`);
+        showToast(`Menu ${updated.name} berhasil diperbarui.`);
       }
       await loadProducts();
       setIsDrawerOpen(false);
     } catch (err: any) {
       console.error('Failed to save product:', err);
-      showToast(err?.message || err?.response?.data?.message || 'Gagal menyimpan menu ke database.');
+      showToast(err?.message || err?.response?.data?.message || 'Gagal menyimpan menu. Silakan coba lagi.');
     }
   };
 
@@ -232,7 +232,7 @@ export default function MenuCatalogPage() {
       await catalogService.deleteProduct(itemId);
       await loadProducts();
       setIsDrawerOpen(false);
-      showToast('Menu berhasil dihapus dari database!');
+      showToast('Menu berhasil dihapus.');
     } catch (err: any) {
       console.error('Failed to delete product:', err);
       showToast(err?.response?.data?.message || 'Gagal menghapus menu.');
@@ -439,7 +439,7 @@ export default function MenuCatalogPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Menu</h1>
           <p className="text-xs text-neutral-500 mt-1">
-            Kelola semua menu, harga jual, dan status produk langsung dari database.
+            Kelola semua menu, harga jual, dan status produk dengan mudah.
           </p>
         </div>
 

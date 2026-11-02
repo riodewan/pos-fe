@@ -1020,7 +1020,7 @@ export default function AdminMasterDataPage() {
 
           {plans.length === 0 ? (
             <div className="p-8 rounded-2xl bg-white border border-neutral-200/80 text-center text-xs text-neutral-500">
-              Belum ada skema kemitraan / fee transaksi di database.
+              Belum ada skema komisi yang ditambahkan.
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">

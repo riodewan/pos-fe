@@ -375,7 +375,7 @@ export function AuditLogView({ isEmbedded = false }: AuditLogViewProps) {
     return (
       <PageLoader
         text="Memuat log audit sistem..."
-        subtext="Mengambil rekam jejak aktivitas dari database"
+        subtext="Memuat riwayat aktivitas sistem..."
       />
     );
   }

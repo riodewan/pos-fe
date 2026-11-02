@@ -489,7 +489,7 @@ export default function ReportsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Laporan & Analitik</h1>
           <p className="text-xs text-neutral-500 mt-1">
-            Analisis real-time performa pendapatan toko, pajak restoran, HPP bahan baku resep, dan performa menu
+            Analisis performa pendapatan toko, pajak, HPP bahan baku, dan performa menu
           </p>
         </div>
 
@@ -681,7 +681,7 @@ export default function ReportsPage() {
           <div className="space-y-6">
             <div className="p-6 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-4">
               <h3 className="text-sm font-bold text-neutral-900 tracking-tight">
-                Distribusi Saluran Pemesanan (Real-Time)
+                Distribusi Saluran Pemesanan
               </h3>
               {channels.length === 0 ? (
                 <p className="text-xs text-neutral-400 py-6 text-center">

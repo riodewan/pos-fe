@@ -210,7 +210,7 @@ export default function DashboardOverviewPage() {
             {greeting}
           </h1>
           <p className="text-xs text-[#6B7280] mt-0.5 font-normal">
-            Ringkasan performa real-time outlet Anda berdasarkan transaksi di database.
+            Ringkasan performa outlet Anda berdasarkan transaksi terkini.
           </p>
         </div>
 

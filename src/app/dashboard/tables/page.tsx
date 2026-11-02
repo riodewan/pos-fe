@@ -91,7 +91,7 @@ export default function TablesPage() {
       setTables(mapped);
     } catch (err) {
       console.error('Failed to load tables:', err);
-      showToast('Gagal memuat daftar meja dari server.');
+      showToast('Gagal memuat daftar meja. Silakan coba lagi.');
     } finally {
       setIsLoading(false);
     }
@@ -149,10 +149,10 @@ export default function TablesPage() {
         operational_status: newTable.status,
       } as any);
       await loadTables();
-      showToast(`Meja ${newTable.tableNumber} berhasil ditambahkan ke database!`);
+      showToast(`Meja ${newTable.tableNumber} berhasil ditambahkan.`);
     } catch (err: any) {
       console.error('Failed to create table:', err);
-      showToast(err?.response?.data?.message || 'Gagal menambahkan meja ke database');
+      showToast(err?.response?.data?.message || 'Gagal menambahkan meja. Silakan coba lagi.');
     }
   };
 
@@ -272,7 +272,7 @@ export default function TablesPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Meja</h1>
           <p className="text-xs text-neutral-500 mt-1">
-            Kelola meja, pantau status keterisian, dan alur tata letak outlet langsung dari database.
+            Kelola meja, pantau status keterisian, dan alur tata letak outlet dengan mudah.
           </p>
         </div>
 
