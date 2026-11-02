@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   User,
   Phone,
@@ -16,6 +16,7 @@ import {
   ShoppingBag,
   Bike,
   QrCode,
+  Sparkles,
 } from 'lucide-react';
 import { PosProduct } from './PosProductGrid';
 import { formatRupiah } from '@/utils';
@@ -25,6 +26,7 @@ import { Modal } from '@/components/common/Modal';
 import { Input } from '@/components/common/Input';
 import { Textarea } from '@/components/common/Textarea';
 import { EmptyState } from '@/components/common/EmptyState';
+import { tenantService } from '@/services/tenant.service';
 
 export interface PosCartItem {
   product: PosProduct;
@@ -104,6 +106,47 @@ export function PosCartPanel({
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [tempCustomerName, setTempCustomerName] = useState(customerName);
   const [tempCustomerPhone, setTempCustomerPhone] = useState(customerPhone);
+  const [existingCustomers, setExistingCustomers] = useState<
+    Array<{ id: string; name: string; phone: string; segmentation?: string; total_visits?: number }>
+  >([]);
+
+  useEffect(() => {
+    if (isCustomerModalOpen) {
+      tenantService
+        .getCustomers()
+        .then((res) => {
+          if (Array.isArray(res?.data)) {
+            setExistingCustomers(
+              res.data.map((c: any) => ({
+                id: c.id,
+                name: c.name || '',
+                phone: c.phone || '',
+                segmentation: c.segmentation || 'Baru',
+                total_visits: Number(c.total_visits) || 0,
+              }))
+            );
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isCustomerModalOpen]);
+
+  const matchingCustomerSuggestions = useMemo(() => {
+    const qName = (tempCustomerName || '').trim().toLowerCase();
+    const qPhone = (tempCustomerPhone || '').replace(/[^0-9]/g, '');
+    if (!qName && !qPhone) {
+      return existingCustomers.slice(0, 4);
+    }
+    return existingCustomers
+      .filter((c) => {
+        const cName = (c.name || '').toLowerCase();
+        const cPhone = (c.phone || '').replace(/[^0-9]/g, '');
+        const nameMatch = qName.length >= 2 && (cName.includes(qName) || qName.includes(cName));
+        const phoneMatch = qPhone.length >= 3 && cPhone.includes(qPhone);
+        return nameMatch || phoneMatch;
+      })
+      .slice(0, 5);
+  }, [existingCustomers, tempCustomerName, tempCustomerPhone]);
 
   // Calculations matching outlet & platform configuration
   const subtotal = cart.reduce(
@@ -504,6 +547,12 @@ export function PosCartPanel({
         }
       >
         <div className="space-y-3 py-1">
+          <div className="p-2.5 rounded-xl bg-orange-50/70 border border-orange-200/80 text-[11px] text-neutral-700 flex items-start gap-2">
+            <Sparkles className="size-3.5 text-[#FF5C38] shrink-0 mt-0.5" />
+            <span>
+              Ketik nama atau nomor HP. Pelanggan baru atau yang memiliki <strong>nomor HP sama / kemiripan nama</strong> akan otomatis disimpan &amp; digabungkan ke Data Pelanggan saat pesanan dibuat.
+            </span>
+          </div>
           <Input
             label="Nama Pelanggan"
             value={tempCustomerName}
@@ -516,6 +565,35 @@ export function PosCartPanel({
             onChange={(e) => setTempCustomerPhone(e.target.value)}
             placeholder="Contoh: 081245678909"
           />
+
+          {matchingCustomerSuggestions.length > 0 && (
+            <div className="space-y-1.5 pt-1">
+              <p className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">
+                Pelanggan Terdaftar yang Cocok / Sering Berkunjung
+              </p>
+              <div className="max-h-36 overflow-y-auto divide-y divide-neutral-100 rounded-xl border border-neutral-200 bg-neutral-50/50">
+                {matchingCustomerSuggestions.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => {
+                      setTempCustomerName(c.name);
+                      setTempCustomerPhone(c.phone || '');
+                    }}
+                    className="w-full text-left px-3 py-2 hover:bg-orange-50/60 transition-colors flex items-center justify-between text-xs cursor-pointer"
+                  >
+                    <div>
+                      <p className="font-bold text-neutral-900">{c.name}</p>
+                      <p className="text-[10.5px] text-neutral-500 font-mono">{c.phone || 'Tanpa No. HP'}</p>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border border-neutral-200 text-neutral-600">
+                      {c.segmentation} &bull; {c.total_visits}x transaksi
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </Modal>
     </div>

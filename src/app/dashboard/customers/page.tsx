@@ -10,6 +10,8 @@ import {
   Trash2,
   UserCheck,
   UserX,
+  RefreshCw,
+  Sparkles,
 } from 'lucide-react';
 import { Customer, CustomerSegmentation, CustomerStatus } from '@/types/customer';
 import { Button } from '@/components/common/Button';
@@ -21,11 +23,13 @@ import { CustomerDetailDrawer } from '@/components/customers/CustomerDetailDrawe
 import { AddCustomerDrawer } from '@/components/customers/AddCustomerDrawer';
 import { formatRupiah } from '@/utils';
 import { tenantService } from '@/services/tenant.service';
-
+import { useToast } from '@/context/ToastContext';
 
 export default function CustomersPage() {
+  const { toast } = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSegmentation, setSelectedSegmentation] = useState<string>('ALL');
@@ -43,48 +47,87 @@ export default function CustomersPage() {
   // Action menu popover state
   const [actionMenuOpenId, setActionMenuOpenId] = useState<string | null>(null);
 
-  // Fetch live customers from backend on mount
-  React.useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        setIsLoading(true);
-        const res = await tenantService.getCustomers();
-        if (res?.data) {
-          const mapped: Customer[] = res.data.map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            initials: c.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase(),
-            joinDate: c.created_at
-              ? 'Bergabung ' +
-                new Date(c.created_at).toLocaleDateString('id-ID', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })
-              : 'Bergabung 2024',
-            phone: c.phone || '-',
-            email: c.email || '-',
-            totalTransactions: Number(c.total_visits) || 0,
-            totalSpent: Number(c.total_spent) || 0,
-            segmentation: c.segmentation || (c.tier === 'Gold' ? 'VIP' : c.tier === 'Silver' ? 'Regular' : 'Baru'),
-            status: c.status || 'Aktif',
-            birthDate: c.birth_date || '-',
-            gender: c.gender || 'Laki-laki',
-            notes: c.notes || (c.points ? `Member ${c.tier} (${c.points} poin)` : 'Pelanggan terdaftar'),
-            address: c.address || '-',
-            avatarUrl: c.avatar_url || undefined,
-          }));
-          setCustomers(mapped);
-        }
-      } catch {
-        // Keep empty list when the API is unreachable
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const mapCustomerList = (rawList: any[]): Customer[] =>
+    rawList.map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      initials: (c.name || 'P')
+        .split(' ')
+        .filter(Boolean)
+        .map((n: string) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase(),
+      joinDate: c.created_at
+        ? 'Bergabung ' +
+          new Date(c.created_at).toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })
+        : 'Bergabung 2024',
+      phone: c.phone || '-',
+      email: c.email || '-',
+      totalTransactions: Number(c.total_visits) || 0,
+      totalSpent: Number(c.total_spent) || 0,
+      segmentation:
+        c.segmentation === 'VIP' || c.tier === 'Gold'
+          ? 'VIP'
+          : c.segmentation === 'Regular' || c.segmentation === 'Reguler' || c.tier === 'Silver'
+          ? 'Regular'
+          : 'Baru',
+      status: c.status || 'Aktif',
+      birthDate: c.birth_date || '-',
+      gender: c.gender || 'Laki-laki',
+      notes:
+        c.notes ||
+        (c.points
+          ? `Member ${c.tier} (${c.points} poin)`
+          : 'Terdaftar otomatis dari transaksi pesanan'),
+      address: c.address || '-',
+      avatarUrl: c.avatar_url || undefined,
+      transactions: Array.isArray(c.transactions) ? c.transactions : [],
+    }));
 
-    fetchCustomers();
+  // Fetch live customers from backend on mount (backend auto-syncs from orders)
+  const fetchCustomers = React.useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const res = await tenantService.getCustomers();
+      if (res?.data) {
+        setCustomers(mapCustomerList(res.data));
+      }
+    } catch {
+      // Keep empty list when the API is unreachable
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  React.useEffect(() => {
+    fetchCustomers();
+  }, [fetchCustomers]);
+
+  const handleSyncFromOrders = async () => {
+    try {
+      setIsSyncing(true);
+      const syncRes = await tenantService.syncCustomers();
+      const res = await tenantService.getCustomers();
+      if (res?.data) {
+        setCustomers(mapCustomerList(res.data));
+      }
+      const stats = syncRes?.data;
+      toast.success(
+        stats
+          ? `Sinkronisasi selesai! ${stats.total_customers ?? 0} pelanggan aktif (${stats.linked_orders ?? 0} pesanan baru ditautkan, ${stats.merged_customers ?? 0} data duplikat digabung).`
+          : 'Data pelanggan berhasil disinkronkan dari riwayat transaksi!'
+      );
+    } catch {
+      toast.error('Gagal menyinkronkan data pelanggan dari transaksi.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Filter logic
   const filteredCustomers = useMemo(() => {
@@ -398,8 +441,16 @@ export default function CustomersPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
-
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={handleSyncFromOrders}
+            disabled={isSyncing}
+            className="text-xs font-semibold px-3.5 py-2 border-neutral-200 bg-white hover:bg-neutral-50"
+            leftIcon={<RefreshCw className={`size-3.5 ${isSyncing ? 'animate-spin' : ''}`} />}
+          >
+            {isSyncing ? 'Menyinkronkan...' : 'Sinkronkan dari Transaksi'}
+          </Button>
 
           <Button
             variant="primary"
@@ -409,6 +460,16 @@ export default function CustomersPage() {
           >
             Tambah Pelanggan
           </Button>
+        </div>
+      </div>
+
+      {/* Auto-Capture & Smart Deduplication Info Banner */}
+      <div className="p-3.5 rounded-xl bg-orange-50/70 border border-orange-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+        <div className="flex items-start sm:items-center gap-2.5 text-neutral-800">
+          <Sparkles className="size-4 text-[#FF5C38] shrink-0 mt-0.5 sm:mt-0" />
+          <span>
+            <strong>Otomatis Terhubung dengan Transaksi POS &amp; QR Order:</strong> Pelanggan yang bertransaksi akan otomatis ditambahkan dan digabungkan berdasarkan <strong>kesamaan nomor HP</strong> dan <strong>kemiripan nama</strong>, lengkap dengan akumulasi kunjungan, total belanja, serta kenaikan tier otomatis (<em>Baru &rarr; Regular &rarr; VIP</em>).
+          </span>
         </div>
       </div>
 

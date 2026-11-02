@@ -80,6 +80,9 @@ export const tenantService = {
   getCustomers: (params?: Record<string, string | number>) =>
     api.get<ApiResponse<any[]>>('/tenant/customers', { params, skipStore: true }),
 
+  syncCustomers: () =>
+    api.post<ApiResponse<any>>('/tenant/customers/sync', {}, { skipStore: true }),
+
   getCustomer: (id: string) =>
     api.get<ApiResponse<any>>(`/tenant/customers/${id}`, { skipStore: true }),
 
