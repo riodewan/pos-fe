@@ -32,6 +32,7 @@ import {
 } from '@/components/common';
 import { formatRupiah } from '@/utils';
 import { reportsService } from '@/services/reports.service';
+import { tenantService, GlobalMasterItem } from '@/services/tenant.service';
 
 // Channel Reconciliation Dataset
 interface ChannelReconciliation {
@@ -202,9 +203,24 @@ export default function FinancePage() {
 
   // Drawer
   const [isDisburseOpen, setIsDisburseOpen] = useState(false);
-  const [disburseAmount, setDisburseAmount] = useState('1837050');
-  const [targetBank, setTargetBank] = useState('BCA - 8830192831 (Kopi Mantap)');
+  const [disburseAmount, setDisburseAmount] = useState('');
+  const [targetBank, setTargetBank] = useState('');
+  const [targetAccountNumber, setTargetAccountNumber] = useState('');
+  const [masterBanks, setMasterBanks] = useState<GlobalMasterItem[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    tenantService
+      .getGlobalMasterData()
+      .then((res) => {
+        const list = res.data?.banks || [];
+        setMasterBanks(list);
+        if (list.length > 0) {
+          setTargetBank(list[0].code || list[0].name);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -213,15 +229,18 @@ export default function FinancePage() {
 
   const handleDisburseSubmit = async () => {
     const num = Number(disburseAmount) || 0;
-    const [bankName, rest] = targetBank.split(' - ');
-    const accountNumber = (rest || '').split(' ')[0];
+    if (num <= 0 || !targetBank || !targetAccountNumber.trim()) {
+      showToast('Mohon lengkapi nominal penarikan, bank tujuan, dan nomor rekening.');
+      return;
+    }
     try {
       await reportsService.createDisbursement({
         amount: num,
-        bank_name: bankName,
-        account_number: accountNumber,
+        bank_name: targetBank,
+        account_number: targetAccountNumber.trim(),
       });
       setIsDisburseOpen(false);
+      setDisburseAmount('');
       await loadDisbursements();
       showToast(`Permintaan pencairan dana ${formatRupiah(num)} sedang diproses oleh bank.`);
     } catch (err: any) {
@@ -476,19 +495,19 @@ export default function FinancePage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
           <p className="text-xs font-medium text-neutral-500">Dana Siap Dicairkan</p>
-          <p className="text-2xl font-bold text-neutral-900 tracking-tight">{available !== null ? formatRupiah(available) : totals ? formatRupiah(totals.net) : 'Rp18.450.000'}</p>
+          <p className="text-2xl font-bold text-neutral-900 tracking-tight">{available !== null ? formatRupiah(available) : totals ? formatRupiah(totals.net) : formatRupiah(0)}</p>
           <p className="text-[11px] text-emerald-600 font-medium">QRIS & Payment Gateway</p>
         </div>
 
         <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
           <p className="text-xs font-medium text-neutral-500">Total Kas Fisik Drawer</p>
-          <p className="text-2xl font-bold text-neutral-900 tracking-tight">{totals ? formatRupiah(totals.cash) : 'Rp4.250.000'}</p>
+          <p className="text-2xl font-bold text-neutral-900 tracking-tight">{totals ? formatRupiah(totals.cash) : formatRupiah(0)}</p>
           <p className="text-[11px] text-neutral-500">Sesuai penutupan shift kasir</p>
         </div>
 
         <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
           <p className="text-xs font-medium text-neutral-500">Estimasi Biaya MDR (0.7%)</p>
-          <p className="text-2xl font-bold text-neutral-900 tracking-tight">{totals ? formatRupiah(totals.mdr) : 'Rp142.500'}</p>
+          <p className="text-2xl font-bold text-neutral-900 tracking-tight">{totals ? formatRupiah(totals.mdr) : formatRupiah(0)}</p>
           <p className="text-[11px] text-neutral-400">Potongan transaksi QRIS</p>
         </div>
 
@@ -615,7 +634,7 @@ export default function FinancePage() {
         <div className="space-y-5">
           <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 text-xs space-y-1">
             <p className="text-neutral-500">Saldo Siap Dicairkan:</p>
-            <p className="text-2xl font-bold text-neutral-900 font-mono">{available !== null ? formatRupiah(available) : 'Rp18.450.000'}</p>
+            <p className="text-2xl font-bold text-neutral-900 font-mono">{available !== null ? formatRupiah(available) : formatRupiah(0)}</p>
             <p className="text-[11px] text-neutral-400">Batas penarikan harian: Rp50.000.000</p>
           </div>
 
@@ -624,17 +643,26 @@ export default function FinancePage() {
             type="number"
             value={disburseAmount}
             onChange={(e) => setDisburseAmount(e.target.value)}
+            placeholder="Masukkan nominal penarikan"
             prefix="Rp"
           />
 
           <Select
-            label="Rekening Bank Tujuan"
+            label="Bank Tujuan (Master Bank Global)"
             value={targetBank}
             onChange={(e) => setTargetBank(e.target.value)}
-            options={[
-              { value: 'BCA - 8830192831 (Kopi Mantap)', label: 'BCA • 8830192831 (Kopi Mantap)' },
-              { value: 'Mandiri - 1370019283719 (Kopi Mantap)', label: 'Mandiri • 1370019283719 (Kopi Mantap)' },
-            ]}
+            options={masterBanks.map((bank) => ({
+              value: bank.code || bank.name,
+              label: `${bank.name} (${bank.code || '-'})`,
+            }))}
+          />
+
+          <Input
+            label="Nomor Rekening Tujuan"
+            type="text"
+            value={targetAccountNumber}
+            onChange={(e) => setTargetAccountNumber(e.target.value)}
+            placeholder="Masukkan nomor rekening operasional"
           />
 
           <div className="p-3.5 rounded-xl border border-neutral-200 bg-neutral-50/50 flex items-center justify-between text-xs">

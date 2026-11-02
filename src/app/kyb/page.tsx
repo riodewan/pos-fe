@@ -46,6 +46,7 @@ export default function KybPage() {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [categoryOptions, setCategoryOptions] = useState<Array<{ id: string; name: string }>>([]);
+  const [businessTypeOptions, setBusinessTypeOptions] = useState<Array<{ id: string; name: string }>>([]);
 
   // Status tracking: 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED'
   const [kybStatus, setKybStatus] = useState<'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED'>('NOT_SUBMITTED');
@@ -133,9 +134,15 @@ export default function KybPage() {
   useEffect(() => {
     if (!isAuthenticated) return;
     tenantService
-      .getKybCategories()
-      .then((res) => setCategoryOptions(res?.data || []))
-      .catch(() => setCategoryOptions([]));
+      .getGlobalMasterData()
+      .then((res) => {
+        setCategoryOptions(res?.data?.categories || []);
+        setBusinessTypeOptions(res?.data?.business_types || []);
+      })
+      .catch(() => {
+        setCategoryOptions([]);
+        setBusinessTypeOptions([]);
+      });
   }, [isAuthenticated]);
 
   useEffect(() => {
@@ -389,11 +396,11 @@ export default function KybPage() {
                     className="w-full h-11 pl-4 pr-10 rounded-xl border border-[#E5E7EB] bg-white text-[15px] text-[#111827] focus:outline-none focus:border-[#374151] transition-colors appearance-none cursor-pointer"
                   >
                     <option value="">Pilih jenis usaha</option>
-                    <option value="Perorangan">Perorangan</option>
-                    <option value="PT / Perseroan Terbatas">PT / Perseroan Terbatas</option>
-                    <option value="CV">CV</option>
-                    <option value="Firma">Firma</option>
-                    <option value="Koperasi">Koperasi</option>
+                    {businessTypeOptions.map((bt) => (
+                      <option key={bt.id} value={bt.name}>
+                        {bt.name}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 size-4 text-[#9CA3AF] pointer-events-none" />
                 </div>

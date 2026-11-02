@@ -1,7 +1,30 @@
 import api from '@/lib/api';
 import { Store, Tenant, User, Role, ApiResponse } from '@/types';
 
+export interface GlobalMasterItem {
+  id: string;
+  group: 'FACILITY' | 'BUSINESS_TYPE' | 'PAYMENT_METHOD' | 'TAX_FEE' | 'BANK';
+  name: string;
+  code?: string;
+  icon?: string;
+  description?: string;
+  metadata?: Record<string, any> | null;
+  sort_order: number;
+}
+
+export interface GlobalMasterDataResponse {
+  categories: Array<{ id: string; name: string; slug: string; icon?: string; description?: string; sort_order?: number }>;
+  facilities: GlobalMasterItem[];
+  business_types: GlobalMasterItem[];
+  payment_methods: GlobalMasterItem[];
+  tax_fees: GlobalMasterItem[];
+  banks: GlobalMasterItem[];
+  units: Array<{ id: string; name: string; code: string; type: string }>;
+}
+
 export const tenantService = {
+  getGlobalMasterData: () =>
+    api.get<ApiResponse<GlobalMasterDataResponse>>('/tenant/master-data', { skipStore: true }),
   getProfile: () =>
     api.get<ApiResponse<Tenant>>('/tenant/profile', { skipStore: true }),
 

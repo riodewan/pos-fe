@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Clock,
   Wifi,
   Zap,
   Wind,
@@ -12,15 +11,14 @@ import {
   ShieldCheck,
   Check,
   Copy,
-  Plus,
   Utensils,
-  Baby,
-  Dog,
   Music,
   CheckCircle2,
+  Store,
 } from 'lucide-react';
 import { OperatingHourItem } from '@/types/profile-outlet';
 import { Button } from '@/components/common/Button';
+import { tenantService, GlobalMasterItem } from '@/services/tenant.service';
 
 interface OperationalFacilitiesTabProps {
   initialHours: OperatingHourItem[];
@@ -47,7 +45,7 @@ export function OperationalFacilitiesTab({
     Array.isArray(initialHours) && initialHours.length > 0 ? initialHours : DEFAULT_HOURS
   );
   const [facilities, setFacilities] = useState<string[]>(initialFacilities || []);
-  const [newFacilityInput, setNewFacilityInput] = useState('');
+  const [masterFacilities, setMasterFacilities] = useState<GlobalMasterItem[]>([]);
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
@@ -62,20 +60,30 @@ export function OperationalFacilitiesTab({
     }
   }, [initialFacilities]);
 
-  const presetFacilities = [
-    { name: 'WiFi Gratis (High-Speed)', icon: Wifi },
-    { name: 'Colokan Listrik di Setiap Meja', icon: Zap },
-    { name: 'Ruangan Ber-AC (Indoor)', icon: Wind },
-    { name: 'Area Merokok (Smoking Area)', icon: Cigarette },
-    { name: 'Toilet Bersih & Higienis', icon: Sparkles },
-    { name: 'Musholla', icon: ShieldCheck },
-    { name: 'Area Parkir Mobil & Motor', icon: Car },
-    { name: 'Pembayaran Cashless (QRIS & Kartu)', icon: Check },
-    { name: 'Kursi Bayi / Baby Chair', icon: Baby },
-    { name: 'Area Outdoor / Rooftop', icon: Utensils },
-    { name: 'Live Music / Akustik', icon: Music },
-    { name: 'Ramah Hewan Peliharaan (Pet Friendly)', icon: Dog },
-  ];
+  useEffect(() => {
+    tenantService
+      .getGlobalMasterData()
+      .then((res) => {
+        if (res.data?.facilities) {
+          setMasterFacilities(res.data.facilities);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const getFacilityIcon = (fac: GlobalMasterItem) => {
+    const key = `${fac.code || ''} ${fac.icon || ''} ${fac.name || ''}`.toLowerCase();
+    if (key.includes('wifi')) return Wifi;
+    if (key.includes('ac') || key.includes('wind')) return Wind;
+    if (key.includes('power') || key.includes('zap') || key.includes('stop kontak')) return Zap;
+    if (key.includes('smok') || key.includes('flame')) return Cigarette;
+    if (key.includes('park') || key.includes('car')) return Car;
+    if (key.includes('mushola') || key.includes('shield')) return ShieldCheck;
+    if (key.includes('music')) return Music;
+    if (key.includes('outdoor')) return Utensils;
+    if (key.includes('indoor') || key.includes('store')) return Store;
+    return Sparkles;
+  };
 
   const handleToggleDay = (index: number) => {
     setHours((prev) => {
@@ -112,15 +120,6 @@ export function OperationalFacilitiesTab({
         ? prev.filter((f) => f !== facilityName)
         : [...prev, facilityName]
     );
-  };
-
-  const handleAddCustomFacility = () => {
-    const trimmed = newFacilityInput.trim();
-    if (!trimmed) return;
-    if (!facilities.includes(trimmed)) {
-      setFacilities((prev) => [...prev, trimmed]);
-    }
-    setNewFacilityInput('');
   };
 
   const handleSave = () => {
@@ -195,94 +194,59 @@ export function OperationalFacilitiesTab({
         </div>
       </div>
 
-      {/* Right: Fasilitas Outlet */}
+      {/* Right: Fasilitas Outlet Global (Dikelola oleh Internal Admin) */}
       <div className="space-y-5">
         <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-2xs p-5 space-y-4">
           <div className="pb-3 border-b border-neutral-100">
-            <h3 className="text-sm font-bold text-neutral-900">Fasilitas yang Tersedia</h3>
+            <h3 className="text-sm font-bold text-neutral-900">Fasilitas Outlet (Master Data Global)</h3>
             <p className="text-xs text-neutral-500 mt-0.5">
-              Pilih fasilitas yang dapat dinikmati pengunjung di outlet ini
+              Pilih fasilitas yang tersedia di outlet ini dari daftar fasilitas standar platform
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[380px] overflow-y-auto pr-1">
-            {presetFacilities.map((fac) => {
-              const Icon = fac.icon;
-              const isChecked = facilities.includes(fac.name);
+          {masterFacilities.length === 0 ? (
+            <p className="text-xs text-neutral-400 py-6 text-center">
+              Belum ada master fasilitas aktif dari admin platform.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[420px] overflow-y-auto pr-1">
+              {masterFacilities.map((fac) => {
+                const Icon = getFacilityIcon(fac);
+                const isChecked = facilities.includes(fac.name);
 
-              return (
-                <button
-                  key={fac.name}
-                  type="button"
-                  onClick={() => handleToggleFacility(fac.name)}
-                  className={`p-3 rounded-xl border text-left text-xs font-semibold transition-all cursor-pointer flex items-center gap-2.5 ${
-                    isChecked
-                      ? 'border-[#FF5C38]/40 bg-orange-50/40 text-neutral-900 shadow-2xs'
-                      : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
-                  }`}
-                >
-                  <div
-                    className={`size-7 rounded-lg flex items-center justify-center shrink-0 ${
+                return (
+                  <button
+                    key={fac.id}
+                    type="button"
+                    onClick={() => handleToggleFacility(fac.name)}
+                    className={`p-3 rounded-xl border text-left text-xs font-semibold transition-all cursor-pointer flex items-center gap-2.5 ${
                       isChecked
-                        ? 'bg-[#FF5C38] text-white'
-                        : 'bg-neutral-100 text-neutral-500'
+                        ? 'border-[#FF5C38]/40 bg-orange-50/40 text-neutral-900 shadow-2xs'
+                        : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
                     }`}
                   >
-                    <Icon className="size-3.5" />
-                  </div>
-                  <span className="truncate">{fac.name}</span>
-                </button>
-              );
-            })}
-
-            {/* Custom Facilities added by user */}
-            {facilities
-              .filter((f) => !presetFacilities.some((pf) => pf.name === f))
-              .map((customName) => (
-                <button
-                  key={customName}
-                  type="button"
-                  onClick={() => handleToggleFacility(customName)}
-                  className="p-3 rounded-xl border text-left text-xs font-semibold transition-all cursor-pointer flex items-center justify-between gap-2.5 border-[#FF5C38]/40 bg-orange-50/40 text-neutral-900 shadow-2xs"
-                >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <div className="size-7 rounded-lg bg-[#FF5C38] text-white flex items-center justify-center shrink-0">
-                      <Check className="size-3.5" />
+                    <div
+                      className={`size-7 rounded-lg flex items-center justify-center shrink-0 ${
+                        isChecked
+                          ? 'bg-[#FF5C38] text-white'
+                          : 'bg-neutral-100 text-neutral-500'
+                      }`}
+                    >
+                      <Icon className="size-3.5" />
                     </div>
-                    <span className="truncate">{customName}</span>
-                  </div>
-                  <span className="text-[10px] text-red-500 font-bold hover:underline shrink-0">
-                    Hapus
-                  </span>
-                </button>
-              ))}
-          </div>
-
-          {/* Add Custom Facility Form */}
-          <div className="pt-2 flex items-center gap-2">
-            <input
-              type="text"
-              value={newFacilityInput}
-              onChange={(e) => setNewFacilityInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddCustomFacility();
-                }
-              }}
-              placeholder="Tambah fasilitas lain (mis. Valet Parking)..."
-              className="flex-1 px-3 py-2 rounded-xl border border-neutral-200 text-xs font-medium focus:outline-none focus:border-[#FF5C38]"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddCustomFacility}
-              className="h-9 px-3 text-xs border-neutral-200"
-            >
-              <Plus className="size-3.5 mr-1" /> Tambah
-            </Button>
-          </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate">{fac.name}</p>
+                      {fac.description && (
+                        <p className="text-[10px] text-neutral-400 font-normal truncate">
+                          {fac.description}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Action Save button */}
@@ -299,6 +263,7 @@ export function OperationalFacilitiesTab({
             onClick={handleSave}
             className="bg-[#FF5C38] hover:bg-[#E04B28] text-white font-bold px-6 py-2.5 rounded-xl shadow-xs cursor-pointer"
           >
+            <Check className="size-4 mr-1.5" />
             Simpan Operasional & Fasilitas
           </Button>
         </div>

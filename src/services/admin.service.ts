@@ -63,6 +63,29 @@ export interface MasterCategoryItem {
   created_at: string;
 }
 
+export type MasterItemGroup = 'FACILITY' | 'BUSINESS_TYPE' | 'PAYMENT_METHOD' | 'TAX_FEE' | 'BANK';
+
+export interface PlatformMasterItem {
+  id: string;
+  group: MasterItemGroup;
+  name: string;
+  code?: string;
+  icon?: string;
+  description?: string;
+  metadata?: Record<string, any> | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at?: string;
+}
+
+export interface GlobalUnitItem {
+  id: string;
+  name: string;
+  code: string;
+  type: 'WEIGHT' | 'VOLUME' | 'COUNT';
+  created_at?: string;
+}
+
 export interface SubscriptionPlanItem {
   id: string;
   name: string;
@@ -139,6 +162,38 @@ export const adminService = {
 
   deleteMasterCategory: (id: string) =>
     api.delete<ApiResponse<null>>(`/internal/master/categories/${id}`, { skipStore: true }),
+
+  // Global Master Items (FACILITY, BUSINESS_TYPE, PAYMENT_METHOD, TAX_FEE, BANK)
+  getMasterItems: (group?: MasterItemGroup) =>
+    api.get<ApiResponse<PlatformMasterItem[]>>('/internal/master/items', {
+      params: group ? { group } : undefined,
+      skipStore: true,
+    }),
+
+  createMasterItem: (data: Partial<PlatformMasterItem>) =>
+    api.post<ApiResponse<PlatformMasterItem>>('/internal/master/items', data, { skipStore: true }),
+
+  updateMasterItem: (id: string, data: Partial<PlatformMasterItem>) =>
+    api.put<ApiResponse<PlatformMasterItem>>(`/internal/master/items/${id}`, data, { skipStore: true }),
+
+  toggleMasterItem: (id: string) =>
+    api.patch<ApiResponse<PlatformMasterItem>>(`/internal/master/items/${id}/toggle`, {}, { skipStore: true }),
+
+  deleteMasterItem: (id: string) =>
+    api.delete<ApiResponse<null>>(`/internal/master/items/${id}`, { skipStore: true }),
+
+  // Global Measurement Units
+  getMasterUnits: () =>
+    api.get<ApiResponse<GlobalUnitItem[]>>('/internal/master/units', { skipStore: true }),
+
+  createMasterUnit: (data: { name: string; code: string; type: 'WEIGHT' | 'VOLUME' | 'COUNT' }) =>
+    api.post<ApiResponse<GlobalUnitItem>>('/internal/master/units', data, { skipStore: true }),
+
+  updateMasterUnit: (id: string, data: Partial<{ name: string; code: string; type: 'WEIGHT' | 'VOLUME' | 'COUNT' }>) =>
+    api.put<ApiResponse<GlobalUnitItem>>(`/internal/master/units/${id}`, data, { skipStore: true }),
+
+  deleteMasterUnit: (id: string) =>
+    api.delete<ApiResponse<null>>(`/internal/master/units/${id}`, { skipStore: true }),
 
   // Subscription Plans
   getSubscriptionPlans: () =>

@@ -87,6 +87,18 @@ export function ProfileOutletView() {
   const [isSaving, setIsSaving] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [saveSuccessNotification, setSaveSuccessNotification] = useState(false);
+  const [masterCategories, setMasterCategories] = useState<Array<{ id: string; name: string }>>([]);
+
+  useEffect(() => {
+    tenantService
+      .getGlobalMasterData()
+      .then((res) => {
+        if (res.data?.categories) {
+          setMasterCategories(res.data.categories);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const thumbInputRef = useRef<HTMLInputElement | null>(null);
@@ -650,12 +662,16 @@ export function ProfileOutletView() {
                     onChange={(e) => handleInputChange('category', e.target.value)}
                     className="w-full appearance-none px-3.5 py-2 rounded-xl border border-neutral-200 text-xs font-medium text-neutral-900 bg-white focus:outline-none focus:border-[#FF5C38] focus:ring-1 focus:ring-[#FF5C38] cursor-pointer"
                   >
-                    <option value="Coffee Shop">Coffee Shop</option>
-                    <option value="Restoran & Cafe">Restoran & Cafe</option>
-                    <option value="Bakery & Pastry">Bakery & Pastry</option>
-                    <option value="Fast Food">Fast Food</option>
-                    <option value="Food Court">Food Court</option>
-                    <option value="Bar & Lounge">Bar & Lounge</option>
+                    <option value="">Pilih kategori bisnis</option>
+                    {outlet.category &&
+                      !masterCategories.some((c) => c.name === outlet.category) && (
+                        <option value={outlet.category}>{outlet.category}</option>
+                      )}
+                    {masterCategories.map((cat) => (
+                      <option key={cat.id} value={cat.name}>
+                        {cat.name}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown className="size-4 text-neutral-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>

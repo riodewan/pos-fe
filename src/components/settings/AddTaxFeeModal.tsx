@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { Select } from '@/components/common/Select';
 import { TaxFeeItem } from '@/types/outlet-settings';
+import { tenantService, GlobalMasterItem } from '@/services/tenant.service';
 
 interface AddTaxFeeModalProps {
   isOpen: boolean;
@@ -19,8 +20,29 @@ export function AddTaxFeeModal({ isOpen, onClose, onSave }: AddTaxFeeModalProps)
   const [valueType, setValueType] = useState<'percent' | 'fixed'>('percent');
   const [value, setValue] = useState('');
   const [appliesTo, setAppliesTo] = useState('Semua Menu');
+  const [masterTemplates, setMasterTemplates] = useState<GlobalMasterItem[]>([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    tenantService
+      .getGlobalMasterData()
+      .then((res) => {
+        if (res.data?.tax_fees) {
+          setMasterTemplates(res.data.tax_fees);
+        }
+      })
+      .catch(() => {});
+  }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleSelectTemplate = (tpl: GlobalMasterItem) => {
+    setName(tpl.name);
+    const meta = tpl.metadata || {};
+    setType(meta.type === 'FEE' ? 'Biaya' : 'Pajak');
+    setValueType(meta.value_type === 'FIXED' ? 'fixed' : 'percent');
+    setValue(String(meta.value ?? '10'));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +87,30 @@ export function AddTaxFeeModal({ isOpen, onClose, onSave }: AddTaxFeeModalProps)
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4 py-1">
+        {masterTemplates.length > 0 && (
+          <div>
+            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+              Pilih dari Template Regulasi Global (Internal Admin)
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {masterTemplates.map((tpl) => (
+                <button
+                  key={tpl.id}
+                  type="button"
+                  onClick={() => handleSelectTemplate(tpl)}
+                  className={`px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors cursor-pointer ${
+                    name === tpl.name
+                      ? 'border-[#FF5C38] bg-orange-50 text-[#FF5C38] font-semibold'
+                      : 'border-neutral-200 hover:bg-neutral-50 text-neutral-700'
+                  }`}
+                >
+                  {tpl.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div>
           <label className="block text-xs font-bold text-neutral-700 mb-1">
             Tipe

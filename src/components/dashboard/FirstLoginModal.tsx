@@ -106,103 +106,33 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
   // Step 3: Deskripsi
   const [description, setDescription] = useState('');
 
-  // Step 4: Fasilitas Outlet (Screenshots 3 & 2)
+  // Step 4: Fasilitas Outlet (Fetched from Global Master Data curated by Internal Admin)
   const [selectedFacilities, setSelectedFacilities] = useState<string[]>([]);
+  const [masterFacilities, setMasterFacilities] = useState<Array<{ id: string; name: string; code?: string; icon?: string }>>([]);
 
-  // 10 Facilities matching Figma Screenshot 3 & 2
-  const allFacilities = [
-    {
-      id: 'Indoor',
-      label: 'Indoor',
-      icon: (
-        <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-          <rect x="4" y="3" width="16" height="18" rx="2" />
-          <path d="M9 10h2M13 10h2M9 14h2M13 14h2M9 18h6" />
-        </svg>
-      ),
-    },
-    {
-      id: 'Indoor Smooking',
-      label: 'Indoor Smooking',
-      icon: (
-        <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-          <circle cx="8" cy="14" r="3" />
-          <circle cx="16" cy="14" r="3" />
-          <circle cx="12" cy="8" r="3" />
-        </svg>
-      ),
-    },
-    {
-      id: 'Outdoor',
-      label: 'Outdoor',
-      icon: <Cloud className="size-5" />,
-    },
-    {
-      id: 'AC',
-      label: 'AC',
-      icon: (
-        <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-          <rect x="2" y="4" width="20" height="9" rx="2" />
-          <path d="M6 18c1-1 2-1 3 0s2 1 3 0 2-1 3 0M6 21c1-1 2-1 3 0s2 1 3 0 2-1 3 0" />
-        </svg>
-      ),
-    },
-    {
-      id: 'WIFI',
-      label: 'WIFI',
-      icon: <Wifi className="size-5" />,
-    },
-    {
-      id: 'Stop Kontak',
-      label: 'Stop Kontak',
-      icon: (
-        <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-          <path d="M12 2v6M9 4v4M15 4v4M7 8h10a4 4 0 0 1 4 4v2a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-2a4 4 0 0 1 4-4z" />
-          <path d="M12 18v4" />
-        </svg>
-      ),
-    },
-    {
-      id: 'Parkir',
-      label: 'Parkir',
-      icon: (
-        <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-          <circle cx="12" cy="12" r="9" />
-          <path d="M10 8h3a2.5 2.5 0 0 1 0 5h-3v3" />
-        </svg>
-      ),
-    },
-    {
-      id: 'Toilet',
-      label: 'Toilet',
-      icon: (
-        <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-          <path d="M7 12h10M12 12v6M10 18h4" />
-          <circle cx="12" cy="7" r="3" />
-        </svg>
-      ),
-    },
-    {
-      id: 'Mushola',
-      label: 'Mushola',
-      icon: (
-        <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-          <path d="M12 3v3M9 6a3 3 0 0 0 6 0M4 21V10c0-2 2-4 4-4h8c2 0 4 2 4 4v11" />
-          <path d="M9 21v-5a3 3 0 0 1 6 0v5" />
-        </svg>
-      ),
-    },
-    {
-      id: 'Akses Kursi Roda',
-      label: 'Akses Kursi Roda',
-      icon: (
-        <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-          <circle cx="12" cy="4" r="2" />
-          <path d="M12 8v5l3 3M8 17a5 5 0 1 0 5-5" />
-        </svg>
-      ),
-    },
-  ];
+  useEffect(() => {
+    if (!isOpen) return;
+    tenantService
+      .getGlobalMasterData()
+      .then((res) => {
+        if (res.data?.facilities) {
+          setMasterFacilities(res.data.facilities);
+        }
+      })
+      .catch(() => {});
+  }, [isOpen]);
+
+  const renderFacilityIcon = (codeOrIcon?: string) => {
+    const key = (codeOrIcon || '').toLowerCase();
+    if (key.includes('wifi')) return <Wifi className="size-5" />;
+    if (key.includes('ac') || key.includes('wind')) return <Wind className="size-5" />;
+    if (key.includes('outdoor') || key.includes('sun') || key.includes('cloud')) return <Cloud className="size-5" />;
+    if (key.includes('park') || key.includes('car')) return <Car className="size-5" />;
+    if (key.includes('power') || key.includes('zap')) return <Zap className="size-5" />;
+    if (key.includes('smok') || key.includes('flame')) return <Cigarette className="size-5" />;
+    if (key.includes('indoor') || key.includes('store')) return <Store className="size-5" />;
+    return <Sparkles className="size-5" />;
+  };
 
   if (!isOpen) return null;
 
@@ -817,35 +747,41 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
                 </p>
               </div>
 
-              {/* 5 columns x 2 rows grid matching Figma Screenshots 3 & 2 */}
-              <div className="grid grid-cols-5 gap-2.5">
-                {allFacilities.map((fac) => {
-                  const isSelected = selectedFacilities.includes(fac.id);
-                  return (
-                    <button
-                      key={fac.id}
-                      type="button"
-                      onClick={() => toggleFacility(fac.id)}
-                      className={`h-[82px] rounded-2xl flex flex-col items-center justify-center gap-1.5 p-2 text-center transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-2 border-blue-400 bg-blue-50/70 text-blue-600 shadow-xs'
-                          : 'border border-neutral-200 hover:border-neutral-300 bg-white text-neutral-600'
-                      }`}
-                    >
-                      <div className={isSelected ? 'text-blue-600' : 'text-neutral-500'}>
-                        {fac.icon}
-                      </div>
-                      <span
-                        className={`text-[10px] leading-tight font-medium ${
-                          isSelected ? 'font-semibold text-blue-600' : 'text-neutral-600'
+              {/* Grid of Global Master Facilities */}
+              {masterFacilities.length === 0 ? (
+                <p className="text-xs text-neutral-400 py-4 text-center">
+                  Belum ada master fasilitas aktif dari admin platform.
+                </p>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+                  {masterFacilities.map((fac) => {
+                    const isSelected = selectedFacilities.includes(fac.name);
+                    return (
+                      <button
+                        key={fac.id}
+                        type="button"
+                        onClick={() => toggleFacility(fac.name)}
+                        className={`h-[82px] rounded-2xl flex flex-col items-center justify-center gap-1.5 p-2 text-center transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-2 border-blue-400 bg-blue-50/70 text-blue-600 shadow-xs'
+                            : 'border border-neutral-200 hover:border-neutral-300 bg-white text-neutral-600'
                         }`}
                       >
-                        {fac.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                        <div className={isSelected ? 'text-blue-600' : 'text-neutral-500'}>
+                          {renderFacilityIcon(fac.code || fac.icon || fac.name)}
+                        </div>
+                        <span
+                          className={`text-[10px] leading-tight font-medium ${
+                            isSelected ? 'font-semibold text-blue-600' : 'text-neutral-600'
+                          }`}
+                        >
+                          {fac.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Bottom Buttons */}
               <div className="pt-4 flex items-center gap-3">

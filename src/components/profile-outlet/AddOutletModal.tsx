@@ -7,6 +7,7 @@ import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { Textarea } from '@/components/common/Textarea';
 import { Select } from '@/components/common/Select';
+import { tenantService } from '@/services/tenant.service';
 
 interface AddOutletModalProps {
   isOpen: boolean;
@@ -29,17 +30,27 @@ export function AddOutletModal({
 }: AddOutletModalProps) {
   const [name, setName] = useState(defaultBrandName);
   const [branchName, setBranchName] = useState('');
-  const [category, setCategory] = useState('Coffee Shop');
+  const [category, setCategory] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
 
   useEffect(() => {
     if (isOpen) {
       setName(defaultBrandName);
       setBranchName('');
-      setCategory('Coffee Shop');
       setPhone('');
       setAddress('');
+      tenantService
+        .getGlobalMasterData()
+        .then((res) => {
+          const list = res.data?.categories || [];
+          setCategories(list);
+          if (list.length > 0) {
+            setCategory(list[0].name);
+          }
+        })
+        .catch(() => {});
     }
   }, [isOpen, defaultBrandName]);
 
@@ -125,11 +136,12 @@ export function AddOutletModal({
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             >
-              <option value="Coffee Shop">Coffee Shop</option>
-              <option value="Restoran & Cafe">Restoran & Cafe</option>
-              <option value="Kafe & Bakery">Kafe & Bakery</option>
-              <option value="Fast Food">Fast Food</option>
-              <option value="Bar & Lounge">Bar & Lounge</option>
+              <option value="">Pilih kategori bisnis</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.name}>
+                  {cat.name}
+                </option>
+              ))}
             </Select>
           </div>
 
