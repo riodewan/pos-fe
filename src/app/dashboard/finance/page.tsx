@@ -386,6 +386,12 @@ export default function FinancePage() {
     );
   }, [reconciliations, transSearch]);
 
+  const totalWithdrawn = useMemo(() => {
+    return disbursements
+      .filter((d) => d.status === 'Berhasil')
+      .reduce((sum, d) => sum + d.grossAmount, 0);
+  }, [disbursements]);
+
   const channelColumns: ColumnDef<ChannelReconciliation>[] = [
     {
       key: 'channelName',
@@ -412,7 +418,7 @@ export default function FinancePage() {
     },
     {
       key: 'grossAmount',
-      header: 'Total Kotor (Customer)',
+      header: 'Total Tagihan',
       render: (item) => (
         <span className="font-semibold text-neutral-900 text-xs font-mono">
           {formatRupiah(item.grossAmount)}
@@ -421,7 +427,7 @@ export default function FinancePage() {
     },
     {
       key: 'taxAmount',
-      header: 'Pajak (Masuk Mitra)',
+      header: 'Pajak Toko',
       render: (item) => (
         <span className="text-emerald-700 font-mono text-xs font-semibold">
           +{formatRupiah(item.taxAmount)}
@@ -429,17 +435,8 @@ export default function FinancePage() {
       ),
     },
     {
-      key: 'mdrFee',
-      header: 'Biaya Platform (Kita)',
-      render: (item) => (
-        <span className="text-[#FF5C38] text-xs font-mono">
-          {item.mdrFee === 0 ? 'Rp0' : `-${formatRupiah(item.mdrFee)}`}
-        </span>
-      ),
-    },
-    {
       key: 'netSettlement',
-      header: 'Hak Bersih Mitra (+Pajak)',
+      header: 'Total Penerimaan Toko',
       render: (item) => (
         <span className="font-bold text-emerald-700 text-xs font-mono">
           {formatRupiah(item.netSettlement)}
@@ -494,30 +491,21 @@ export default function FinancePage() {
     },
     {
       key: 'grossAmount',
-      header: 'Total Bayar Customer',
+      header: 'Total Tagihan',
       render: (item) => (
         <span className="text-xs font-mono text-neutral-900">{formatRupiah(item.grossAmount)}</span>
       ),
     },
     {
       key: 'taxAmount',
-      header: 'Pajak Mitra',
+      header: 'Pajak Toko',
       render: (item) => (
         <span className="text-xs font-mono text-emerald-700 font-medium">+{formatRupiah(item.taxAmount)}</span>
       ),
     },
     {
-      key: 'mdrFee',
-      header: 'Biaya Platform',
-      render: (item) => (
-        <span className="text-xs font-mono text-[#FF5C38]">
-          {item.mdrFee === 0 ? 'Rp0' : `-${formatRupiah(item.mdrFee)}`}
-        </span>
-      ),
-    },
-    {
       key: 'netAmount',
-      header: 'Hak Bersih Mitra',
+      header: 'Total Penerimaan Toko',
       render: (item) => (
         <span className="text-xs font-mono font-bold text-emerald-700">
           {formatRupiah(item.netAmount)}
@@ -682,7 +670,7 @@ export default function FinancePage() {
             Keuangan & Rekonsiliasi
           </h1>
           <p className="text-xs text-neutral-500 mt-1">
-            Rekonsiliasi settlement pembayaran digital, pencairan dana mitra, dan audit kas fisik kasir
+            Rekonsiliasi settlement pembayaran digital, pencairan dana toko, dan audit kas fisik drawer kasir
           </p>
         </div>
 
@@ -732,12 +720,12 @@ export default function FinancePage() {
         </div>
 
         <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
-          <p className="text-xs font-medium text-neutral-500">Total Hak Bersih Mitra (+Pajak)</p>
+          <p className="text-xs font-medium text-neutral-500">Total Penerimaan Bersih Toko</p>
           <p className="text-2xl font-bold text-emerald-700 tracking-tight font-mono">
             {totals ? formatRupiah(totals.net) : formatRupiah(0)}
           </p>
           <p className="text-[11px] text-neutral-500">
-            Termasuk Pajak Mitra {formatRupiah(totals?.tax ?? 0)}
+            Termasuk Pajak Toko {formatRupiah(totals?.tax ?? 0)}
           </p>
         </div>
 
@@ -750,11 +738,13 @@ export default function FinancePage() {
         </div>
 
         <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
-          <p className="text-xs font-medium text-neutral-500">Biaya Platform Terpisah</p>
-          <p className="text-2xl font-bold text-[#FF5C38] tracking-tight font-mono">
-            {formatRupiah(totals?.mdr ?? 0)}
+          <p className="text-xs font-medium text-neutral-500">Total Berhasil Dicairkan (Payout)</p>
+          <p className="text-2xl font-bold text-neutral-900 tracking-tight font-mono">
+            {formatRupiah(totalWithdrawn)}
           </p>
-          <p className="text-[11px] text-emerald-600 font-medium">100% Cocok & Terpisah Otomatis</p>
+          <p className="text-[11px] text-neutral-500">
+            {disbursements.filter((d) => d.status === 'Berhasil').length} penarikan dana ke rekening
+          </p>
         </div>
       </div>
 

@@ -250,12 +250,12 @@ export default function ReportsPage() {
     lines.push(`LAPORAN PENJUALAN & HPP OUTLET - ${activeStore?.name || 'Outlet'}`);
     lines.push(`Periode,${start} s/d ${end}`);
     lines.push('');
-    lines.push('RINGKASAN PENDAPATAN MITRA');
+    lines.push('RINGKASAN PENDAPATAN TOKO');
     lines.push(`Penjualan Kotor (Gross Sales),${kpis.gross_sales}`);
     lines.push(`Potongan Diskon,${kpis.total_discounts}`);
     lines.push(`Penjualan Bersih (Net Sales),${kpis.net_sales}`);
-    lines.push(`Pajak Toko (Masuk Mitra),${taxCollected}`);
-    lines.push(`Total Penerimaan Toko (Revenue Mitra),${kpis.total_revenue}`);
+    lines.push(`Pajak Restoran / Toko,${taxCollected}`);
+    lines.push(`Total Penerimaan Toko,${kpis.total_revenue}`);
     lines.push(`Total HPP Bahan Baku,${financialAnalysis.total_cogs}`);
     lines.push(`Laba Kotor (Gross Profit),${financialAnalysis.gross_profit}`);
     lines.push('');
@@ -461,7 +461,7 @@ export default function ReportsPage() {
     },
     {
       key: 'totalCollected',
-      header: 'Total Hak Bersih Mitra',
+      header: 'Total Penerimaan Toko',
       render: (item) => (
         <span className="font-mono font-bold text-xs text-neutral-900">
           {formatRupiah(item.totalCollected)}
@@ -489,7 +489,7 @@ export default function ReportsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Laporan & Analitik</h1>
           <p className="text-xs text-neutral-500 mt-1">
-            Analisis real-time pendapatan bersih mitra, pajak toko, HPP bahan baku resep, dan performa produk
+            Analisis real-time performa pendapatan toko, pajak restoran, HPP bahan baku resep, dan performa menu
           </p>
         </div>
 
@@ -531,7 +531,7 @@ export default function ReportsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
-            <p className="text-xs font-medium text-neutral-500">Total Penerimaan Toko (Revenue Mitra)</p>
+            <p className="text-xs font-medium text-neutral-500">Total Penerimaan Toko (Gross Revenue)</p>
             <p className="text-2xl font-bold text-neutral-900 tracking-tight font-mono">
               {formatRupiah(kpis.total_revenue)}
             </p>
@@ -653,13 +653,13 @@ export default function ReportsPage() {
                 <span className="font-mono">{formatRupiah(kpis.net_sales)}</span>
               </div>
               <div className="flex justify-between py-2.5">
-                <span className="text-neutral-500">Pajak Toko / Restoran (Masuk ke Mitra):</span>
+                <span className="text-neutral-500">Pajak Toko / Restoran (PB1):</span>
                 <span className="font-semibold text-emerald-700 font-mono">
                   +{formatRupiah(taxCollected)}
                 </span>
               </div>
               <div className="flex justify-between py-3 text-sm font-bold text-[#E5484D]">
-                <span>Total Penerimaan Toko (Revenue Mitra):</span>
+                <span>Total Penerimaan Toko (Gross Revenue):</span>
                 <span className="font-mono">{formatRupiah(kpis.total_revenue)}</span>
               </div>
               <div className="flex justify-between py-2.5">
@@ -674,9 +674,6 @@ export default function ReportsPage() {
                   {formatRupiah(financialAnalysis.gross_profit)} ({financialAnalysis.gross_profit_margin_percentage}%)
                 </span>
               </div>
-              <p className="text-[11px] text-neutral-400 pt-2">
-                * Biaya Layanan Platform langsung dipisahkan ke sistem NemuPOS dan tidak termasuk dalam pendapatan toko.
-              </p>
             </div>
           </div>
 
@@ -720,7 +717,7 @@ export default function ReportsPage() {
             <div className="p-6 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-4">
               <h3 className="text-sm font-bold text-neutral-900 tracking-tight flex items-center gap-2">
                 <CreditCard className="size-4 text-[#FF5C38]" />
-                <span>Rincian Metode Pembayaran (Hak Bersih Mitra)</span>
+                <span>Rincian Metode Pembayaran (Penerimaan Bersih)</span>
               </h3>
               {paymentMethods.length === 0 ? (
                 <p className="text-xs text-neutral-400 py-4 text-center">
