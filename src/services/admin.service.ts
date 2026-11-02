@@ -26,7 +26,7 @@ export interface PlatformTenantItem {
   email: string;
   phone?: string;
   address?: string;
-  status: 'ACTIVE' | 'SUSPENDED' | 'INACTIVE';
+  status: 'ACTIVE' | 'PENDING' | 'REJECTED' | 'SUSPENDED' | 'INACTIVE';
   stores_count?: number;
   tenant_users_count?: number;
   created_at: string;
@@ -36,7 +36,14 @@ export interface PlatformTenantItem {
 
 export interface PlatformApprovalItem {
   id: string;
-  type: 'TENANT_REGISTRATION' | 'OUTLET_ADDITION' | 'PLAN_UPGRADE' | 'REFUND_REQUEST';
+  type:
+    | 'KYB_VERIFICATION'
+    | 'STORE_CREATION'
+    | 'TENANT_REGISTRATION'
+    | 'OUTLET_ADDITION'
+    | 'PLAN_UPGRADE'
+    | 'REFUND_REQUEST'
+    | string;
   tenant_id?: string;
   store_id?: string;
   user_id?: string;

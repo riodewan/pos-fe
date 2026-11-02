@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   ShieldCheck,
   Building2,
@@ -11,66 +11,80 @@ import {
   FileText,
   LogOut,
   ChevronDown,
-  LayoutDashboard,
-  ExternalLink,
+  LayoutGrid,
   Store,
-  Menu,
-  X,
+  Menu as MenuIcon,
   Lock,
   ArrowLeft,
-  Bell,
-  Sparkles,
-  Users,
+  ChevronsUpDown,
+  ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { PageLoader } from '@/components/common/PageLoader';
+import { LoadingScreen } from '@/components/common/LoadingScreen';
+import { NemuLogo } from '@/components/common/NemuLogo';
+import { getInitials } from '@/utils';
+import { cn } from '@/lib/utils';
 
 interface NavItem {
   href: string;
   label: string;
   icon: React.ElementType;
-  badge?: string;
 }
 
-const ADMIN_NAV_ITEMS: NavItem[] = [
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
+const ADMIN_NAV_GROUPS: NavGroup[] = [
   {
-    href: '/admin',
-    label: 'Overview Platform',
-    icon: LayoutDashboard,
+    title: 'MAIN MENU',
+    items: [
+      {
+        href: '/admin',
+        label: 'Overview Platform',
+        icon: LayoutGrid,
+      },
+      {
+        href: '/admin/tenants',
+        label: 'Mitra Bisnis & Toko',
+        icon: Building2,
+      },
+      {
+        href: '/admin/approvals',
+        label: 'Pusat Approval',
+        icon: CheckCircle,
+      },
+    ],
   },
   {
-    href: '/admin/tenants',
-    label: 'Mitra Bisnis & Toko',
-    icon: Building2,
-  },
-  {
-    href: '/admin/approvals',
-    label: 'Pusat Approval',
-    icon: CheckCircle,
-  },
-  {
-    href: '/admin/master-data',
-    label: 'Data Master & Fee Jasa',
-    icon: Database,
-  },
-  {
-    href: '/admin/audit-logs',
-    label: 'Log Audit Global',
-    icon: FileText,
+    title: 'MASTER & SISTEM',
+    items: [
+      {
+        href: '/admin/master-data',
+        label: 'Data Master Global',
+        icon: Database,
+      },
+      {
+        href: '/admin/audit-logs',
+        label: 'Log Audit Global',
+        icon: FileText,
+      },
+    ],
   },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const { user, isInternalAdmin, isLoading, logout } = useAuth();
 
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   // Close mobile sidebar on route change
   useEffect(() => {
-    setMobileSidebarOpen(false);
+    setMobileMenuOpen(false);
   }, [pathname]);
 
   if (isLoading) {
@@ -80,17 +94,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // Access check: only internal admin allowed
   if (!isInternalAdmin && !user?.is_internal) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-6 text-white text-center">
-        <div className="size-16 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center mb-4">
+      <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center p-6 text-neutral-900 text-center">
+        <div className="size-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mb-4 shadow-xs">
           <Lock className="size-8" />
         </div>
-        <h1 className="text-xl font-bold mb-2">Akses Terbatas: Admin Internal</h1>
-        <p className="text-xs text-neutral-400 max-w-md mb-6 leading-relaxed">
-          Halaman ini khusus untuk Administrator Platform NemuPOS. Akun Anda saat ini ({user?.email || 'Guest'}) tidak memiliki otorisasi Admin Internal.
+        <h1 className="text-lg font-bold mb-1">Akses Terbatas: Admin Internal</h1>
+        <p className="text-xs text-neutral-500 max-w-md mb-6 leading-relaxed">
+          Halaman ini khusus untuk Administrator Platform NemuPOS. Akun Anda saat ini (
+          {user?.email || 'Guest'}) tidak memiliki otorisasi Admin Internal.
         </p>
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF5C38] hover:bg-[#E04B28] text-white text-xs font-bold transition-all shadow-lg"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF5C38] hover:bg-[#E04B28] text-white text-xs font-bold transition-all shadow-xs"
         >
           <ArrowLeft className="size-4" />
           <span>Kembali ke Dashboard Toko</span>
@@ -100,149 +115,255 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-[#0D0D0D] text-neutral-100 flex flex-col md:flex-row">
-      {/* SIDEBAR (Desktop) */}
-      <aside className="hidden md:flex w-64 flex-col justify-between border-r border-neutral-800/80 bg-[#141414] shrink-0 sticky top-0 h-screen">
-        <div>
-          {/* Brand & Admin Badge */}
-          <div className="p-5 border-b border-neutral-800/80">
-            <div className="flex items-center gap-2.5">
-              <div className="size-9 rounded-xl bg-gradient-to-br from-[#FF5C38] to-[#E02626] flex items-center justify-center text-white shadow-lg shadow-orange-950/40">
-                <ShieldCheck className="size-5" />
-              </div>
-              <div>
-                <span className="text-sm font-extrabold tracking-tight text-white flex items-center gap-1.5">
-                  NemuPOS <span className="text-[#FF5C38]">Admin</span>
+    <div className="min-h-screen flex bg-[#F8F9FA]">
+      {/* Mobile Sidebar Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 lg:hidden animate-in fade-in duration-150"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Navigation (Matching NemuHub UI) */}
+      <aside
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 w-64 bg-[#141414] text-white transition-transform duration-200 flex flex-col',
+          mobileMenuOpen
+            ? 'translate-x-0'
+            : '-translate-x-full lg:sticky lg:top-0 lg:h-screen lg:translate-x-0'
+        )}
+      >
+        <div className="h-full flex flex-col justify-between">
+          <div>
+            {/* Brand Header */}
+            <div className="h-16 flex items-center justify-between px-5 border-b border-neutral-800/60">
+              <Link href="/admin" className="flex items-center gap-2">
+                <NemuLogo size="md" />
+                <span className="text-[9.5px] font-bold uppercase tracking-wider text-orange-400 bg-orange-950/60 border border-orange-500/40 px-1.5 py-0.5 rounded-md">
+                  Hub Admin
                 </span>
-                <span className="inline-block text-[9.5px] font-bold uppercase tracking-wider text-orange-400 bg-orange-950/50 border border-orange-800/40 px-1.5 py-0.2 rounded mt-0.5">
-                  Internal Platform
-                </span>
-              </div>
+              </Link>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-1 rounded-md text-neutral-400 hover:text-white hover:bg-neutral-800 cursor-pointer"
+                aria-label="Tutup menu"
+              >
+                <MenuIcon className="size-4" />
+              </button>
             </div>
+
+            {/* Navigation Groups */}
+            <nav className="overflow-y-auto px-3.5 py-4 space-y-5 max-h-[calc(100vh-160px)]">
+              {ADMIN_NAV_GROUPS.map((group) => (
+                <div key={group.title}>
+                  <p className="px-2.5 pb-2 text-[10.5px] font-bold text-neutral-400 uppercase tracking-wider">
+                    {group.title}
+                  </p>
+                  <div className="space-y-1">
+                    {group.items.map((item) => {
+                      const IconComponent = item.icon;
+                      const active =
+                        item.href === '/admin'
+                          ? pathname === '/admin'
+                          : pathname?.startsWith(item.href);
+
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={cn(
+                            'flex items-center gap-3 h-9 px-3 rounded-xl text-[13px] font-medium transition-colors',
+                            active
+                              ? 'bg-white/10 text-white font-semibold'
+                              : 'text-neutral-400 hover:bg-white/5 hover:text-white'
+                          )}
+                        >
+                          <IconComponent
+                            className={cn(
+                              'size-4 shrink-0',
+                              active ? 'text-white' : 'text-neutral-400'
+                            )}
+                          />
+                          <span className="truncate">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </nav>
           </div>
 
-          {/* Nav Items */}
-          <nav className="p-3 space-y-1">
-            <div className="px-3 py-1.5 text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
-              Menu Utama Platform
-            </div>
-            {ADMIN_NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const isActive =
-                item.href === '/admin'
-                  ? pathname === '/admin'
-                  : pathname?.startsWith(item.href);
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                    isActive
-                      ? 'bg-[#FF5C38] text-white shadow-md shadow-orange-950/30'
-                      : 'text-neutral-400 hover:text-white hover:bg-neutral-800/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Icon className="size-4 shrink-0" />
-                    <span>{item.label}</span>
+          <div>
+            {/* Shortcut to Dashboard Outlet */}
+            <div className="p-3 pb-0">
+              <Link
+                href="/dashboard"
+                className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800/80 border border-neutral-800 text-xs text-neutral-300 hover:text-white transition-all group"
+              >
+                <div className="flex items-center gap-2">
+                  <Store className="size-4 text-[#FF5C38]" />
+                  <div>
+                    <p className="font-bold text-[11.5px] text-white leading-tight">
+                      Dashboard Outlet
+                    </p>
+                    <p className="text-[10px] text-neutral-400 leading-tight">
+                      Buka Mode POS Toko
+                    </p>
                   </div>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
+                </div>
+                <ChevronRight className="size-3.5 text-neutral-400 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
 
-        {/* Bottom Switcher: Jump to Tenant POS */}
-        <div className="p-3 border-t border-neutral-800/80 space-y-2">
-          <Link
-            href="/dashboard"
-            className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800/80 border border-neutral-800 text-xs text-neutral-300 hover:text-white transition-all group"
-          >
-            <div className="flex items-center gap-2">
-              <Store className="size-4 text-[#FF5C38]" />
-              <div className="text-left">
-                <p className="font-bold text-[11px] leading-tight text-white">Dashboard Outlet</p>
-                <p className="text-[10px] text-neutral-500 leading-tight">Buka Mode POS Toko</p>
+            {/* Bottom Admin Profile Footer */}
+            <div className="p-3 border-t border-neutral-800/80 bg-[#171717] mt-3">
+              <div className="flex items-center justify-between p-2 rounded-xl bg-neutral-900 border border-neutral-800">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="size-8 rounded-full bg-[#2E2E2E] text-white flex items-center justify-center text-[11px] font-bold shrink-0">
+                    {getInitials(user?.name) || 'AD'}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[12.5px] font-semibold text-white truncate leading-tight">
+                      NemuPOS Hub
+                    </p>
+                    <div className="flex items-center gap-1.5 text-[10.5px] text-neutral-400 mt-0.5">
+                      <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Internal Platform</span>
+                    </div>
+                  </div>
+                </div>
+                <ChevronsUpDown className="size-3.5 text-neutral-400 shrink-0" />
               </div>
             </div>
-            <ExternalLink className="size-3.5 text-neutral-500 group-hover:text-white" />
-          </Link>
-
-          <div className="flex items-center justify-between px-2 pt-1 text-[11px] text-neutral-500">
-            <span>Platform v2.4 (Enterprise)</span>
-            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
           </div>
         </div>
       </aside>
 
-      {/* MAIN CONTENT AREA */}
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header */}
-        <header className="h-16 px-4 sm:px-6 border-b border-neutral-800/80 bg-[#141414] flex items-center justify-between sticky top-0 z-30">
-          <div className="flex items-center gap-3">
-            {/* Mobile menu trigger */}
+        <header className="sticky top-0 z-30 h-16 border-b border-neutral-800/80 bg-[#141414] text-white px-6 flex items-center justify-between gap-4 transition-colors">
+          <div className="flex items-center gap-3 min-w-0">
             <button
-              type="button"
-              onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-              className="md:hidden p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800"
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden p-1.5 -ml-1 rounded-md text-neutral-400 hover:text-white hover:bg-neutral-800 cursor-pointer"
+              aria-label="Buka menu"
             >
-              {mobileSidebarOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+              <MenuIcon className="size-5" />
             </button>
 
-            <div className="hidden sm:flex items-center gap-2">
-              <span className="size-2 rounded-full bg-emerald-500" />
-              <span className="text-xs font-semibold text-neutral-400">
-                Sistem SaaS Multi-Tenant Beroperasi Normal
-              </span>
+            {/* Quick Action Badges (NemuHub Style) */}
+            <div className="hidden sm:flex items-center gap-1.5 bg-[#1F1F1F] p-1.5 rounded-xl border border-neutral-800 shadow-xs">
+              <Link
+                href="/admin"
+                className={cn(
+                  'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all',
+                  pathname === '/admin'
+                    ? 'bg-[#FF5C38] text-white shadow-xs'
+                    : 'text-neutral-300 hover:text-white hover:bg-white/10'
+                )}
+              >
+                <ShieldCheck
+                  className={cn(
+                    'size-3.5',
+                    pathname === '/admin' ? 'text-white' : 'text-[#FF5C38]'
+                  )}
+                />
+                <span>Platform</span>
+              </Link>
+
+              <Link
+                href="/admin/approvals"
+                className={cn(
+                  'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all',
+                  pathname?.startsWith('/admin/approvals')
+                    ? 'bg-[#FF5C38] text-white shadow-xs'
+                    : 'text-neutral-300 hover:text-white hover:bg-white/10'
+                )}
+              >
+                <CheckCircle
+                  className={cn(
+                    'size-3.5',
+                    pathname?.startsWith('/admin/approvals') ? 'text-white' : 'text-[#FF5C38]'
+                  )}
+                />
+                <span>Approval KYB</span>
+              </Link>
+
+              <Link
+                href="/admin/master-data"
+                className={cn(
+                  'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all',
+                  pathname?.startsWith('/admin/master-data')
+                    ? 'bg-[#FF5C38] text-white shadow-xs'
+                    : 'text-neutral-300 hover:text-white hover:bg-white/10'
+                )}
+              >
+                <Database
+                  className={cn(
+                    'size-3.5',
+                    pathname?.startsWith('/admin/master-data') ? 'text-white' : 'text-[#FF5C38]'
+                  )}
+                />
+                <span>Master Data</span>
+              </Link>
             </div>
           </div>
 
-          {/* Right Header: Switch to Store & User Profile */}
+          {/* Right Header */}
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-700 bg-neutral-800/70 hover:bg-neutral-800 text-xs font-bold text-neutral-200 hover:text-white transition-all"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-neutral-800 bg-[#1E1E1E] hover:bg-neutral-800 text-xs font-bold text-neutral-200 hover:text-white transition-all shadow-2xs"
+              title="Buka Dashboard POS Outlet"
             >
               <Store className="size-3.5 text-[#FF5C38]" />
               <span>Buka POS Outlet</span>
             </Link>
 
-            {/* User Dropdown */}
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-neutral-800 text-xs transition-colors cursor-pointer"
+                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                className="flex items-center gap-2.5 px-3 py-1.5 rounded-full border border-neutral-800 bg-[#1E1E1E] hover:bg-neutral-800 text-neutral-200 shadow-2xs cursor-pointer transition-colors"
               >
-                <div className="size-8 rounded-xl bg-orange-600/30 border border-orange-500/40 text-orange-400 flex items-center justify-center font-bold text-xs">
-                  {user?.name?.[0]?.toUpperCase() || 'A'}
+                <div className="size-6 rounded-full bg-orange-100 text-[#FF5C38] flex items-center justify-center text-[11px] font-bold">
+                  {getInitials(user?.name) || 'AD'}
                 </div>
-                <div className="text-left hidden md:block">
-                  <p className="text-xs font-bold text-white leading-tight truncate max-w-[120px]">
-                    {user?.name || 'Admin'}
-                  </p>
-                  <p className="text-[10px] text-orange-400 leading-tight">Admin Internal</p>
-                </div>
-                <ChevronDown className={`size-3.5 text-neutral-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+                <span className="text-xs font-medium hidden sm:inline">
+                  {user?.name || 'Admin Internal'}
+                </span>
+                <ChevronDown
+                  className={cn(
+                    'size-3 text-neutral-400 transition-transform',
+                    userDropdownOpen && 'rotate-180'
+                  )}
+                />
               </button>
 
-              {userMenuOpen && (
+              {userDropdownOpen && (
                 <div
-                  className="absolute right-0 mt-2 w-48 rounded-xl bg-[#1C1C1C] border border-neutral-800 shadow-2xl py-1.5 z-50 text-xs text-neutral-200 animate-in fade-in zoom-in-95"
-                  onClick={() => setUserMenuOpen(false)}
+                  className="absolute right-0 mt-2 w-48 rounded-xl bg-[#1C1C1C] border border-neutral-800 shadow-xl py-1.5 z-50 text-xs text-neutral-200 animate-in fade-in duration-100"
+                  onClick={() => setUserDropdownOpen(false)}
                 >
-                  <div className="px-3 py-2 border-b border-neutral-800">
-                    <p className="font-bold text-white truncate">{user?.name}</p>
-                    <p className="text-[10.5px] text-neutral-400 truncate">{user?.email}</p>
+                  <div className="px-3 py-2 border-b border-neutral-800/80">
+                    <p className="font-semibold text-white truncate">{user?.name || 'Admin'}</p>
+                    <p className="text-[10px] text-neutral-400 truncate">{user?.email || ''}</p>
+                    <span className="inline-block mt-1 text-[10px] font-bold text-[#FF5C38] bg-[#FF5C38]/10 px-1.5 py-0.2 rounded">
+                      SUPER ADMIN
+                    </span>
                   </div>
+
                   <Link
                     href="/dashboard/settings/account"
                     className="flex items-center gap-2 px-3 py-2 hover:bg-white/5 text-neutral-200 hover:text-white transition-colors"
                   >
                     <span>Profile Akun</span>
                   </Link>
-                  <div className="border-t border-neutral-800 my-1" />
+
+                  <div className="border-t border-neutral-800/80 my-1" />
                   <button
                     type="button"
                     onClick={() => logout?.()}
@@ -257,36 +378,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </header>
 
-        {/* Mobile Navigation Drawer */}
-        {mobileSidebarOpen && (
-          <div className="md:hidden border-b border-neutral-800 bg-[#171717] p-4 space-y-2 animate-in slide-in-from-top-2">
-            {ADMIN_NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const isActive =
-                item.href === '/admin'
-                  ? pathname === '/admin'
-                  : pathname?.startsWith(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold ${
-                    isActive
-                      ? 'bg-[#FF5C38] text-white'
-                      : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
-                  }`}
-                >
-                  <Icon className="size-4" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Body Content */}
-        <main className="flex-1 bg-[#0A0A0A] p-4 sm:p-6 lg:p-8 overflow-y-auto">
-          {children}
+        {/* Page Children Container (Clean NemuHub Light Theme) */}
+        <main className="flex-1 bg-[#F8F9FA] p-6 lg:p-8 min-w-0">
+          <Suspense fallback={<LoadingScreen message="Memuat halaman admin..." />}>
+            {children}
+          </Suspense>
         </main>
       </div>
     </div>

@@ -3,14 +3,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Database,
-  Sparkles,
   Plus,
   Trash2,
   Edit2,
   X,
   CreditCard,
   Percent,
-  Store,
   Wifi,
   Building2,
   Landmark,
@@ -300,7 +298,8 @@ export default function AdminMasterDataPage() {
   };
 
   const handleDeleteItem = async (item: PlatformMasterItem) => {
-    if (!window.confirm(`Yakin ingin menghapus "${item.name}" dari ${GROUP_LABELS[item.group]}?`)) return;
+    if (!window.confirm(`Yakin ingin menghapus "${item.name}" dari ${GROUP_LABELS[item.group]}?`))
+      return;
     try {
       await adminService.deleteMasterItem(item.id);
       toast.success(`"${item.name}" berhasil dihapus.`);
@@ -363,7 +362,9 @@ export default function AdminMasterDataPage() {
       toast.success('Satuan ukur berhasil dihapus.');
       loadMasterData();
     } catch (err: any) {
-      toast.error(err.message || 'Gagal menghapus satuan ukur (mungkin sedang digunakan oleh bahan baku).');
+      toast.error(
+        err.message || 'Gagal menghapus satuan ukur (mungkin sedang digunakan oleh bahan baku).'
+      );
     }
   };
 
@@ -406,17 +407,17 @@ export default function AdminMasterDataPage() {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight flex items-center gap-2">
             <Database className="size-6 text-[#FF5C38]" />
             <span>Data Master Global Platform</span>
           </h1>
-          <p className="text-xs sm:text-sm text-neutral-400 mt-1">
+          <p className="text-xs text-neutral-500 mt-1">
             Seluruh data referensi global yang tampil di halaman user/merchant dikelola terpusat oleh Internal Admin di sini.
           </p>
         </div>
 
         {/* 6 Tabs Segmented Control */}
-        <div className="flex flex-wrap items-center bg-[#141414] p-1 rounded-xl border border-neutral-800 shadow-2xs gap-1">
+        <div className="flex flex-wrap items-center bg-white p-1.5 rounded-2xl border border-neutral-200/80 shadow-2xs gap-1">
           {[
             { id: 'categories', label: 'Kategori Bisnis', count: categories.length },
             { id: 'facilities', label: 'Fasilitas Outlet', count: getItemsByGroup('FACILITY').length },
@@ -437,16 +438,18 @@ export default function AdminMasterDataPage() {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id as MasterTab)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 activeTab === tab.id
-                  ? 'bg-[#FF5C38] text-white'
-                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                  ? 'bg-[#FF5C38] text-white shadow-2xs'
+                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
               }`}
             >
               <span>{tab.label}</span>
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                  activeTab === tab.id ? 'bg-black/25 text-white' : 'bg-neutral-800 text-neutral-400'
+                  activeTab === tab.id
+                    ? 'bg-black/20 text-white'
+                    : 'bg-neutral-100 text-neutral-600'
                 }`}
               >
                 {tab.count}
@@ -459,8 +462,8 @@ export default function AdminMasterDataPage() {
       {/* Tab 1: Kategori Bisnis Master */}
       {activeTab === 'categories' && (
         <div className="space-y-4 animate-in fade-in duration-150">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <p className="text-xs text-neutral-400">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-neutral-200/80 shadow-2xs">
+            <p className="text-xs text-neutral-600">
               Pilihan kategori bisnis yang tampil saat user registrasi KYB, mengatur Profil Outlet, dan menambah Cabang Baru.
             </p>
             <Button
@@ -479,31 +482,31 @@ export default function AdminMasterDataPage() {
             {categories.map((cat) => (
               <div
                 key={cat.id}
-                className="p-5 rounded-2xl bg-[#141414] border border-neutral-800/90 shadow-2xs space-y-3 flex flex-col justify-between"
+                className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-3 flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-white px-2.5 py-1 rounded-lg bg-neutral-800/80 border border-neutral-700/60">
+                    <span className="text-xs font-bold text-neutral-900 px-2.5 py-1 rounded-lg bg-neutral-100 border border-neutral-200/80">
                       {cat.name}
                     </span>
-                    <span className="text-[10.5px] font-mono text-neutral-500">/{cat.slug}</span>
+                    <span className="text-[10.5px] font-mono text-neutral-400">/{cat.slug}</span>
                   </div>
-                  <p className="text-xs text-neutral-400 mt-2.5 line-clamp-2">
+                  <p className="text-xs text-neutral-500 mt-2.5 line-clamp-2">
                     {cat.description || 'Tidak ada keterangan.'}
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-neutral-800/80">
+                <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
                   <button
                     type="button"
                     onClick={() => handleToggleCategory(cat)}
-                    className={`text-[10.5px] font-bold flex items-center gap-1 cursor-pointer ${
-                      cat.is_active ? 'text-emerald-400' : 'text-neutral-500'
+                    className={`text-[10.5px] font-bold flex items-center gap-1.5 cursor-pointer ${
+                      cat.is_active ? 'text-emerald-600' : 'text-neutral-400'
                     }`}
                   >
                     <span
                       className={`size-1.5 rounded-full ${
-                        cat.is_active ? 'bg-emerald-400' : 'bg-neutral-500'
+                        cat.is_active ? 'bg-emerald-500' : 'bg-neutral-400'
                       }`}
                     />
                     {cat.is_active ? 'Aktif (Klik untuk Nonaktifkan)' : 'Nonaktif'}
@@ -513,7 +516,7 @@ export default function AdminMasterDataPage() {
                     <button
                       type="button"
                       onClick={() => handleOpenCategoryModal(cat)}
-                      className="p-1.5 rounded-lg border border-neutral-700 text-neutral-300 hover:text-white hover:bg-neutral-800 text-xs transition-colors cursor-pointer"
+                      className="p-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50 text-xs transition-colors cursor-pointer"
                       title="Edit Kategori"
                     >
                       <Edit2 className="size-3.5" />
@@ -521,7 +524,7 @@ export default function AdminMasterDataPage() {
                     <button
                       type="button"
                       onClick={() => handleDeleteCategory(cat.id, cat.name)}
-                      className="p-1.5 rounded-lg border border-red-900/40 text-red-400 hover:bg-red-950/20 text-xs transition-colors cursor-pointer"
+                      className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-xs transition-colors cursor-pointer"
                       title="Hapus Kategori"
                     >
                       <Trash2 className="size-3.5" />
@@ -537,13 +540,13 @@ export default function AdminMasterDataPage() {
       {/* Tab 2: Fasilitas Outlet Global (FACILITY) */}
       {activeTab === 'facilities' && (
         <div className="space-y-4 animate-in fade-in duration-150">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-neutral-200/80 shadow-2xs">
             <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
                 <Wifi className="size-4 text-[#FF5C38]" />
                 Master Fasilitas Outlet Global
               </h3>
-              <p className="text-xs text-neutral-400 mt-0.5">
+              <p className="text-xs text-neutral-500 mt-0.5">
                 Daftar fasilitas ini ditampilkan pada First Login Modal dan pengaturan Operasional & Fasilitas Outlet milik merchant.
               </p>
             </div>
@@ -563,28 +566,28 @@ export default function AdminMasterDataPage() {
             {getItemsByGroup('FACILITY').map((item) => (
               <div
                 key={item.id}
-                className="p-5 rounded-2xl bg-[#141414] border border-neutral-800/90 shadow-2xs space-y-3 flex flex-col justify-between"
+                className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-3 flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-white px-2.5 py-1 rounded-lg bg-neutral-800/80 border border-neutral-700/60">
+                    <span className="text-xs font-bold text-neutral-900 px-2.5 py-1 rounded-lg bg-neutral-100 border border-neutral-200/80">
                       {item.name}
                     </span>
-                    <span className="text-[10.5px] font-mono text-neutral-500">
+                    <span className="text-[10.5px] font-mono text-neutral-400">
                       {item.code || '-'}
                     </span>
                   </div>
-                  <p className="text-xs text-neutral-400 mt-2.5 line-clamp-2">
+                  <p className="text-xs text-neutral-500 mt-2.5 line-clamp-2">
                     {item.description || 'Fasilitas standar outlet.'}
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-neutral-800/80">
+                <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
                   <button
                     type="button"
                     onClick={() => handleToggleItem(item)}
                     className={`text-[10.5px] font-bold flex items-center gap-1 cursor-pointer ${
-                      item.is_active ? 'text-emerald-400' : 'text-neutral-500'
+                      item.is_active ? 'text-emerald-600' : 'text-neutral-400'
                     }`}
                   >
                     <Power className="size-3" />
@@ -595,7 +598,7 @@ export default function AdminMasterDataPage() {
                     <button
                       type="button"
                       onClick={() => handleOpenItemModal('FACILITY', item)}
-                      className="p-1.5 rounded-lg border border-neutral-700 text-neutral-300 hover:text-white hover:bg-neutral-800 text-xs transition-colors cursor-pointer"
+                      className="p-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50 text-xs transition-colors cursor-pointer"
                       title="Edit Fasilitas"
                     >
                       <Edit2 className="size-3.5" />
@@ -603,7 +606,7 @@ export default function AdminMasterDataPage() {
                     <button
                       type="button"
                       onClick={() => handleDeleteItem(item)}
-                      className="p-1.5 rounded-lg border border-red-900/40 text-red-400 hover:bg-red-950/20 text-xs transition-colors cursor-pointer"
+                      className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-xs transition-colors cursor-pointer"
                       title="Hapus Fasilitas"
                     >
                       <Trash2 className="size-3.5" />
@@ -620,14 +623,14 @@ export default function AdminMasterDataPage() {
       {activeTab === 'business_banks' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-150">
           {/* Jenis Usaha / Badan Hukum */}
-          <div className="p-5 rounded-2xl bg-[#141414] border border-neutral-800/90 shadow-2xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
+          <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
               <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
                   <Building2 className="size-4 text-[#FF5C38]" />
                   Jenis Usaha / Badan Hukum
                 </h3>
-                <p className="text-[11px] text-neutral-400 mt-0.5">
+                <p className="text-[11px] text-neutral-500 mt-0.5">
                   Ditampilkan pada form verifikasi bisnis (KYB) merchant.
                 </p>
               </div>
@@ -647,27 +650,27 @@ export default function AdminMasterDataPage() {
               {getItemsByGroup('BUSINESS_TYPE').map((item) => (
                 <div
                   key={item.id}
-                  className="p-3.5 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-between gap-3"
+                  className="p-3.5 rounded-xl bg-neutral-50/70 border border-neutral-200/80 flex items-center justify-between gap-3"
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="text-xs font-bold text-white">{item.name}</p>
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-400">
+                      <p className="text-xs font-bold text-neutral-900">{item.name}</p>
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white border border-neutral-200 text-neutral-600">
                         {item.code}
                       </span>
                     </div>
                     {item.description && (
-                      <p className="text-[11px] text-neutral-400 mt-0.5">{item.description}</p>
+                      <p className="text-[11px] text-neutral-500 mt-0.5">{item.description}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={() => handleToggleItem(item)}
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer ${
+                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border cursor-pointer ${
                         item.is_active
-                          ? 'bg-emerald-500/10 text-emerald-400'
-                          : 'bg-neutral-800 text-neutral-500'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-neutral-100 text-neutral-500 border-neutral-200'
                       }`}
                     >
                       {item.is_active ? 'Aktif' : 'Nonaktif'}
@@ -675,14 +678,14 @@ export default function AdminMasterDataPage() {
                     <button
                       type="button"
                       onClick={() => handleOpenItemModal('BUSINESS_TYPE', item)}
-                      className="p-1.5 rounded-lg border border-neutral-700 text-neutral-300 hover:text-white hover:bg-neutral-800 cursor-pointer"
+                      className="p-1.5 rounded-lg border border-neutral-200 bg-white text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50 cursor-pointer"
                     >
                       <Edit2 className="size-3" />
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDeleteItem(item)}
-                      className="p-1.5 rounded-lg border border-red-900/40 text-red-400 hover:bg-red-950/20 cursor-pointer"
+                      className="p-1.5 rounded-lg border border-red-200 bg-white text-red-600 hover:bg-red-50 cursor-pointer"
                     >
                       <Trash2 className="size-3" />
                     </button>
@@ -693,14 +696,14 @@ export default function AdminMasterDataPage() {
           </div>
 
           {/* Bank Pencairan Dana */}
-          <div className="p-5 rounded-2xl bg-[#141414] border border-neutral-800/90 shadow-2xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
+          <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
               <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Landmark className="size-4 text-blue-400" />
+                <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
+                  <Landmark className="size-4 text-blue-600" />
                   Master Bank Pencairan Dana (Settlement)
                 </h3>
-                <p className="text-[11px] text-neutral-400 mt-0.5">
+                <p className="text-[11px] text-neutral-500 mt-0.5">
                   Pilihan bank tujuan penarikan dana (disbursement) di halaman Keuangan merchant.
                 </p>
               </div>
@@ -720,27 +723,27 @@ export default function AdminMasterDataPage() {
               {getItemsByGroup('BANK').map((item) => (
                 <div
                   key={item.id}
-                  className="p-3.5 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-between gap-3"
+                  className="p-3.5 rounded-xl bg-neutral-50/70 border border-neutral-200/80 flex items-center justify-between gap-3"
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="text-xs font-bold text-white">{item.name}</p>
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-400">
+                      <p className="text-xs font-bold text-neutral-900">{item.name}</p>
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white border border-neutral-200 text-neutral-600">
                         {item.code}
                       </span>
                     </div>
                     {item.description && (
-                      <p className="text-[11px] text-neutral-400 mt-0.5">{item.description}</p>
+                      <p className="text-[11px] text-neutral-500 mt-0.5">{item.description}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={() => handleToggleItem(item)}
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer ${
+                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border cursor-pointer ${
                         item.is_active
-                          ? 'bg-emerald-500/10 text-emerald-400'
-                          : 'bg-neutral-800 text-neutral-500'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-neutral-100 text-neutral-500 border-neutral-200'
                       }`}
                     >
                       {item.is_active ? 'Aktif' : 'Nonaktif'}
@@ -748,14 +751,14 @@ export default function AdminMasterDataPage() {
                     <button
                       type="button"
                       onClick={() => handleOpenItemModal('BANK', item)}
-                      className="p-1.5 rounded-lg border border-neutral-700 text-neutral-300 hover:text-white hover:bg-neutral-800 cursor-pointer"
+                      className="p-1.5 rounded-lg border border-neutral-200 bg-white text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50 cursor-pointer"
                     >
                       <Edit2 className="size-3" />
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDeleteItem(item)}
-                      className="p-1.5 rounded-lg border border-red-900/40 text-red-400 hover:bg-red-950/20 cursor-pointer"
+                      className="p-1.5 rounded-lg border border-red-200 bg-white text-red-600 hover:bg-red-50 cursor-pointer"
                     >
                       <Trash2 className="size-3" />
                     </button>
@@ -770,13 +773,13 @@ export default function AdminMasterDataPage() {
       {/* Tab 4: Satuan Ukur Global (units) */}
       {activeTab === 'units' && (
         <div className="space-y-4 animate-in fade-in duration-150">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-neutral-200/80 shadow-2xs">
             <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
                 <Scale className="size-4 text-[#FF5C38]" />
                 Master Satuan Ukur Global (Bahan Baku & Resep)
               </h3>
-              <p className="text-xs text-neutral-400 mt-0.5">
+              <p className="text-xs text-neutral-500 mt-0.5">
                 Satuan ukur standar yang tersedia untuk seluruh merchant pada modul Inventaris, Bahan Baku, dan Resep Menu.
               </p>
             </div>
@@ -796,17 +799,22 @@ export default function AdminMasterDataPage() {
             {units.map((u) => (
               <div
                 key={u.id}
-                className="p-4 rounded-2xl bg-[#141414] border border-neutral-800/90 shadow-2xs flex items-center justify-between gap-3"
+                className="p-4 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs flex items-center justify-between gap-3"
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-white">{u.name}</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-orange-500/10 text-[#FF5C38] border border-orange-500/20 font-bold">
+                    <span className="text-xs font-bold text-neutral-900">{u.name}</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-orange-50 text-[#FF5C38] border border-orange-200 font-bold">
                       {u.code}
                     </span>
                   </div>
-                  <p className="text-[11px] text-neutral-400 mt-1">
-                    Tipe: {u.type === 'WEIGHT' ? 'Berat (Weight)' : u.type === 'VOLUME' ? 'Volume (Cair)' : 'Jumlah (Count)'}
+                  <p className="text-[11px] text-neutral-500 mt-1">
+                    Tipe:{' '}
+                    {u.type === 'WEIGHT'
+                      ? 'Berat (Weight)'
+                      : u.type === 'VOLUME'
+                      ? 'Volume (Cair)'
+                      : 'Jumlah (Count)'}
                   </p>
                 </div>
 
@@ -814,7 +822,7 @@ export default function AdminMasterDataPage() {
                   <button
                     type="button"
                     onClick={() => handleOpenUnitModal(u)}
-                    className="p-1.5 rounded-lg border border-neutral-700 text-neutral-300 hover:text-white hover:bg-neutral-800 cursor-pointer"
+                    className="p-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50 cursor-pointer"
                     title="Edit Satuan"
                   >
                     <Edit2 className="size-3.5" />
@@ -822,7 +830,7 @@ export default function AdminMasterDataPage() {
                   <button
                     type="button"
                     onClick={() => handleDeleteUnit(u)}
-                    className="p-1.5 rounded-lg border border-red-900/40 text-red-400 hover:bg-red-950/20 cursor-pointer"
+                    className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
                     title="Hapus Satuan"
                   >
                     <Trash2 className="size-3.5" />
@@ -838,14 +846,14 @@ export default function AdminMasterDataPage() {
       {activeTab === 'templates' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-150">
           {/* Template Metode Pembayaran */}
-          <div className="p-5 rounded-2xl bg-[#141414] border border-neutral-800/90 shadow-2xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
+          <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
               <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
                   <CreditCard className="size-4 text-[#FF5C38]" />
                   Template Metode Pembayaran Global
                 </h3>
-                <p className="text-[11px] text-neutral-400 mt-0.5">
+                <p className="text-[11px] text-neutral-500 mt-0.5">
                   Digunakan sebagai referensi/template metode pembayaran pada pengaturan outlet merchant.
                 </p>
               </div>
@@ -865,32 +873,32 @@ export default function AdminMasterDataPage() {
               {getItemsByGroup('PAYMENT_METHOD').map((pm) => (
                 <div
                   key={pm.id}
-                  className="p-3.5 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-between gap-3"
+                  className="p-3.5 rounded-xl bg-neutral-50/70 border border-neutral-200/80 flex items-center justify-between gap-3"
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="font-bold text-white">{pm.name}</p>
-                      <span className="text-[10px] text-neutral-400 font-mono px-1.5 py-0.5 rounded bg-neutral-800">
+                      <p className="font-bold text-neutral-900">{pm.name}</p>
+                      <span className="text-[10px] text-neutral-600 font-mono px-1.5 py-0.5 rounded bg-white border border-neutral-200">
                         {pm.code}
                       </span>
                       {pm.metadata?.fee_percent !== undefined && (
-                        <span className="text-[10px] font-bold text-orange-400">
+                        <span className="text-[10px] font-bold text-[#FF5C38] bg-orange-50 px-1.5 py-0.5 rounded border border-orange-200">
                           MDR {pm.metadata.fee_percent}%
                         </span>
                       )}
                     </div>
                     {pm.description && (
-                      <p className="text-[11px] text-neutral-400 mt-0.5">{pm.description}</p>
+                      <p className="text-[11px] text-neutral-500 mt-0.5">{pm.description}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={() => handleToggleItem(pm)}
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer ${
+                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border cursor-pointer ${
                         pm.is_active
-                          ? 'bg-emerald-500/10 text-emerald-400'
-                          : 'bg-neutral-800 text-neutral-500'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-neutral-100 text-neutral-500 border-neutral-200'
                       }`}
                     >
                       {pm.is_active ? 'Aktif' : 'Nonaktif'}
@@ -898,14 +906,14 @@ export default function AdminMasterDataPage() {
                     <button
                       type="button"
                       onClick={() => handleOpenItemModal('PAYMENT_METHOD', pm)}
-                      className="p-1.5 rounded-lg border border-neutral-700 text-neutral-300 hover:text-white hover:bg-neutral-800 cursor-pointer"
+                      className="p-1.5 rounded-lg border border-neutral-200 bg-white text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50 cursor-pointer"
                     >
                       <Edit2 className="size-3" />
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDeleteItem(pm)}
-                      className="p-1.5 rounded-lg border border-red-900/40 text-red-400 hover:bg-red-950/20 cursor-pointer"
+                      className="p-1.5 rounded-lg border border-red-200 bg-white text-red-600 hover:bg-red-50 cursor-pointer"
                     >
                       <Trash2 className="size-3" />
                     </button>
@@ -916,14 +924,14 @@ export default function AdminMasterDataPage() {
           </div>
 
           {/* Template Pajak & Biaya Layanan */}
-          <div className="p-5 rounded-2xl bg-[#141414] border border-neutral-800/90 shadow-2xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
+          <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
               <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Percent className="size-4 text-blue-400" />
+                <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
+                  <Percent className="size-4 text-blue-600" />
                   Template Pajak & Biaya Layanan Global
                 </h3>
-                <p className="text-[11px] text-neutral-400 mt-0.5">
+                <p className="text-[11px] text-neutral-500 mt-0.5">
                   Pilihan preset regulasi pajak & service charge yang bisa dipilih merchant.
                 </p>
               </div>
@@ -943,29 +951,29 @@ export default function AdminMasterDataPage() {
               {getItemsByGroup('TAX_FEE').map((tax) => (
                 <div
                   key={tax.id}
-                  className="p-3.5 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-between gap-3"
+                  className="p-3.5 rounded-xl bg-neutral-50/70 border border-neutral-200/80 flex items-center justify-between gap-3"
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="font-bold text-white">{tax.name}</p>
-                      <span className="text-[10px] font-black text-white px-2 py-0.5 rounded bg-neutral-800 font-mono">
+                      <p className="font-bold text-neutral-900">{tax.name}</p>
+                      <span className="text-[10px] font-bold text-neutral-800 px-2 py-0.5 rounded bg-white border border-neutral-200 font-mono">
                         {tax.metadata?.value_type === 'FIXED'
                           ? formatRupiah(Number(tax.metadata?.value || 0))
                           : `${tax.metadata?.value ?? 0}%`}
                       </span>
                     </div>
                     {tax.description && (
-                      <p className="text-[11px] text-neutral-400 mt-0.5">{tax.description}</p>
+                      <p className="text-[11px] text-neutral-500 mt-0.5">{tax.description}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={() => handleToggleItem(tax)}
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer ${
+                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border cursor-pointer ${
                         tax.is_active
-                          ? 'bg-emerald-500/10 text-emerald-400'
-                          : 'bg-neutral-800 text-neutral-500'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-neutral-100 text-neutral-500 border-neutral-200'
                       }`}
                     >
                       {tax.is_active ? 'Aktif' : 'Nonaktif'}
@@ -973,14 +981,14 @@ export default function AdminMasterDataPage() {
                     <button
                       type="button"
                       onClick={() => handleOpenItemModal('TAX_FEE', tax)}
-                      className="p-1.5 rounded-lg border border-neutral-700 text-neutral-300 hover:text-white hover:bg-neutral-800 cursor-pointer"
+                      className="p-1.5 rounded-lg border border-neutral-200 bg-white text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50 cursor-pointer"
                     >
                       <Edit2 className="size-3" />
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDeleteItem(tax)}
-                      className="p-1.5 rounded-lg border border-red-900/40 text-red-400 hover:bg-red-950/20 cursor-pointer"
+                      className="p-1.5 rounded-lg border border-red-200 bg-white text-red-600 hover:bg-red-50 cursor-pointer"
                     >
                       <Trash2 className="size-3" />
                     </button>
@@ -995,23 +1003,23 @@ export default function AdminMasterDataPage() {
       {/* Tab 6: Skema Fee Transaksi & Model Kerjasama */}
       {activeTab === 'plans' && (
         <div className="space-y-4 animate-in fade-in duration-150">
-          <div className="p-4 rounded-2xl bg-neutral-900 border border-neutral-800 text-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs text-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div>
-              <p className="font-bold text-white text-sm flex items-center gap-2">
+              <p className="font-bold text-neutral-900 text-sm flex items-center gap-2">
                 <Percent className="size-4 text-[#FF5C38]" />
                 Model Bisnis: Kemitraan Bagi Hasil & Fee Jasa Transaksi
               </p>
-              <p className="text-neutral-400 mt-1 max-w-2xl leading-relaxed">
+              <p className="text-neutral-500 mt-1 max-w-2xl leading-relaxed">
                 NemuPOS tidak memungut biaya langganan bulanan dari mitra tenant. Pendapatan diperoleh dari biaya jasa transaksi yang dibayarkan oleh customer per transaksi berhasil.
               </p>
             </div>
-            <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-xs shrink-0 self-start md:self-center">
+            <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-xs shrink-0 self-start md:self-center">
               Kemitraan 0 Biaya Langganan
             </span>
           </div>
 
           {plans.length === 0 ? (
-            <div className="p-8 rounded-2xl bg-[#141414] border border-neutral-800 text-center text-xs text-neutral-400">
+            <div className="p-8 rounded-2xl bg-white border border-neutral-200/80 text-center text-xs text-neutral-500">
               Belum ada skema kemitraan / fee transaksi di database.
             </div>
           ) : (
@@ -1019,11 +1027,11 @@ export default function AdminMasterDataPage() {
               {plans.map((plan) => (
                 <div
                   key={plan.id}
-                  className="p-6 rounded-2xl bg-[#141414] border border-neutral-800/90 shadow-2xs space-y-4 flex flex-col justify-between"
+                  className="p-6 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-4 flex flex-col justify-between"
                 >
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-500/10 text-[#FF5C38] border border-orange-500/20">
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-orange-50 text-[#FF5C38] border border-orange-200">
                         Skema Kemitraan
                       </span>
                       <span className="text-[10px] text-neutral-400 font-mono">
@@ -1031,32 +1039,39 @@ export default function AdminMasterDataPage() {
                       </span>
                     </div>
 
-                    <h3 className="text-sm font-bold text-white">{plan.name}</h3>
+                    <h3 className="text-sm font-bold text-neutral-900">{plan.name}</h3>
 
                     <div>
-                      <span className="text-2xl font-black text-white">{formatRupiah(plan.price)}</span>
-                      <span className="text-xs text-neutral-400 font-medium"> / transaksi atau skema</span>
+                      <span className="text-2xl font-bold text-neutral-900">
+                        {formatRupiah(plan.price)}
+                      </span>
+                      <span className="text-xs text-neutral-500 font-medium">
+                        {' '}
+                        / transaksi atau skema
+                      </span>
                     </div>
 
-                    <div className="text-xs text-neutral-400 space-y-1">
+                    <div className="text-xs text-neutral-500 space-y-1">
                       <p>
-                        Kuota Outlet: <strong className="text-neutral-200">{plan.max_outlets} Cabang</strong>
+                        Kuota Outlet:{' '}
+                        <strong className="text-neutral-800">{plan.max_outlets} Cabang</strong>
                       </p>
                       <p>
-                        Kuota Staff: <strong className="text-neutral-200">{plan.max_staff} Akun</strong>
+                        Kuota Staff:{' '}
+                        <strong className="text-neutral-800">{plan.max_staff} Akun</strong>
                       </p>
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-neutral-800 text-xs flex items-center justify-between text-neutral-400">
-                    <span className="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px]">
-                      <span className="size-1.5 rounded-full bg-emerald-400" />
+                  <div className="pt-3 border-t border-neutral-100 text-xs flex items-center justify-between text-neutral-500">
+                    <span className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
+                      <span className="size-1.5 rounded-full bg-emerald-500" />
                       {plan.is_active ? 'Aktif' : 'Nonaktif'}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleOpenPlanModal(plan)}
-                      className="px-2.5 py-1 rounded-lg border border-neutral-700 text-neutral-300 hover:text-white hover:bg-neutral-800 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                      className="px-3 py-1.5 rounded-xl border border-neutral-200 text-neutral-700 hover:text-neutral-900 hover:bg-neutral-50 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
                     >
                       <Edit2 className="size-3" />
                       <span>Atur Skema</span>
@@ -1071,16 +1086,16 @@ export default function AdminMasterDataPage() {
 
       {/* Modal: Tambah/Edit Kategori Bisnis */}
       {isCategoryModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 backdrop-blur-2xs animate-in fade-in">
-          <div className="bg-[#171717] rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-neutral-800 text-white">
-            <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
-              <h3 className="text-base font-bold text-white">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-2xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-neutral-200 text-neutral-900">
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+              <h3 className="text-base font-bold text-neutral-900">
                 {editingCategory ? 'Edit Kategori Bisnis' : 'Tambah Kategori Bisnis'}
               </h3>
               <button
                 type="button"
                 onClick={() => setIsCategoryModalOpen(false)}
-                className="text-neutral-400 hover:text-white cursor-pointer"
+                className="text-neutral-400 hover:text-neutral-700 cursor-pointer"
               >
                 <X className="size-5" />
               </button>
@@ -1088,7 +1103,7 @@ export default function AdminMasterDataPage() {
 
             <form onSubmit={handleSaveCategory} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-neutral-300 mb-1">
+                <label className="block text-xs font-semibold text-neutral-700 mb-1">
                   Nama Kategori *
                 </label>
                 <input
@@ -1097,12 +1112,12 @@ export default function AdminMasterDataPage() {
                   placeholder="Contoh: Gelato & Ice Cream"
                   value={categoryName}
                   onChange={(e) => setCategoryName(e.target.value)}
-                  className="w-full bg-[#1F1F1F] border border-neutral-700 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-[#FF5C38]"
+                  className="w-full bg-white border border-neutral-200 rounded-xl px-3.5 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-neutral-300 mb-1">
+                <label className="block text-xs font-semibold text-neutral-700 mb-1">
                   Deskripsi Singkat
                 </label>
                 <textarea
@@ -1110,17 +1125,17 @@ export default function AdminMasterDataPage() {
                   placeholder="Keterangan kategori bisnis..."
                   value={categoryDesc}
                   onChange={(e) => setCategoryDesc(e.target.value)}
-                  className="w-full bg-[#1F1F1F] border border-neutral-700 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-[#FF5C38] resize-none"
+                  className="w-full bg-white border border-neutral-200 rounded-xl px-3.5 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#FF5C38] resize-none"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-neutral-800">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-neutral-100">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => setIsCategoryModalOpen(false)}
-                  className="border-neutral-700 text-neutral-300 text-xs"
+                  className="border-neutral-200 text-neutral-700 hover:bg-neutral-50 text-xs"
                 >
                   Batal
                 </Button>
@@ -1141,16 +1156,18 @@ export default function AdminMasterDataPage() {
 
       {/* Modal: Tambah/Edit Item Master Global (FACILITY, BUSINESS_TYPE, BANK, PAYMENT_METHOD, TAX_FEE) */}
       {isItemModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 backdrop-blur-2xs animate-in fade-in">
-          <div className="bg-[#171717] rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-neutral-800 text-white">
-            <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
-              <h3 className="text-base font-bold text-white">
-                {editingItem ? `Edit ${GROUP_LABELS[itemGroup]}` : `Tambah ${GROUP_LABELS[itemGroup]}`}
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-2xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-neutral-200 text-neutral-900">
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+              <h3 className="text-base font-bold text-neutral-900">
+                {editingItem
+                  ? `Edit ${GROUP_LABELS[itemGroup]}`
+                  : `Tambah ${GROUP_LABELS[itemGroup]}`}
               </h3>
               <button
                 type="button"
                 onClick={() => setIsItemModalOpen(false)}
-                className="text-neutral-400 hover:text-white cursor-pointer"
+                className="text-neutral-400 hover:text-neutral-700 cursor-pointer"
               >
                 <X className="size-5" />
               </button>
@@ -1158,7 +1175,7 @@ export default function AdminMasterDataPage() {
 
             <form onSubmit={handleSaveItem} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-neutral-300 mb-1">
+                <label className="block text-xs font-semibold text-neutral-700 mb-1">
                   Nama {GROUP_LABELS[itemGroup]} *
                 </label>
                 <input
@@ -1175,13 +1192,13 @@ export default function AdminMasterDataPage() {
                   }
                   value={itemName}
                   onChange={(e) => setItemName(e.target.value)}
-                  className="w-full bg-[#1F1F1F] border border-neutral-700 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-[#FF5C38]"
+                  className="w-full bg-white border border-neutral-200 rounded-xl px-3.5 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-neutral-300 mb-1">
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">
                     Kode Sistem
                   </label>
                   <input
@@ -1189,18 +1206,18 @@ export default function AdminMasterDataPage() {
                     placeholder="Otomatis jika kosong"
                     value={itemCode}
                     onChange={(e) => setItemCode(e.target.value)}
-                    className="w-full bg-[#1F1F1F] border border-neutral-700 rounded-xl px-3.5 py-2 text-xs font-mono focus:outline-none focus:border-[#FF5C38]"
+                    className="w-full bg-white border border-neutral-200 rounded-xl px-3.5 py-2 text-xs font-mono text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-neutral-300 mb-1">
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">
                     Urutan Tampil
                   </label>
                   <input
                     type="number"
                     value={itemSortOrder}
                     onChange={(e) => setItemSortOrder(Number(e.target.value))}
-                    className="w-full bg-[#1F1F1F] border border-neutral-700 rounded-xl px-3.5 py-2 text-xs font-mono focus:outline-none focus:border-[#FF5C38]"
+                    className="w-full bg-white border border-neutral-200 rounded-xl px-3.5 py-2 text-xs font-mono text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
                   />
                 </div>
               </div>
@@ -1208,13 +1225,13 @@ export default function AdminMasterDataPage() {
               {itemGroup === 'PAYMENT_METHOD' && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-neutral-300 mb-1">
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">
                       Kategori Pembayaran
                     </label>
                     <select
                       value={metaCategory}
                       onChange={(e) => setMetaCategory(e.target.value)}
-                      className="w-full bg-[#1F1F1F] border border-neutral-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#FF5C38]"
+                      className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
                     >
                       <option value="CASH">CASH (Tunai)</option>
                       <option value="QRIS">QRIS</option>
@@ -1224,7 +1241,7 @@ export default function AdminMasterDataPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-neutral-300 mb-1">
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">
                       MDR / Biaya (%)
                     </label>
                     <input
@@ -1233,7 +1250,7 @@ export default function AdminMasterDataPage() {
                       min={0}
                       value={metaFeePercent}
                       onChange={(e) => setMetaFeePercent(Number(e.target.value))}
-                      className="w-full bg-[#1F1F1F] border border-neutral-700 rounded-xl px-3.5 py-2 text-xs font-mono focus:outline-none focus:border-[#FF5C38]"
+                      className="w-full bg-white border border-neutral-200 rounded-xl px-3.5 py-2 text-xs font-mono text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
                     />
                   </div>
                 </div>
@@ -1242,43 +1259,49 @@ export default function AdminMasterDataPage() {
               {itemGroup === 'TAX_FEE' && (
                 <div className="grid grid-cols-3 gap-2.5">
                   <div>
-                    <label className="block text-xs font-bold text-neutral-300 mb-1">Jenis</label>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                      Jenis
+                    </label>
                     <select
                       value={metaTaxType}
                       onChange={(e) => setMetaTaxType(e.target.value as 'TAX' | 'FEE')}
-                      className="w-full bg-[#1F1F1F] border border-neutral-700 rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-[#FF5C38]"
+                      className="w-full bg-white border border-neutral-200 rounded-xl px-2.5 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
                     >
                       <option value="TAX">Pajak</option>
                       <option value="FEE">Biaya / Service</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-neutral-300 mb-1">Tipe Nilai</label>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                      Tipe Nilai
+                    </label>
                     <select
                       value={metaValueType}
                       onChange={(e) => setMetaValueType(e.target.value as 'PERCENTAGE' | 'FIXED')}
-                      className="w-full bg-[#1F1F1F] border border-neutral-700 rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-[#FF5C38]"
+                      className="w-full bg-white border border-neutral-200 rounded-xl px-2.5 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
                     >
                       <option value="PERCENTAGE">Persen (%)</option>
                       <option value="FIXED">Nominal (Rp)</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-neutral-300 mb-1">Nilai</label>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                      Nilai
+                    </label>
                     <input
                       type="number"
                       step="0.1"
                       min={0}
                       value={metaValue}
                       onChange={(e) => setMetaValue(Number(e.target.value))}
-                      className="w-full bg-[#1F1F1F] border border-neutral-700 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-[#FF5C38]"
+                      className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs font-mono text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
                     />
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-bold text-neutral-300 mb-1">
+                <label className="block text-xs font-semibold text-neutral-700 mb-1">
                   Deskripsi / Keterangan
                 </label>
                 <textarea
@@ -1286,17 +1309,17 @@ export default function AdminMasterDataPage() {
                   placeholder="Keterangan singkat..."
                   value={itemDesc}
                   onChange={(e) => setItemDesc(e.target.value)}
-                  className="w-full bg-[#1F1F1F] border border-neutral-700 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-[#FF5C38] resize-none"
+                  className="w-full bg-white border border-neutral-200 rounded-xl px-3.5 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#FF5C38] resize-none"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-neutral-800">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-neutral-100">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => setIsItemModalOpen(false)}
-                  className="border-neutral-700 text-neutral-300 text-xs"
+                  className="border-neutral-200 text-neutral-700 hover:bg-neutral-50 text-xs"
                 >
                   Batal
                 </Button>
@@ -1317,16 +1340,16 @@ export default function AdminMasterDataPage() {
 
       {/* Modal: Tambah/Edit Satuan Ukur Global */}
       {isUnitModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 backdrop-blur-2xs animate-in fade-in">
-          <div className="bg-[#171717] rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-neutral-800 text-white">
-            <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
-              <h3 className="text-base font-bold text-white">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-2xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-neutral-200 text-neutral-900">
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+              <h3 className="text-base font-bold text-neutral-900">
                 {editingUnit ? 'Edit Satuan Ukur Global' : 'Tambah Satuan Ukur Global'}
               </h3>
               <button
                 type="button"
                 onClick={() => setIsUnitModalOpen(false)}
-                className="text-neutral-400 hover:text-white cursor-pointer"
+                className="text-neutral-400 hover:text-neutral-700 cursor-pointer"
               >
                 <X className="size-5" />
               </button>
@@ -1334,7 +1357,7 @@ export default function AdminMasterDataPage() {
 
             <form onSubmit={handleSaveUnit} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-neutral-300 mb-1">
+                <label className="block text-xs font-semibold text-neutral-700 mb-1">
                   Nama Satuan *
                 </label>
                 <input
@@ -1343,13 +1366,13 @@ export default function AdminMasterDataPage() {
                   placeholder="Contoh: Kilogram / Botol"
                   value={unitName}
                   onChange={(e) => setUnitName(e.target.value)}
-                  className="w-full bg-[#1F1F1F] border border-neutral-700 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-[#FF5C38]"
+                  className="w-full bg-white border border-neutral-200 rounded-xl px-3.5 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-neutral-300 mb-1">
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">
                     Simbol / Kode *
                   </label>
                   <input
@@ -1358,17 +1381,17 @@ export default function AdminMasterDataPage() {
                     placeholder="Contoh: kg, ml, btl"
                     value={unitCode}
                     onChange={(e) => setUnitCode(e.target.value)}
-                    className="w-full bg-[#1F1F1F] border border-neutral-700 rounded-xl px-3.5 py-2 text-xs font-mono focus:outline-none focus:border-[#FF5C38]"
+                    className="w-full bg-white border border-neutral-200 rounded-xl px-3.5 py-2 text-xs font-mono text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-neutral-300 mb-1">
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">
                     Kategori Satuan *
                   </label>
                   <select
                     value={unitType}
                     onChange={(e) => setUnitType(e.target.value as 'WEIGHT' | 'VOLUME' | 'COUNT')}
-                    className="w-full bg-[#1F1F1F] border border-neutral-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#FF5C38]"
+                    className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
                   >
                     <option value="WEIGHT">Berat (Weight)</option>
                     <option value="VOLUME">Volume (Cair)</option>
@@ -1377,13 +1400,13 @@ export default function AdminMasterDataPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-neutral-800">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-neutral-100">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => setIsUnitModalOpen(false)}
-                  className="border-neutral-700 text-neutral-300 text-xs"
+                  className="border-neutral-200 text-neutral-700 hover:bg-neutral-50 text-xs"
                 >
                   Batal
                 </Button>
@@ -1404,16 +1427,16 @@ export default function AdminMasterDataPage() {
 
       {/* Modal: Edit Subscription Plan */}
       {isPlanModalOpen && editingPlan && (
-        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 backdrop-blur-2xs animate-in fade-in">
-          <div className="bg-[#171717] rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-neutral-800 text-white">
-            <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
-              <h3 className="text-base font-bold text-white">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-2xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-neutral-200 text-neutral-900">
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+              <h3 className="text-base font-bold text-neutral-900">
                 Ubah Skema: {editingPlan.name}
               </h3>
               <button
                 type="button"
                 onClick={() => setIsPlanModalOpen(false)}
-                className="text-neutral-400 hover:text-white cursor-pointer"
+                className="text-neutral-400 hover:text-neutral-700 cursor-pointer"
               >
                 <X className="size-5" />
               </button>
@@ -1421,7 +1444,7 @@ export default function AdminMasterDataPage() {
 
             <form onSubmit={handleSavePlan} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-neutral-300 mb-1">
+                <label className="block text-xs font-semibold text-neutral-700 mb-1">
                   Fee Transaksi / Tarif (Rp)
                 </label>
                 <input
@@ -1430,13 +1453,13 @@ export default function AdminMasterDataPage() {
                   min={0}
                   value={planPrice}
                   onChange={(e) => setPlanPrice(Number(e.target.value))}
-                  className="w-full bg-[#1F1F1F] border border-neutral-700 rounded-xl px-3.5 py-2 text-xs font-mono focus:outline-none focus:border-[#FF5C38]"
+                  className="w-full bg-white border border-neutral-200 rounded-xl px-3.5 py-2 text-xs font-mono text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-neutral-300 mb-1">
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">
                     Maks. Outlet Cabang
                   </label>
                   <input
@@ -1445,11 +1468,11 @@ export default function AdminMasterDataPage() {
                     min={1}
                     value={planMaxOutlets}
                     onChange={(e) => setPlanMaxOutlets(Number(e.target.value))}
-                    className="w-full bg-[#1F1F1F] border border-neutral-700 rounded-xl px-3.5 py-2 text-xs font-mono focus:outline-none focus:border-[#FF5C38]"
+                    className="w-full bg-white border border-neutral-200 rounded-xl px-3.5 py-2 text-xs font-mono text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-neutral-300 mb-1">
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">
                     Maks. Akun Staff
                   </label>
                   <input
@@ -1458,18 +1481,18 @@ export default function AdminMasterDataPage() {
                     min={1}
                     value={planMaxStaff}
                     onChange={(e) => setPlanMaxStaff(Number(e.target.value))}
-                    className="w-full bg-[#1F1F1F] border border-neutral-700 rounded-xl px-3.5 py-2 text-xs font-mono focus:outline-none focus:border-[#FF5C38]"
+                    className="w-full bg-white border border-neutral-200 rounded-xl px-3.5 py-2 text-xs font-mono text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-neutral-800">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-neutral-100">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => setIsPlanModalOpen(false)}
-                  className="border-neutral-700 text-neutral-300 text-xs"
+                  className="border-neutral-200 text-neutral-700 hover:bg-neutral-50 text-xs"
                 >
                   Batal
                 </Button>
