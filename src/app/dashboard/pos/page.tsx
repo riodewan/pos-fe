@@ -313,33 +313,26 @@ function PosContent() {
     );
   };
 
-  // Calculations
+  // Calculations: only Pajak (%) and Biaya Platform (%) are added to customer payment
   const subtotal = cart.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
     0
   );
-  // Taxes and fees come from the outlet configuration (database)
   const parseAmount = (value: string) => Number(String(value).replace(/[^0-9.,]/g, '').replace(',', '.')) || 0;
-  const calcFee = (type: 'Pajak' | 'Biaya') =>
-    Math.round(
-      taxFees
-        .filter((t) => t.type === type)
-        .reduce(
-          (sum, t) =>
-            sum +
-            (t.value_type === 'percent'
-              ? (subtotal * parseAmount(t.value)) / 100
-              : parseAmount(t.value)),
-          0
-        )
-    );
-  const tax = cart.length > 0 ? calcFee('Pajak') : 0;
-  const nesosFee = cart.length > 0 ? calcFee('Biaya') : 0;
-  const deliveryCost = orderType === 'DELIVERY' ? deliveryFee : 0;
-  const packagingCost = orderType === 'TAKEAWAY' ? packagingFee : 0;
+  const taxRate = taxFees
+    .filter((t) => t.type === 'Pajak' && t.is_active)
+    .reduce((sum, t) => sum + parseAmount(t.value), 0);
+  const platformFeeRate = taxFees
+    .filter((t) => t.type === 'Biaya' && t.is_active)
+    .reduce((sum, t) => sum + parseAmount(t.value), 0);
+
+  const tax = cart.length > 0 ? Math.round((subtotal * taxRate) / 100) : 0;
+  const nesosFee = cart.length > 0 ? Math.round((subtotal * platformFeeRate) / 100) : 0;
+  const deliveryCost = 0;
+  const packagingCost = 0;
   const totalAmount = Math.max(
     0,
-    subtotal + tax + nesosFee + deliveryCost + packagingCost - discountAmount
+    subtotal + tax + nesosFee - discountAmount
   );
 
   const handlePaymentSuccess = async (
@@ -593,6 +586,8 @@ function PosContent() {
               orderType={orderType}
               taxAmount={tax}
               serviceFeeAmount={nesosFee}
+              taxRate={taxRate}
+              platformFeeRate={platformFeeRate}
               deliveryFee={deliveryFee}
               packagingFee={packagingFee}
               courierName={courierName}
@@ -653,6 +648,8 @@ function PosContent() {
         discountAmount={discountAmount}
         taxAmount={tax}
         serviceFeeAmount={nesosFee}
+        taxRate={taxRate}
+        platformFeeRate={platformFeeRate}
         deliveryCost={deliveryCost}
         packagingCost={packagingCost}
         courierName={courierName}

@@ -18,6 +18,8 @@ interface BillPrintModalProps {
   discountAmount: number;
   taxAmount?: number;
   serviceFeeAmount?: number;
+  taxRate?: number;
+  platformFeeRate?: number;
   deliveryCost?: number;
   packagingCost?: number;
   courierName?: string;
@@ -39,9 +41,8 @@ export function BillPrintModal({
   discountAmount,
   taxAmount,
   serviceFeeAmount,
-  deliveryCost = 0,
-  packagingCost = 0,
-  courierName,
+  taxRate = 10,
+  platformFeeRate = 0,
   cashierName = 'Kasir',
   storeName = 'NemuPOS Outlet',
   storeAddress,
@@ -54,11 +55,11 @@ export function BillPrintModal({
     (sum, item) => sum + item.product.price * item.quantity,
     0
   );
-  const tax = taxAmount !== undefined ? taxAmount : Math.round(subtotal * 0.1);
-  const nesosFee = serviceFeeAmount !== undefined ? serviceFeeAmount : 0;
+  const tax = taxAmount !== undefined ? taxAmount : Math.round((subtotal * taxRate) / 100);
+  const nesosFee = serviceFeeAmount !== undefined ? serviceFeeAmount : Math.round((subtotal * platformFeeRate) / 100);
   const total = Math.max(
     0,
-    subtotal + tax + nesosFee + deliveryCost + packagingCost - discountAmount
+    subtotal + tax + nesosFee - discountAmount
   );
 
   const handlePrint = () => {
@@ -161,25 +162,13 @@ export function BillPrintModal({
             <span>{formatRupiah(subtotal)}</span>
           </div>
           <div className="flex justify-between">
-            <span>Pajak (10%)</span>
+            <span>Pajak ({taxRate}%)</span>
             <span>{formatRupiah(tax)}</span>
           </div>
           <div className="flex justify-between">
-            <span>Nesos Fee</span>
+            <span>Biaya Platform ({platformFeeRate}%)</span>
             <span>{formatRupiah(nesosFee)}</span>
           </div>
-          {deliveryCost > 0 && (
-            <div className="flex justify-between">
-              <span>Ongkir ({courierName || 'Kurir'})</span>
-              <span>{formatRupiah(deliveryCost)}</span>
-            </div>
-          )}
-          {packagingCost > 0 && (
-            <div className="flex justify-between">
-              <span>Biaya Kemasan</span>
-              <span>{formatRupiah(packagingCost)}</span>
-            </div>
-          )}
           {discountAmount > 0 && (
             <div className="flex justify-between text-rose-600">
               <span>Diskon</span>

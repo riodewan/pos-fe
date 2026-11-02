@@ -9,6 +9,8 @@ import {
   Store,
   Users,
   X,
+  Percent,
+  CheckCircle2,
 } from 'lucide-react';
 import { adminService, PlatformTenantItem } from '@/services/admin.service';
 import { Button } from '@/components/common/Button';
@@ -58,7 +60,16 @@ export default function AdminTenantsPage() {
     owner_password: 'Password123!',
     store_name: '',
     store_code: '',
+    platform_fee_percentage: 2.5,
+    tax_percentage: 10,
   });
+
+  // Per-Mitra Payment Fee & Tax Edit State inside Detail Modal
+  const [feeForm, setFeeForm] = useState({
+    platform_fee_percentage: 0,
+    tax_percentage: 10,
+  });
+  const [isSavingFees, setIsSavingFees] = useState(false);
 
   const fetchTenants = useCallback(async () => {
     try {
@@ -96,11 +107,42 @@ export default function AdminTenantsPage() {
       const res = await adminService.getTenant(tenantId);
       if (res?.data) {
         setSelectedTenant(res.data);
+        setFeeForm({
+          platform_fee_percentage: Number(res.data.platform_fee_percentage ?? 0),
+          tax_percentage: Number(res.data.tax_percentage ?? 10),
+        });
       }
     } catch (err) {
       toast.error('Gagal memuat detail tenant.');
     } finally {
       setDetailLoading(false);
+    }
+  };
+
+  const handleSaveTenantFees = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTenant) return;
+    try {
+      setIsSavingFees(true);
+      const res = await adminService.updateTenant(selectedTenant.id, {
+        platform_fee_percentage: Number(feeForm.platform_fee_percentage) || 0,
+        tax_percentage: Number(feeForm.tax_percentage) || 0,
+      });
+      if (res?.data) {
+        setSelectedTenant({
+          ...selectedTenant,
+          platform_fee_percentage: res.data.platform_fee_percentage,
+          tax_percentage: res.data.tax_percentage,
+        });
+      }
+      toast.success(
+        `Pengaturan komisi platform (${feeForm.platform_fee_percentage}%) & pajak (${feeForm.tax_percentage}%) untuk ${selectedTenant.name} berhasil disimpan!`
+      );
+      fetchTenants();
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal menyimpan pengaturan biaya mitra.');
+    } finally {
+      setIsSavingFees(false);
     }
   };
 
@@ -191,6 +233,8 @@ export default function AdminTenantsPage() {
         owner_password: 'Password123!',
         store_name: '',
         store_code: '',
+        platform_fee_percentage: 2.5,
+        tax_percentage: 10,
       });
       fetchTenants();
     } catch (err: any) {
@@ -290,6 +334,7 @@ export default function AdminTenantsPage() {
                   <th className="py-3.5 px-4">Email Kontak</th>
                   <th className="py-3.5 px-4">Jumlah Outlet</th>
                   <th className="py-3.5 px-4">Total Staff</th>
+                  <th className="py-3.5 px-4">Komisi Platform & Pajak</th>
                   <th className="py-3.5 px-4">Status Akun</th>
                   <th className="py-3.5 px-4">Tgl Daftar</th>
                   <th className="py-3.5 px-4 text-right">Aksi</th>
@@ -319,6 +364,17 @@ export default function AdminTenantsPage() {
                         <Users className="size-3.5 text-blue-600" />
                         {t.tenant_users_count ?? 1} Staff
                       </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 text-[#FF5C38] border border-orange-200/80 text-[10.5px] font-bold w-fit">
+                          <Percent className="size-3" />
+                          Platform: {Number(t.platform_fee_percentage ?? 0)}%
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-neutral-100 text-neutral-600 text-[10px] font-semibold w-fit">
+                          Pajak: {Number(t.tax_percentage ?? 10)}%
+                        </span>
+                      </div>
                     </td>
                     <td className="py-3.5 px-4">
                       <span
@@ -558,6 +614,54 @@ export default function AdminTenantsPage() {
                 </div>
               </div>
 
+              {/* Pengaturan Komisi Platform & Pajak Per-Mitra */}
+              <div className="space-y-3 pt-2 border-t border-neutral-100">
+                <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <Percent className="size-3.5 text-[#FF5C38]" />
+                  <span>Pengaturan Komisi Platform (Payment) & Pajak</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                      Potongan / Biaya Platform (%) *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="100"
+                      value={formData.platform_fee_percentage}
+                      onChange={(e) =>
+                        setFormData({ ...formData, platform_fee_percentage: Number(e.target.value) })
+                      }
+                      className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
+                    />
+                    <p className="text-[10px] text-neutral-400 mt-1">
+                      Persentase biaya layanan / payment gateway khusus mitra ini.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                      Pajak Transaksi Default (%)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="100"
+                      value={formData.tax_percentage}
+                      onChange={(e) =>
+                        setFormData({ ...formData, tax_percentage: Number(e.target.value) })
+                      }
+                      className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
+                    />
+                    <p className="text-[10px] text-neutral-400 mt-1">
+                      Dapat disesuaikan kembali oleh mitra di Pengaturan Outlet.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-neutral-100">
                 <Button
                   type="button"
@@ -655,6 +759,91 @@ export default function AdminTenantsPage() {
                     </p>
                   </div>
                 </div>
+
+                {/* Pengaturan Persentase Payment / Komisi Platform & Pajak per Mitra */}
+                <form
+                  onSubmit={handleSaveTenantFees}
+                  className="p-4 rounded-xl bg-orange-50/50 border border-orange-200/80 space-y-3"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <h4 className="font-bold text-neutral-900 flex items-center gap-1.5 text-xs">
+                        <Percent className="size-4 text-[#FF5C38]" />
+                        <span>Pengaturan Persentase Komisi Platform (Payment) & Pajak Mitra</span>
+                      </h4>
+                      <p className="text-[11px] text-neutral-500 mt-0.5">
+                        Atur persentase biaya layanan / payment gateway khusus untuk mitra ini serta besaran pajak transaksi customer.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="bg-white p-3 rounded-xl border border-neutral-200">
+                      <label className="block text-[11px] font-bold text-neutral-700 mb-1">
+                        Potongan / Biaya Platform Mitra (%)
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="100"
+                          value={feeForm.platform_fee_percentage}
+                          onChange={(e) =>
+                            setFeeForm({
+                              ...feeForm,
+                              platform_fee_percentage: Math.max(0, Number(e.target.value)),
+                            })
+                          }
+                          className="w-full h-9 px-3 rounded-lg border border-neutral-200 text-xs font-bold text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
+                        />
+                        <span className="text-xs font-bold text-neutral-500">%</span>
+                      </div>
+                      <p className="text-[10px] text-neutral-400 mt-1">
+                        Diterapkan otomatis pada setiap transaksi pembayaran customer & perhitungan settlement mitra.
+                      </p>
+                    </div>
+
+                    <div className="bg-white p-3 rounded-xl border border-neutral-200">
+                      <label className="block text-[11px] font-bold text-neutral-700 mb-1">
+                        Pajak Transaksi Customer (%)
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="100"
+                          value={feeForm.tax_percentage}
+                          onChange={(e) =>
+                            setFeeForm({
+                              ...feeForm,
+                              tax_percentage: Math.max(0, Number(e.target.value)),
+                            })
+                          }
+                          className="w-full h-9 px-3 rounded-lg border border-neutral-200 text-xs font-bold text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
+                        />
+                        <span className="text-xs font-bold text-neutral-500">%</span>
+                      </div>
+                      <p className="text-[10px] text-neutral-400 mt-1">
+                        Persentase pajak (PB1 / PPN) yang ditambahkan pada tagihan pembayaran customer.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-1">
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      size="xs"
+                      disabled={isSavingFees}
+                      className="bg-[#FF5C38] hover:bg-[#E04B28] text-white font-bold text-xs px-4 py-2 rounded-lg"
+                      leftIcon={<CheckCircle2 className="size-3.5" />}
+                    >
+                      {isSavingFees ? 'Menyimpan...' : 'Simpan Pengaturan Biaya Mitra'}
+                    </Button>
+                  </div>
+                </form>
 
                 {/* Outlets List */}
                 <div className="space-y-2">

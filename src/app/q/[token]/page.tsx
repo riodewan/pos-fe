@@ -250,10 +250,15 @@ function CustomerQrContent({ token }: { token: string }) {
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  // Calculate tax if configured
+  // Calculate tax & platform fee configured for this outlet/mitra
   const taxPct = session?.settings?.tax_percentage || 0;
+  const platformFeePct =
+    (session?.settings as any)?.platform_fee_percentage ??
+    session?.settings?.service_charge_percentage ??
+    0;
   const taxAmount = taxPct > 0 ? Math.round((subtotal * taxPct) / 100) : 0;
-  const totalPayable = subtotal + taxAmount;
+  const platformFeeAmount = platformFeePct > 0 ? Math.round((subtotal * platformFeePct) / 100) : 0;
+  const totalPayable = subtotal + taxAmount + platformFeeAmount;
 
   const formatCurrency = formatRupiah;
 
@@ -793,8 +798,14 @@ function CustomerQrContent({ token }: { token: string }) {
                       </div>
                       {taxAmount > 0 && (
                         <div className="flex justify-between text-neutral-500 dark:text-zinc-400">
-                          <span>PPN ({taxPct}%)</span>
+                          <span>Pajak ({taxPct}%)</span>
                           <span>{formatCurrency(taxAmount)}</span>
+                        </div>
+                      )}
+                      {platformFeeAmount > 0 && (
+                        <div className="flex justify-between text-neutral-500 dark:text-zinc-400">
+                          <span>Biaya Platform ({platformFeePct}%)</span>
+                          <span>{formatCurrency(platformFeeAmount)}</span>
                         </div>
                       )}
                       <div className="flex justify-between items-center pt-2 font-bold text-sm text-neutral-900 dark:text-zinc-100 border-t border-neutral-100 dark:border-zinc-800">
@@ -1006,8 +1017,14 @@ function CustomerQrContent({ token }: { token: string }) {
                 </div>
                 {taxAmount > 0 && (
                   <div className="flex justify-between text-neutral-500 dark:text-zinc-400">
-                    <span>PPN ({taxPct}%)</span>
+                    <span>Pajak ({taxPct}%)</span>
                     <span>{formatCurrency(taxAmount)}</span>
+                  </div>
+                )}
+                {platformFeeAmount > 0 && (
+                  <div className="flex justify-between text-neutral-500 dark:text-zinc-400">
+                    <span>Biaya Platform ({platformFeePct}%)</span>
+                    <span>{formatCurrency(platformFeeAmount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between items-center pt-2 font-bold text-sm text-neutral-900 dark:text-zinc-100 border-t border-neutral-100 dark:border-zinc-800">

@@ -27,6 +27,8 @@ export interface PlatformTenantItem {
   phone?: string;
   address?: string;
   status: 'ACTIVE' | 'PENDING' | 'REJECTED' | 'SUSPENDED' | 'INACTIVE';
+  platform_fee_percentage?: number;
+  tax_percentage?: number;
   stores_count?: number;
   tenant_users_count?: number;
   created_at: string;
@@ -187,6 +189,8 @@ export const adminService = {
     owner_password: string;
     store_name?: string;
     store_code?: string;
+    platform_fee_percentage?: number;
+    tax_percentage?: number;
   }) => api.post<ApiResponse<PlatformTenantItem>>('/internal/tenants', data, { skipStore: true }),
 
   updateTenant: (id: string, data: Partial<PlatformTenantItem>) =>

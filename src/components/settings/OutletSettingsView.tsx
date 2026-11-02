@@ -28,6 +28,7 @@ export function OutletSettingsView() {
   // Taxes & Fees State
   const [taxesFeesItems, setTaxesFeesItems] = useState<TaxFeeItem[]>([]);
   const [isTaxModalOpen, setIsTaxModalOpen] = useState(false);
+  const [editingTaxItem, setEditingTaxItem] = useState<TaxFeeItem | null>(null);
   const [isTaxDemoEmpty, setIsTaxDemoEmpty] = useState(false);
 
   // Payment Methods State
@@ -60,6 +61,7 @@ export function OutletSettingsView() {
             value: item.value,
             appliesTo: item.applies_to || 'Semua Menu',
             isActive: Boolean(item.is_active),
+            isPlatformManaged: Boolean(item.is_platform_managed || item.type === 'Biaya'),
           }));
           setTaxesFeesItems(mappedTaxes);
         }
@@ -83,26 +85,51 @@ export function OutletSettingsView() {
     fetchSettings();
   }, []);
 
-  const handleAddTaxFee = async (item: Omit<TaxFeeItem, 'id' | 'isActive'>) => {
+  const handleAddTaxFee = async (item: Omit<TaxFeeItem, 'id' | 'isActive'>, editId?: string) => {
     try {
-      const res = await tenantService.createTaxFee({
-        name: item.name,
-        type: item.type,
-        value_type: item.value.includes('%') ? 'percent' : 'fixed',
-        value: item.value,
-        applies_to: item.appliesTo,
-        is_active: true,
-      });
+      if (editId) {
+        const res = await tenantService.updateTaxFee(editId, {
+          name: item.name,
+          value: item.value,
+          applies_to: item.appliesTo,
+        });
+        const updated = res.data;
+        setTaxesFeesItems((prev) =>
+          prev.map((x) =>
+            x.id === editId
+              ? {
+                  ...x,
+                  name: updated?.name || item.name,
+                  value: updated?.value || item.value,
+                  appliesTo: updated?.applies_to || item.appliesTo,
+                }
+              : x
+          )
+        );
+        showToast(`${item.name} berhasil diperbarui!`);
+      } else {
+        const res = await tenantService.createTaxFee({
+          name: item.name,
+          type: 'Pajak',
+          value_type: 'percent',
+          value: item.value,
+          applies_to: item.appliesTo,
+          is_active: true,
+        });
 
-      const newItem: TaxFeeItem = {
-        ...item,
-        id: res.data?.id || `tf-${Date.now()}`,
-        isActive: true,
-      };
-      setIsTaxDemoEmpty(false);
-      showToast(`${item.name} berhasil ditambahkan!`);
-    } catch {
-      showToast('Gagal menambahkan pajak / biaya');
+        const newItem: TaxFeeItem = {
+          ...item,
+          id: res.data?.id || `tf-${Date.now()}`,
+          isActive: true,
+          isPlatformManaged: false,
+        };
+        setTaxesFeesItems((prev) => [...prev, newItem]);
+        setIsTaxDemoEmpty(false);
+        showToast(`${item.name} berhasil ditambahkan!`);
+      }
+      setEditingTaxItem(null);
+    } catch (err: any) {
+      showToast(err?.message || 'Gagal menyimpan pengaturan pajak');
     }
   };
 
@@ -192,11 +219,14 @@ export function OutletSettingsView() {
             <Button
               type="button"
               variant="primary"
-              onClick={() => setIsTaxModalOpen(true)}
+              onClick={() => {
+                setEditingTaxItem(null);
+                setIsTaxModalOpen(true);
+              }}
               className="bg-[#FF5C38] hover:bg-[#E04B28] text-white font-bold px-4 py-2.5 rounded-xl shadow-xs flex items-center gap-2 cursor-pointer transition-all text-xs"
             >
               <Plus className="size-4 stroke-[3]" />
-              <span>Tambah Pajak atau Biaya</span>
+              <span>Atur / Tambah Pajak</span>
             </Button>
           )}
 
@@ -267,7 +297,14 @@ export function OutletSettingsView() {
 
       {activeTab === 'taxes_fees' && (
         <TaxesFeesTab
-          onOpenAddModal={() => setIsTaxModalOpen(true)}
+          onOpenAddModal={() => {
+            setEditingTaxItem(null);
+            setIsTaxModalOpen(true);
+          }}
+          onEditItem={(item) => {
+            setEditingTaxItem(item);
+            setIsTaxModalOpen(true);
+          }}
           items={taxesFeesItems}
           setItems={setTaxesFeesItems}
           isDemoEmpty={isTaxDemoEmpty}
@@ -292,7 +329,11 @@ export function OutletSettingsView() {
       {/* Modals */}
       <AddTaxFeeModal
         isOpen={isTaxModalOpen}
-        onClose={() => setIsTaxModalOpen(false)}
+        editingItem={editingTaxItem}
+        onClose={() => {
+          setIsTaxModalOpen(false);
+          setEditingTaxItem(null);
+        }}
         onSave={handleAddTaxFee}
       />
 

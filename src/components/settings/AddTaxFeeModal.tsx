@@ -11,36 +11,44 @@ import { tenantService, GlobalMasterItem } from '@/services/tenant.service';
 interface AddTaxFeeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (item: Omit<TaxFeeItem, 'id' | 'isActive'>) => void;
+  editingItem?: TaxFeeItem | null;
+  onSave: (item: Omit<TaxFeeItem, 'id' | 'isActive'>, editId?: string) => void;
 }
 
-export function AddTaxFeeModal({ isOpen, onClose, onSave }: AddTaxFeeModalProps) {
-  const [name, setName] = useState('');
-  const [type, setType] = useState<'Pajak' | 'Biaya'>('Pajak');
-  const [valueType, setValueType] = useState<'percent' | 'fixed'>('percent');
-  const [value, setValue] = useState('');
+export function AddTaxFeeModal({ isOpen, onClose, editingItem, onSave }: AddTaxFeeModalProps) {
+  const [name, setName] = useState('PB1 / Pajak Restoran');
+  const [value, setValue] = useState('10');
   const [appliesTo, setAppliesTo] = useState('Semua Menu');
   const [masterTemplates, setMasterTemplates] = useState<GlobalMasterItem[]>([]);
 
   useEffect(() => {
     if (!isOpen) return;
+    if (editingItem) {
+      setName(editingItem.name);
+      setValue(editingItem.value.replace(/[^0-9.,]/g, '').replace(',', '.'));
+      setAppliesTo(editingItem.appliesTo || 'Semua Menu');
+    } else {
+      setName('PB1 / Pajak Restoran');
+      setValue('10');
+      setAppliesTo('Semua Menu');
+    }
     tenantService
       .getGlobalMasterData()
       .then((res) => {
         if (res.data?.tax_fees) {
-          setMasterTemplates(res.data.tax_fees);
+          setMasterTemplates(
+            res.data.tax_fees.filter((t) => (t.metadata?.type || 'TAX') !== 'FEE')
+          );
         }
       })
       .catch(() => {});
-  }, [isOpen]);
+  }, [isOpen, editingItem]);
 
   if (!isOpen) return null;
 
   const handleSelectTemplate = (tpl: GlobalMasterItem) => {
     setName(tpl.name);
     const meta = tpl.metadata || {};
-    setType(meta.type === 'FEE' ? 'Biaya' : 'Pajak');
-    setValueType(meta.value_type === 'FIXED' ? 'fixed' : 'percent');
     setValue(String(meta.value ?? '10'));
   };
 
@@ -48,27 +56,26 @@ export function AddTaxFeeModal({ isOpen, onClose, onSave }: AddTaxFeeModalProps)
     e.preventDefault();
     if (!name.trim() || !value.trim()) return;
 
-    const formattedValue =
-      valueType === 'percent'
-        ? `${value.replace('%', '')}%`
-        : `Rp${Number(value.replace(/[^0-9]/g, '')).toLocaleString('id-ID')}`;
+    const cleanNum = Number(value.replace(/[^0-9.,]/g, '').replace(',', '.')) || 0;
+    const formattedValue = `${cleanNum}%`;
 
-    onSave({
-      name,
-      type,
-      value: formattedValue,
-      appliesTo,
-    });
+    onSave(
+      {
+        name: name.trim(),
+        type: 'Pajak',
+        value: formattedValue,
+        appliesTo,
+      },
+      editingItem?.id
+    );
     onClose();
-    setName('');
-    setValue('');
   };
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Tambah Pajak atau Biaya"
+      title={editingItem ? 'Ubah Pengaturan Pajak' : 'Atur Pajak Transaksi'}
       size="md"
       footer={
         <div className="flex items-center justify-end gap-2.5 w-full">
@@ -81,7 +88,7 @@ export function AddTaxFeeModal({ isOpen, onClose, onSave }: AddTaxFeeModalProps)
             onClick={handleSubmit}
             className="bg-[#FF5C38] hover:bg-[#E04B28] text-white font-semibold"
           >
-            Simpan
+            Simpan Pajak
           </Button>
         </div>
       }
@@ -90,7 +97,7 @@ export function AddTaxFeeModal({ isOpen, onClose, onSave }: AddTaxFeeModalProps)
         {masterTemplates.length > 0 && (
           <div>
             <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-              Pilih dari Template Regulasi Global (Internal Admin)
+              Pilih dari Template Pajak Global
             </label>
             <div className="flex flex-wrap gap-1.5">
               {masterTemplates.map((tpl) => (
@@ -113,41 +120,11 @@ export function AddTaxFeeModal({ isOpen, onClose, onSave }: AddTaxFeeModalProps)
 
         <div>
           <label className="block text-xs font-bold text-neutral-700 mb-1">
-            Tipe
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setType('Pajak')}
-              className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                type === 'Pajak'
-                  ? 'border-[#FF5C38] bg-red-50 text-[#FF5C38]'
-                  : 'border-neutral-200 text-neutral-600 hover:bg-neutral-50'
-              }`}
-            >
-              Pajak
-            </button>
-            <button
-              type="button"
-              onClick={() => setType('Biaya')}
-              className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                type === 'Biaya'
-                  ? 'border-[#FF5C38] bg-red-50 text-[#FF5C38]'
-                  : 'border-neutral-200 text-neutral-600 hover:bg-neutral-50'
-              }`}
-            >
-              Biaya
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-neutral-700 mb-1">
-            Nama Pajak / Biaya *
+            Nama Pajak *
           </label>
           <Input
             size="sm"
-            placeholder="Contoh: PPN 11%, Biaya Layanan"
+            placeholder="Contoh: PB1 10%, PPN 11%"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -157,47 +134,34 @@ export function AddTaxFeeModal({ isOpen, onClose, onSave }: AddTaxFeeModalProps)
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-bold text-neutral-700 mb-1">
-              Bentuk Nilai
-            </label>
-            <Select
-              size="sm"
-              value={valueType}
-              onChange={(e) => setValueType(e.target.value as 'percent' | 'fixed')}
-            >
-              <option value="percent">Persentase (%)</option>
-              <option value="fixed">Nominal Tetap (Rp)</option>
-            </Select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1">
-              Nominal / Nilai *
+              Persentase Pajak (%) *
             </label>
             <Input
               size="sm"
-              placeholder={valueType === 'percent' ? '11' : '2000'}
+              type="number"
+              step="0.1"
+              min="0"
+              max="100"
+              placeholder="10"
               value={value}
               onChange={(e) => setValue(e.target.value)}
               required
             />
           </div>
-        </div>
 
-        <div>
-          <label className="block text-xs font-bold text-neutral-700 mb-1">
-            Berlaku Untuk
-          </label>
-          <Select
-            size="sm"
-            value={appliesTo}
-            onChange={(e) => setAppliesTo(e.target.value)}
-          >
-            <option value="Semua Menu">Semua Menu</option>
-            <option value="Dine-in, Takeway">Dine-in, Takeway</option>
-            <option value="Takeway, Delivery">Takeway, Delivery</option>
-            <option value="Delivery">Delivery</option>
-            <option value="Minuman kemasan">Minuman kemasan</option>
-          </Select>
+          <div>
+            <label className="block text-xs font-bold text-neutral-700 mb-1">
+              Berlaku Untuk
+            </label>
+            <Select
+              size="sm"
+              value={appliesTo}
+              onChange={(e) => setAppliesTo(e.target.value)}
+            >
+              <option value="Semua Menu">Semua Menu</option>
+              <option value="Dine-in, Takeway">Dine-in, Takeaway</option>
+            </Select>
+          </div>
         </div>
       </form>
     </Modal>

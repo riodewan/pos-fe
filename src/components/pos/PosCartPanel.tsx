@@ -42,6 +42,8 @@ interface PosCartPanelProps {
   orderType?: 'DINE_IN' | 'TAKEAWAY' | 'DELIVERY' | 'QR_ORDER';
   taxAmount?: number;
   serviceFeeAmount?: number;
+  taxRate?: number;
+  platformFeeRate?: number;
   deliveryFee?: number;
   packagingFee?: number;
   courierName?: string;
@@ -71,6 +73,8 @@ export function PosCartPanel({
   orderType = 'DINE_IN',
   taxAmount,
   serviceFeeAmount,
+  taxRate = 10,
+  platformFeeRate = 0,
   deliveryFee = 0,
   packagingFee = 0,
   courierName = 'GoSend',
@@ -101,18 +105,16 @@ export function PosCartPanel({
   const [tempCustomerName, setTempCustomerName] = useState(customerName);
   const [tempCustomerPhone, setTempCustomerPhone] = useState(customerPhone);
 
-  // Calculations matching outlet configuration
+  // Calculations matching outlet & platform configuration
   const subtotal = cart.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
     0
   );
-  const tax = taxAmount !== undefined ? taxAmount : Math.round(subtotal * 0.1);
-  const nesosFee = serviceFeeAmount !== undefined ? serviceFeeAmount : 0;
-  const deliveryCost = orderType === 'DELIVERY' ? deliveryFee : 0;
-  const packagingCost = orderType === 'TAKEAWAY' ? packagingFee : 0;
+  const tax = taxAmount !== undefined ? taxAmount : Math.round((subtotal * taxRate) / 100);
+  const nesosFee = serviceFeeAmount !== undefined ? serviceFeeAmount : Math.round((subtotal * platformFeeRate) / 100);
   const total = Math.max(
     0,
-    subtotal + tax + nesosFee + deliveryCost + packagingCost - discountAmount
+    subtotal + tax + nesosFee - discountAmount
   );
 
   const handleOpenItemNote = (item: PosCartItem) => {
@@ -325,36 +327,18 @@ export function PosCartPanel({
         </div>
 
         <div className="flex items-center justify-between text-neutral-600">
-          <span>Pajak (10%)</span>
+          <span>Pajak ({taxRate}%)</span>
           <span className="font-semibold text-neutral-900">
             {formatRupiah(tax)}
           </span>
         </div>
 
         <div className="flex items-center justify-between text-neutral-600">
-          <span>Nesos Fee</span>
+          <span>Biaya Platform ({platformFeeRate}%)</span>
           <span className="font-semibold text-neutral-900">
             {formatRupiah(nesosFee)}
           </span>
         </div>
-
-        {deliveryCost > 0 && (
-          <div className="flex items-center justify-between text-neutral-600">
-            <span>Ongkir ({courierName})</span>
-            <span className="font-semibold text-neutral-900">
-              {formatRupiah(deliveryCost)}
-            </span>
-          </div>
-        )}
-
-        {packagingCost > 0 && (
-          <div className="flex items-center justify-between text-neutral-600">
-            <span>Biaya Kemasan</span>
-            <span className="font-semibold text-neutral-900">
-              {formatRupiah(packagingCost)}
-            </span>
-          </div>
-        )}
 
         <div className="flex items-center justify-between text-neutral-600">
           <span>Diskon</span>

@@ -6,9 +6,10 @@ export interface TaxFeeItem {
   id: string;
   name: string;
   type: 'Pajak' | 'Biaya';
-  value: string; // e.g. '11%', 'Rp2.000'
-  appliesTo: string; // e.g. 'Semua Menu', 'Dine-in, Takeway'
+  value: string; // e.g. '11%', '2.5%'
+  appliesTo: string; // e.g. 'Semua Menu', 'Semua Transaksi'
   isActive: boolean;
+  isPlatformManaged?: boolean;
 }
 
 export interface PaymentMethodItem {
