@@ -76,16 +76,18 @@ export default function DashboardOverviewPage() {
     }
   }, [roleName, isLoading, isOwnerOrManager, user, router]);
 
-  // Check if first login / onboarding should be displayed
+  // First login: Owner of an approved tenant that has not completed onboarding (DB flag)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const onboarded = localStorage.getItem('nemu_tenant_onboarded');
-      const forceOnboarding = searchParams?.get('onboarding') === 'true';
-      if (!onboarded || forceOnboarding) {
-        setShowFirstLoginModal(true);
-      }
+    const forceOnboarding = searchParams?.get('onboarding') === 'true';
+    const needsOnboarding =
+      roleName === 'OWNER' &&
+      !!activeTenant &&
+      activeTenant.status === 'ACTIVE' &&
+      activeTenant.onboarded === false;
+    if (needsOnboarding || forceOnboarding) {
+      setShowFirstLoginModal(true);
     }
-  }, [searchParams]);
+  }, [searchParams, roleName, activeTenant]);
 
   // Dynamic greeting based on current time
   const greeting = useMemo(() => {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import {
   Store,
@@ -24,10 +24,17 @@ import {
   CheckCircle2,
   Check,
   Link2,
+  User as UserIcon,
+  Loader2,
 } from 'lucide-react';
 import { ProgressStepper, StepItem } from '@/components/common/ProgressStepper';
 import { ReviewSummaryCard } from '@/components/common/ReviewSummaryCard';
 import { Switch } from '@/components/ui/switch';
+import { useAuth } from '@/context/AuthContext';
+import { useStore } from '@/context/StoreContext';
+import { tenantService } from '@/services/tenant.service';
+import { authService } from '@/services/auth.service';
+import { useToast } from '@/context/ToastContext';
 
 const ONBOARDING_STEPS: StepItem[] = [
   { num: 1, label: 'Identitas Outlet' },
@@ -51,43 +58,56 @@ interface DaySchedule {
 }
 
 export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModalProps) {
-  // modalMode: 'welcome' | 'stepper' | 'success'
-  const [modalMode, setModalMode] = useState<'welcome' | 'stepper' | 'success'>('welcome');
+  const { toast } = useToast();
+  const { user, activeTenant, refreshUser } = useAuth();
+  const { stores, activeStore, refreshStores } = useStore();
+
+  // modalMode: 'welcome' | 'owner' | 'stepper' | 'success'
+  const [modalMode, setModalMode] = useState<'welcome' | 'owner' | 'stepper' | 'success'>('welcome');
   // step inside stepper: 1 to 5
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [isSaving, setIsSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Owner profile
+  const [ownerName, setOwnerName] = useState('');
+  const [ownerPhone, setOwnerPhone] = useState('');
+  const [ownerJobTitle, setOwnerJobTitle] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      setOwnerName((prev) => prev || user.name || '');
+      setOwnerPhone((prev) => prev || (user as any).phone || '');
+      setOwnerJobTitle((prev) => prev || (user as any).job_title || '');
+    }
+  }, [user]);
+
+  const targetStore = activeStore || stores?.[0] || null;
 
   // Step 1: Identitas Outlet
-  const [logoUploaded, setLogoUploaded] = useState(true);
-  const [logoFileName, setLogoFileName] = useState('Logo_KopiMantap.webp');
-  const [photos, setPhotos] = useState<string[]>([
-    '/img/outlet/interior.jpg',
-    '/img/outlet/exterior.jpg',
-  ]);
+  const [logoData, setLogoData] = useState<string>('');
+  const [logoFileName, setLogoFileName] = useState('');
+  const [photos, setPhotos] = useState<string[]>([]);
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   // Step 2: Jam Operasional
   const [schedules, setSchedules] = useState<DaySchedule[]>([
-    { day: 'Senin', isOpen: true, openTime: '08:00', closeTime: '23:00' },
-    { day: 'Selasa', isOpen: true, openTime: '08:00', closeTime: '23:00' },
-    { day: 'Rabu', isOpen: true, openTime: '08:00', closeTime: '23:00' },
-    { day: 'Kamis', isOpen: true, openTime: '08:00', closeTime: '23:00' },
-    { day: 'Jumat', isOpen: true, openTime: '08:00', closeTime: '23:00' },
-    { day: 'Sabtu', isOpen: true, openTime: '08:00', closeTime: '23:00' },
-    { day: 'Minggu', isOpen: true, openTime: '08:00', closeTime: '23:00' },
+    { day: 'Senin', isOpen: true, openTime: '08:00', closeTime: '22:00' },
+    { day: 'Selasa', isOpen: true, openTime: '08:00', closeTime: '22:00' },
+    { day: 'Rabu', isOpen: true, openTime: '08:00', closeTime: '22:00' },
+    { day: 'Kamis', isOpen: true, openTime: '08:00', closeTime: '22:00' },
+    { day: 'Jumat', isOpen: true, openTime: '08:00', closeTime: '22:00' },
+    { day: 'Sabtu', isOpen: true, openTime: '08:00', closeTime: '22:00' },
+    { day: 'Minggu', isOpen: true, openTime: '08:00', closeTime: '22:00' },
   ]);
 
   // Step 3: Deskripsi
-  const [description, setDescription] = useState(
-    'Kopi Mantap adalah tempat ngopi santai untuk menikmati kopi favorit, bekerja, atau berkumpul bersama teman. Temukan teman terbaik untuk setiap momen dalam secangkir kopi.'
-  );
+  const [description, setDescription] = useState('');
 
   // Step 4: Fasilitas Outlet (Screenshots 3 & 2)
-  const [selectedFacilities, setSelectedFacilities] = useState<string[]>([
-    'Indoor',
-    'Indoor Smooking',
-  ]);
+  const [selectedFacilities, setSelectedFacilities] = useState<string[]>([]);
 
   // 10 Facilities matching Figma Screenshot 3 & 2
   const allFacilities = [
@@ -202,20 +222,40 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
     );
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const readImage = (file: File): Promise<string | null> =>
+    new Promise((resolve) => {
+      if (!file.type.startsWith('image/')) {
+        setErrorMsg('Format file harus berupa gambar (WebP, JPG, PNG).');
+        return resolve(null);
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        setErrorMsg('Ukuran gambar maksimal 2MB.');
+        return resolve(null);
+      }
+      setErrorMsg(null);
+      const reader = new FileReader();
+      reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+    const data = await readImage(file);
+    if (data) {
+      setLogoData(data);
       setLogoFileName(file.name);
-      setLogoUploaded(true);
     }
+    e.target.value = '';
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setPhotos((prev) => [...prev, url]);
-    }
+    if (!file) return;
+    const data = await readImage(file);
+    if (data) setPhotos((prev) => [...prev, data]);
+    e.target.value = '';
   };
 
   const removePhoto = (index: number) => {
@@ -230,14 +270,63 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
     );
   };
 
-  const handleFinish = () => {
-    setModalMode('success');
+  const handleSaveOwner = async () => {
+    if (!ownerName.trim()) {
+      setErrorMsg('Nama lengkap wajib diisi.');
+      return;
+    }
+    setIsSaving(true);
+    setErrorMsg(null);
+    try {
+      await authService.updateAccountProfile({
+        name: ownerName.trim(),
+        phone: ownerPhone.trim() || null,
+        job_title: ownerJobTitle.trim() || null,
+      });
+      await refreshUser();
+      setModalMode('stepper');
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Gagal menyimpan profil pemilik.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleFinish = async () => {
+    if (!targetStore) {
+      setErrorMsg('Outlet belum tersedia. Silakan hubungi admin.');
+      return;
+    }
+    setIsSaving(true);
+    setErrorMsg(null);
+    try {
+      await tenantService.updateOutletProfile(
+        {
+          store_id: targetStore.id,
+          logo_url: logoData,
+          description: description.trim() || null,
+          operating_hours: schedules,
+          facilities: selectedFacilities,
+          photos: photos.map((url, i) => ({
+            id: `photo-${Date.now()}-${i}`,
+            url,
+            title: `Foto Outlet ${i + 1}`,
+            category: 'Lainnya',
+          })),
+        },
+        targetStore.id
+      );
+      await tenantService.completeOnboarding();
+      await Promise.all([refreshUser(), refreshStores()]);
+      setModalMode('success');
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Gagal menyimpan profil outlet.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleFinalDashboardRedirect = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('nemu_tenant_onboarded', 'true');
-    }
     if (onComplete) onComplete();
     onClose();
   };
@@ -357,12 +446,94 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
           </div>
 
           <button
-            onClick={() => setModalMode('stepper')}
+            onClick={() => setModalMode('owner')}
             className="w-full h-12 rounded-xl bg-[#FF5C38] hover:bg-[#FF4D2D] text-white font-medium text-sm flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg active:scale-[0.99]"
           >
             <span>Lengkapi Profil Toko</span>
             <ArrowRight className="size-4" />
           </button>
+        </div>
+      ) : modalMode === 'owner' ? (
+        <div className="relative w-full max-w-[500px] bg-white rounded-2xl shadow-2xl p-7 flex flex-col animate-in zoom-in-95 duration-200">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="size-11 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0">
+              <UserIcon className="size-5" />
+            </div>
+            <div>
+              <h2 className="text-[19px] font-bold text-neutral-900 tracking-tight">Profil Pemilik</h2>
+              <p className="text-[12px] text-neutral-500 mt-0.5">
+                Lengkapi data akun Owner untuk {activeTenant?.name || 'tokomu'}.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3.5">
+            <div>
+              <label className="block text-xs font-semibold text-neutral-700 mb-1">Nama Lengkap *</label>
+              <input
+                type="text"
+                value={ownerName}
+                onChange={(e) => setOwnerName(e.target.value)}
+                className="w-full h-11 px-3.5 rounded-xl border border-neutral-200 text-sm text-neutral-800 focus:outline-none focus:border-[#FF5C38]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-neutral-700 mb-1">Email</label>
+              <input
+                type="text"
+                value={user?.email || ''}
+                disabled
+                className="w-full h-11 px-3.5 rounded-xl border border-neutral-200 bg-neutral-50 text-sm text-neutral-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-neutral-700 mb-1">Nomor Telepon</label>
+              <input
+                type="tel"
+                value={ownerPhone}
+                onChange={(e) => setOwnerPhone(e.target.value)}
+                placeholder="Contoh: 081234567890"
+                className="w-full h-11 px-3.5 rounded-xl border border-neutral-200 text-sm text-neutral-800 focus:outline-none focus:border-[#FF5C38]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-neutral-700 mb-1">Jabatan</label>
+              <input
+                type="text"
+                value={ownerJobTitle}
+                onChange={(e) => setOwnerJobTitle(e.target.value)}
+                placeholder="Contoh: Pemilik / Founder"
+                className="w-full h-11 px-3.5 rounded-xl border border-neutral-200 text-sm text-neutral-800 focus:outline-none focus:border-[#FF5C38]"
+              />
+            </div>
+          </div>
+
+          {errorMsg && (
+            <p className="mt-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{errorMsg}</p>
+          )}
+
+          <div className="pt-5 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setErrorMsg(null);
+                setModalMode('welcome');
+              }}
+              className="flex-1 h-11 rounded-xl border border-neutral-200 hover:bg-neutral-50 text-red-500 font-medium text-sm transition-colors"
+            >
+              Kembali
+            </button>
+            <button
+              type="button"
+              disabled={isSaving}
+              onClick={handleSaveOwner}
+              className="flex-1 h-11 rounded-xl bg-[#FF5C38] hover:bg-[#FF4D2D] disabled:opacity-60 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-md transition-all"
+            >
+              {isSaving ? <Loader2 className="size-4 animate-spin" /> : null}
+              <span>Simpan & Lanjutkan</span>
+              {!isSaving && <ArrowRight className="size-4" />}
+            </button>
+          </div>
         </div>
       ) : modalMode === 'stepper' ? (
         /* ============================================================ */
@@ -397,11 +568,11 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
                   Logo Outlet
                 </h3>
 
-                {logoUploaded ? (
+                {logoData ? (
                   <div className="flex items-center justify-between p-3 rounded-xl border border-neutral-200 bg-white">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="size-14 rounded-xl bg-[#C2410C] text-white flex items-center justify-center font-black text-lg tracking-wider shrink-0 shadow-sm">
-                        KM
+                      <div className="relative size-14 rounded-xl overflow-hidden border border-neutral-200 shrink-0 shadow-sm">
+                        <Image src={logoData} alt="Logo outlet" fill unoptimized className="object-cover" />
                       </div>
                       <div className="min-w-0">
                         <p className="text-[13px] font-medium text-blue-600 truncate">
@@ -470,6 +641,7 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
                         src={src}
                         alt={`Foto Outlet ${idx + 1}`}
                         fill
+                        unoptimized
                         className="object-cover"
                       />
                       <button
@@ -502,12 +674,16 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
                 </div>
               </div>
 
+              {errorMsg && (
+                <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{errorMsg}</p>
+              )}
+
               <div className="pt-4 flex items-center justify-end">
                 <button
-                  disabled={!logoUploaded || photos.length < 2}
+                  disabled={!logoData || photos.length < 2}
                   onClick={() => setCurrentStep(2)}
                   className={`w-full h-11 rounded-xl text-white font-medium text-sm flex items-center justify-center gap-2 transition-all ${
-                    logoUploaded && photos.length >= 2
+                    logoData && photos.length >= 2
                       ? 'bg-[#FF5C38] hover:bg-[#FF4D2D] shadow-md'
                       : 'bg-[#FF8265]/50 cursor-not-allowed'
                   }`}
@@ -722,8 +898,8 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
                   <div className="space-y-3 text-xs">
                     <div className="flex items-center gap-6">
                       <span className="w-16 text-neutral-500">Logo</span>
-                      <div className="size-12 rounded-xl bg-[#C2410C] text-white flex items-center justify-center font-black text-sm tracking-wider shadow-sm">
-                        KM
+                      <div className="relative size-12 rounded-xl overflow-hidden border border-neutral-200 shadow-sm">
+                        {logoData && <Image src={logoData} alt="Logo outlet" fill unoptimized className="object-cover" />}
                       </div>
                     </div>
                     <div className="flex items-center gap-6">
@@ -738,6 +914,7 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
                               src={src}
                               alt="Outlet preview"
                               fill
+                              unoptimized
                               className="object-cover"
                             />
                           </div>
@@ -755,11 +932,15 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
                   title="Jam Operasional"
                   onEdit={() => setCurrentStep(2)}
                 >
-                  <div className="flex items-center gap-8 text-xs">
-                    <span className="font-semibold text-neutral-900">
-                      Senin - Minggu
-                    </span>
-                    <span className="text-neutral-600">08:00 - 23:00</span>
+                  <div className="space-y-1 text-xs">
+                    {schedules.map((s) => (
+                      <div key={s.day} className="flex items-center gap-8">
+                        <span className="w-16 font-semibold text-neutral-900">{s.day}</span>
+                        <span className="text-neutral-600">
+                          {s.isOpen ? `${s.openTime} - ${s.closeTime}` : 'Tutup'}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </ReviewSummaryCard>
 
@@ -797,6 +978,10 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
                 </ReviewSummaryCard>
               </div>
 
+              {errorMsg && (
+                <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{errorMsg}</p>
+              )}
+
               {/* Bottom Buttons */}
               <div className="pt-4 flex items-center gap-3">
                 <button
@@ -806,11 +991,13 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
                   Kembali
                 </button>
                 <button
+                  disabled={isSaving}
                   onClick={handleFinish}
-                  className="flex-1 h-11 rounded-xl bg-[#FF5C38] hover:bg-[#FF4D2D] text-white font-medium text-sm flex items-center justify-center gap-2 shadow-md transition-all"
+                  className="flex-1 h-11 rounded-xl bg-[#FF5C38] hover:bg-[#FF4D2D] disabled:opacity-60 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-md transition-all"
                 >
-                  <span>Simpan Profile</span>
-                  <ArrowRight className="size-4" />
+                  {isSaving && <Loader2 className="size-4 animate-spin" />}
+                  <span>{isSaving ? 'Menyimpan...' : 'Simpan Profile'}</span>
+                  {!isSaving && <ArrowRight className="size-4" />}
                 </button>
               </div>
             </div>
