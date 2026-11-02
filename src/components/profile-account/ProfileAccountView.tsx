@@ -52,9 +52,9 @@ const INITIAL_ACCOUNT_DATA: UserAccountProfile = {
     dailySummary: { email: true, inApp: true },
   },
   preferences: {
-    language: 'Bahasa Indonesia',
+    language: 'English (US)',
     dateFormat: 'DD/MM/YYYY',
-    timezone: 'WIB (UTC+7)',
+    timezone: 'WIT (UTC+9)',
   },
   loginActivities: [],
 };
@@ -105,9 +105,9 @@ export function ProfileAccountView() {
 
           const prefs = d.user_preferences;
           const safePrefs = {
-            language: 'Bahasa Indonesia',
+            language: prefs?.language || 'English (US)',
             dateFormat: prefs?.dateFormat || 'DD/MM/YYYY',
-            timezone: prefs?.timezone || 'WIB (UTC+7)',
+            timezone: prefs?.timezone || 'WIT (UTC+9)',
           };
 
           setProfile((prev) => ({
@@ -707,64 +707,57 @@ export function ProfileAccountView() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+                <label className="block text-xs font-bold text-neutral-800 mb-2">
                   Bahasa Antarmuka
                 </label>
                 <div className="relative">
                   <select
                     value={profile.preferences.language}
                     onChange={(e) => handlePreferenceChange('language', e.target.value)}
-                    className="w-full appearance-none px-3.5 py-2 rounded-xl border border-neutral-200 text-xs font-medium text-neutral-900 bg-white focus:outline-none focus:border-[#FF5C38] focus:ring-1 focus:ring-[#FF5C38] cursor-pointer"
+                    className="w-full appearance-none px-4 py-2.5 rounded-xl border border-neutral-200 text-xs sm:text-sm font-medium text-neutral-900 bg-white focus:outline-none focus:border-[#FF5C38] focus:ring-1 focus:ring-[#FF5C38] cursor-pointer"
                   >
+                    <option value="English (US)">English (US)</option>
                     <option value="Bahasa Indonesia">Bahasa Indonesia</option>
                   </select>
                   <ChevronDown className="size-4 text-neutral-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
-                <p className="text-[10px] text-neutral-400 mt-1">
-                  Bahasa default sistem operasional
-                </p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+                <label className="block text-xs font-bold text-neutral-800 mb-2">
                   Format Tanggal
                 </label>
                 <div className="relative">
                   <select
                     value={profile.preferences.dateFormat}
                     onChange={(e) => handlePreferenceChange('dateFormat', e.target.value)}
-                    className="w-full appearance-none px-3.5 py-2 rounded-xl border border-neutral-200 text-xs font-medium text-neutral-900 bg-white focus:outline-none focus:border-[#FF5C38] focus:ring-1 focus:ring-[#FF5C38] cursor-pointer"
+                    className="w-full appearance-none px-4 py-2.5 rounded-xl border border-neutral-200 text-xs sm:text-sm font-medium text-neutral-900 bg-white focus:outline-none focus:border-[#FF5C38] focus:ring-1 focus:ring-[#FF5C38] cursor-pointer"
                   >
-                    <option value="DD/MM/YYYY">DD/MM/YYYY (Contoh: 02/11/2026)</option>
-                    <option value="DD MMMM YYYY">DD MMMM YYYY (Contoh: 2 November 2026)</option>
-                    <option value="YYYY-MM-DD">YYYY-MM-DD (Contoh: 2026-11-02)</option>
+                    <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                    <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                    <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                    <option value="DD MMMM YYYY">DD MMMM YYYY</option>
                   </select>
                   <ChevronDown className="size-4 text-neutral-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
-                <p className="text-[10px] text-neutral-400 mt-1">
-                  Format tampilan tanggal di aplikasi
-                </p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+                <label className="block text-xs font-bold text-neutral-800 mb-2">
                   Zona Waktu
                 </label>
                 <div className="relative">
                   <select
                     value={profile.preferences.timezone}
                     onChange={(e) => handlePreferenceChange('timezone', e.target.value)}
-                    className="w-full appearance-none px-3.5 py-2 rounded-xl border border-neutral-200 text-xs font-medium text-neutral-900 bg-white focus:outline-none focus:border-[#FF5C38] focus:ring-1 focus:ring-[#FF5C38] cursor-pointer"
+                    className="w-full appearance-none px-4 py-2.5 rounded-xl border border-neutral-200 text-xs sm:text-sm font-medium text-neutral-900 bg-white focus:outline-none focus:border-[#FF5C38] focus:ring-1 focus:ring-[#FF5C38] cursor-pointer"
                   >
-                    <option value="WIB (UTC+7)">WIB (UTC+7) - Waktu Indonesia Barat</option>
-                    <option value="WITA (UTC+8)">WITA (UTC+8) - Waktu Indonesia Tengah</option>
-                    <option value="WIT (UTC+9)">WIT (UTC+9) - Waktu Indonesia Timur</option>
+                    <option value="WIT (UTC+9)">WIT (UTC+9)</option>
+                    <option value="WITA (UTC+8)">WITA (UTC+8)</option>
+                    <option value="WIB (UTC+7)">WIB (UTC+7)</option>
                   </select>
                   <ChevronDown className="size-4 text-neutral-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
-                <p className="text-[10px] text-neutral-400 mt-1">
-                  Standar waktu operasional transaksi
-                </p>
               </div>
             </div>
           </div>

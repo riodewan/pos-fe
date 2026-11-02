@@ -24,6 +24,7 @@ import { ReceiptPreview } from './ReceiptPreview';
 import { OperationalFacilitiesTab } from './OperationalFacilitiesTab';
 import { PhotosMediaTab } from './PhotosMediaTab';
 import { AddOutletModal } from './AddOutletModal';
+import { MapLocationPickerModal } from './MapLocationPickerModal';
 import { Button } from '@/components/common/Button';
 import { PageLoader } from '@/components/common/PageLoader';
 import { tenantService } from '@/services/tenant.service';
@@ -86,6 +87,7 @@ export function ProfileOutletView() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [saveSuccessNotification, setSaveSuccessNotification] = useState(false);
   const [masterCategories, setMasterCategories] = useState<Array<{ id: string; name: string }>>([]);
 
@@ -744,9 +746,19 @@ export function ProfileOutletView() {
 
               {/* Alamat Bisnis */}
               <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-                  Alamat Lengkap
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-neutral-700">
+                    Alamat Lengkap
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsMapModalOpen(true)}
+                    className="text-xs font-bold text-[#FF5C38] hover:text-[#E04B28] flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <MapPin className="size-3.5" />
+                    <span>Pilih dari Peta</span>
+                  </button>
+                </div>
                 <textarea
                   rows={2}
                   value={outlet.address}
@@ -758,9 +770,19 @@ export function ProfileOutletView() {
 
               {/* Link Google Maps & Preview */}
               <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-                  Link Google Maps
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-neutral-700">
+                    Link Google Maps
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsMapModalOpen(true)}
+                    className="text-[11px] font-semibold text-neutral-500 hover:text-[#FF5C38] flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <MapPin className="size-3" />
+                    <span>Atur Titik Peta</span>
+                  </button>
+                </div>
                 <div className="flex gap-2 mb-3">
                   <input
                     type="url"
@@ -782,8 +804,12 @@ export function ProfileOutletView() {
                   )}
                 </div>
 
-                {/* Stylized Google Maps Graphic */}
-                <div className="relative rounded-xl border border-neutral-200 overflow-hidden bg-neutral-100 h-[100px] group">
+                {/* Stylized Google Maps Graphic - Clickable to open picker */}
+                <div
+                  onClick={() => setIsMapModalOpen(true)}
+                  className="relative rounded-xl border border-neutral-200 overflow-hidden bg-neutral-100 h-[100px] group cursor-pointer hover:border-[#FF5C38]/60 transition-all shadow-2xs"
+                  title="Klik untuk memilih titik lokasi pada peta"
+                >
                   <div className="absolute inset-0 bg-[#E8ECEF] bg-[radial-gradient(#CBD5E1_1px,transparent_1px)] [background-size:12px_12px] opacity-90" />
                   <svg
                     className="absolute inset-0 size-full opacity-40"
@@ -809,25 +835,15 @@ export function ProfileOutletView() {
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="flex flex-col items-center">
+                    <div className="flex flex-col items-center group-hover:scale-110 transition-transform">
                       <MapPin className="size-6 text-[#FF5C38] fill-[#FF5C38] drop-shadow-md" />
                       <span className="size-2 rounded-full bg-neutral-800/40 blur-2xs -mt-1" />
                     </div>
                   </div>
-                  <a
-                    href={
-                      outlet.mapsUrl ||
-                      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                        outlet.address || outlet.name
-                      )}`
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    className="absolute bottom-2 right-2 px-2.5 py-1 rounded-md bg-white/95 backdrop-blur-xs text-[10px] font-bold text-neutral-700 hover:text-[#FF5C38] flex items-center gap-1 shadow-2xs border border-neutral-200/80 transition-colors"
-                  >
-                    <span>Buka Google Maps</span>
-                    <ExternalLink className="size-2.5" />
-                  </a>
+                  <div className="absolute bottom-2 right-2 px-2.5 py-1 rounded-md bg-white/95 backdrop-blur-xs text-[10px] font-bold text-neutral-700 group-hover:text-[#FF5C38] flex items-center gap-1 shadow-2xs border border-neutral-200/80 transition-colors">
+                    <MapPin className="size-2.5" />
+                    <span>Pilih Titik di Peta</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1105,6 +1121,26 @@ export function ProfileOutletView() {
         onClose={() => setIsAddModalOpen(false)}
         defaultBrandName={activeTenant?.name || outlet.name}
         onSave={handleCreateStore}
+      />
+
+      {/* Modal: Pilih Titik Lokasi Peta */}
+      <MapLocationPickerModal
+        isOpen={isMapModalOpen}
+        onClose={() => setIsMapModalOpen(false)}
+        initialAddress={outlet.address}
+        initialMapsUrl={outlet.mapsUrl}
+        onSelectLocation={({ address, mapsUrl }) => {
+          setOutlet((prev) => ({
+            ...prev,
+            address,
+            mapsUrl,
+            receiptConfig: {
+              ...prev.receiptConfig,
+              shortAddress: address.length > 60 ? address.substring(0, 60) + '...' : address,
+            },
+          }));
+          toast.success('Titik lokasi berhasil dipilih!');
+        }}
       />
     </div>
   );
