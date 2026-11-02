@@ -8,11 +8,7 @@ import {
   CheckCircle2,
   Check,
   Calendar,
-  Layers,
-  DollarSign,
-  History,
-  FileText,
-  AlertTriangle,
+  Package,
 } from 'lucide-react';
 import {
   Button,
@@ -24,13 +20,16 @@ import {
   Modal,
 } from '@/components/common';
 import { formatRupiah } from '@/utils';
+import { catalogService } from '@/services/catalog.service';
+import { inventoryService } from '@/services/inventory.service';
 
 export interface InventoryIngredient {
   id: string;
   name: string;
   sku: string;
-  category: 'Kopi' | 'Susu' | 'Bubuk' | 'Sirup' | 'Minuman' | 'Lainnya';
+  category: string;
   unit: string;
+  unitId?: string;
   currentStock: number;
   minStock: number;
   costPrice: number;
@@ -38,10 +37,12 @@ export interface InventoryIngredient {
   description?: string;
   image?: string;
   supplier?: string;
+  supplierId?: string;
   storageLocation?: string;
   shelfLifeValue?: number;
   shelfLifeUnit?: 'Hari' | 'Bulan' | 'Tahun';
   expiryDate?: string;
+  recipeItems?: Array<{ id: string; quantity: number; product_name: string }>;
 }
 
 interface IngredientDetailDrawerProps {
@@ -64,16 +65,23 @@ export function IngredientDetailDrawer({
   const [activeTab, setActiveTab] = useState<TabKey>('basic');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Reference options from DB
+  const [dbCategories, setDbCategories] = useState<string[]>([]);
+  const [dbUnits, setDbUnits] = useState<Array<{ id: string; code: string; name: string }>>([]);
+  const [dbSuppliers, setDbSuppliers] = useState<Array<{ id: string; name: string }>>([]);
+  const [movements, setMovements] = useState<any[]>([]);
+  const [loadingMovements, setLoadingMovements] = useState(false);
+
   // Form states
   const [name, setName] = useState('');
-  const [category, setCategory] = useState<InventoryIngredient['category']>('Kopi');
-  const [unit, setUnit] = useState('Kg');
+  const [category, setCategory] = useState('');
+  const [unit, setUnit] = useState('');
   const [description, setDescription] = useState('');
-  const [supplier, setSupplier] = useState('PT Kopi Nusantara');
-  const [storageLocation, setStorageLocation] = useState('Gudang Bahan Kering');
-  const [shelfLifeValue, setShelfLifeValue] = useState(12);
+  const [supplier, setSupplier] = useState('');
+  const [storageLocation, setStorageLocation] = useState('');
+  const [shelfLifeValue, setShelfLifeValue] = useState(0);
   const [shelfLifeUnit, setShelfLifeUnit] = useState<'Hari' | 'Bulan' | 'Tahun'>('Bulan');
-  const [expiryDate, setExpiryDate] = useState('31 Des 2026');
+  const [expiryDate, setExpiryDate] = useState('');
 
   // Stock tab states
   const [currentStock, setCurrentStock] = useState(0);
@@ -81,22 +89,62 @@ export function IngredientDetailDrawer({
   const [costPrice, setCostPrice] = useState(0);
 
   useEffect(() => {
+    if (!isOpen) return;
+    Promise.allSettled([
+      catalogService.getIngredientCategories(),
+      catalogService.getUnits(),
+      catalogService.getSuppliers(),
+    ]).then(([catRes, unitRes, supRes]) => {
+      if (catRes.status === 'fulfilled' && Array.isArray(catRes.value?.data)) {
+        setDbCategories(catRes.value.data.map((c: any) => c.name).filter(Boolean));
+      }
+      if (unitRes.status === 'fulfilled' && Array.isArray(unitRes.value?.data)) {
+        setDbUnits(
+          unitRes.value.data.map((u: any) => ({
+            id: u.id,
+            code: u.code || u.name,
+            name: u.name,
+          }))
+        );
+      }
+      if (supRes.status === 'fulfilled' && Array.isArray(supRes.value?.data)) {
+        setDbSuppliers(supRes.value.data.map((s: any) => ({ id: s.id, name: s.name })));
+      }
+    });
+  }, [isOpen]);
+
+  useEffect(() => {
     if (item) {
       setName(item.name);
-      setCategory(item.category);
-      setUnit(item.unit);
-      setDescription(item.description || 'Biji kopi arabica premium untuk menu kopi.');
-      setSupplier(item.supplier || 'PT Kopi Nusantara');
-      setStorageLocation(item.storageLocation || 'Gudang Bahan Kering');
-      setShelfLifeValue(item.shelfLifeValue || 12);
+      setCategory(item.category || '');
+      setUnit(item.unit || '');
+      setDescription(item.description || '');
+      setSupplier(item.supplier || '');
+      setStorageLocation(item.storageLocation || '');
+      setShelfLifeValue(item.shelfLifeValue ?? 0);
       setShelfLifeUnit(item.shelfLifeUnit || 'Bulan');
-      setExpiryDate(item.expiryDate || '31 Des 2026');
+      setExpiryDate(item.expiryDate || '');
       setCurrentStock(item.currentStock);
       setMinStock(item.minStock);
       setCostPrice(item.costPrice);
       setActiveTab('basic');
     }
   }, [item]);
+
+  useEffect(() => {
+    if (isOpen && item && activeTab === 'history') {
+      setLoadingMovements(true);
+      inventoryService
+        .getMovements({ ingredient_id: item.id })
+        .then((res) => {
+          const raw = res?.data as any;
+          const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+          setMovements(list);
+        })
+        .catch(() => setMovements([]))
+        .finally(() => setLoadingMovements(false));
+    }
+  }, [isOpen, item, activeTab]);
 
   if (!isOpen || !item) return null;
 
@@ -125,6 +173,29 @@ export function IngredientDetailDrawer({
     onClose();
   };
 
+  const categoryOptions = Array.from(new Set([...dbCategories, ...(category ? [category] : [])])).map((c) => ({
+    value: c,
+    label: c,
+  }));
+
+  const unitOptions = Array.from(
+    new Map(
+      [
+        ...dbUnits.map((u) => [u.code, { value: u.code, label: `${u.name} (${u.code})` }] as const),
+        ...(unit ? [[unit, { value: unit, label: unit }] as const] : []),
+      ]
+    ).values()
+  );
+
+  const supplierOptions = [
+    { value: '', label: '-- Tanpa Supplier --' },
+    ...Array.from(
+      new Set([...dbSuppliers.map((s) => s.name), ...(supplier && supplier !== '-' ? [supplier] : [])])
+    ).map((s) => ({ value: s, label: s })),
+  ];
+
+  const recipeUsage = item.recipeItems || [];
+
   return (
     <>
       {/* Backdrop */}
@@ -138,17 +209,19 @@ export function IngredientDetailDrawer({
         {/* Drawer Header */}
         <div className="p-6 border-b border-neutral-100 flex items-center justify-between gap-4 bg-white">
           <div className="flex items-center gap-3.5 min-w-0">
-            {/* Thumbnail Image */}
-            <div className="size-13 rounded-xl overflow-hidden border border-neutral-200 shrink-0 relative bg-neutral-50 shadow-2xs">
-              <Image
-                src={item.image || '/img/ingredients/biji_kopi_arabica.jpg'}
-                alt={item.name}
-                fill
-                className="object-cover"
-              />
+            <div className="size-13 rounded-xl overflow-hidden border border-neutral-200 shrink-0 relative bg-neutral-50 shadow-2xs flex items-center justify-center text-neutral-400">
+              {item.image ? (
+                <Image
+                  src={item.image}
+                  alt={item.name}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <Package className="size-6" />
+              )}
             </div>
 
-            {/* Name, Status & SKU */}
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-lg font-bold text-neutral-900 tracking-tight truncate">
@@ -162,7 +235,6 @@ export function IngredientDetailDrawer({
             </div>
           </div>
 
-          {/* Close Button */}
           <button
             type="button"
             onClick={onClose}
@@ -172,7 +244,7 @@ export function IngredientDetailDrawer({
           </button>
         </div>
 
-        {/* Drawer Body: Two-column layout matching Figma */}
+        {/* Drawer Body */}
         <div className="flex-1 flex overflow-hidden">
           {/* Left Navigation Tabs */}
           <div className="w-44 shrink-0 border-r border-neutral-100 p-3 space-y-1 bg-white">
@@ -226,7 +298,6 @@ export function IngredientDetailDrawer({
           <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-white">
             {activeTab === 'basic' && (
               <div className="space-y-5">
-                {/* Field: Nama Bahan */}
                 <Input
                   label="Nama Bahan"
                   required
@@ -235,122 +306,77 @@ export function IngredientDetailDrawer({
                   placeholder="Contoh: Biji Kopi Arabica"
                 />
 
-                {/* 2 Cols: Kategori & Satuan */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Select
-                    label="Kategori"
-                    required
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value as any)}
-                    options={[
-                      { value: 'Kopi', label: 'Kopi' },
-                      { value: 'Susu', label: 'Susu' },
-                      { value: 'Bubuk', label: 'Bubuk' },
-                      { value: 'Sirup', label: 'Sirup' },
-                      { value: 'Minuman', label: 'Minuman' },
-                      { value: 'Lainnya', label: 'Lainnya' },
-                    ]}
-                  />
+                  {categoryOptions.length > 0 ? (
+                    <Select
+                      label="Kategori"
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      options={[{ value: '', label: '-- Pilih Kategori --' }, ...categoryOptions]}
+                    />
+                  ) : (
+                    <Input
+                      label="Kategori"
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      placeholder="Contoh: Kopi"
+                    />
+                  )}
 
-                  <Select
-                    label="Satuan"
-                    required
-                    value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
-                    options={[
-                      { value: 'Kg', label: 'Kg' },
-                      { value: 'kg', label: 'kg' },
-                      { value: 'liter', label: 'liter' },
-                      { value: 'pcs', label: 'pcs' },
-                      { value: 'gram', label: 'gram' },
-                      { value: 'ml', label: 'ml' },
-                      { value: 'pack', label: 'pack' },
-                    ]}
-                  />
+                  {unitOptions.length > 0 ? (
+                    <Select
+                      label="Satuan"
+                      required
+                      value={unit}
+                      onChange={(e) => setUnit(e.target.value)}
+                      options={unitOptions}
+                    />
+                  ) : (
+                    <Input
+                      label="Satuan"
+                      required
+                      value={unit}
+                      onChange={(e) => setUnit(e.target.value)}
+                      placeholder="kg / liter / pcs"
+                    />
+                  )}
                 </div>
 
-                {/* Field: Deskripsi */}
                 <Textarea
                   label="Deskripsi"
                   rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Biji kopi arabica premium untuk menu kopi."
+                  placeholder="Keterangan bahan baku..."
                 />
 
-                {/* Section: Foto Bahan matching Figma card */}
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-neutral-800">Foto Bahan</label>
-                  <div className="p-4 rounded-2xl border border-neutral-200 flex items-center justify-between gap-4 bg-white">
-                    <div className="flex items-center gap-3.5">
-                      <div className="size-16 rounded-xl overflow-hidden border border-neutral-200 shrink-0 relative bg-neutral-100">
-                        <Image
-                          src={item.image || '/img/ingredients/biji_kopi_arabica.jpg'}
-                          alt={name}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-[#1976D2] tracking-tight">
-                          Biji Kopi_Arabica.webp
-                        </p>
-                        <p className="text-[11px] text-neutral-400 mt-0.5">
-                          WebP, JPG, PNG. Ratio 1:1, Maks. 2MB
-                        </p>
-                      </div>
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-[#E5484D] text-[#E5484D] hover:bg-red-50 text-xs font-medium rounded-xl h-8 px-4"
-                    >
-                      Pilih file
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Section: Informasi Tambahan */}
                 <div className="space-y-4 pt-2">
                   <h3 className="text-xs font-bold text-neutral-900 tracking-tight">
                     Informasi Tambahan
                   </h3>
 
-                  {/* 2 Cols: Merk / Supplier & Lokasi Penyimpanan */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Select
                       label="Merk / Supplier"
-                      value={supplier}
+                      value={supplier === '-' ? '' : supplier}
                       onChange={(e) => setSupplier(e.target.value)}
-                      options={[
-                        { value: 'PT Kopi Nusantara', label: 'PT Kopi Nusantara' },
-                        { value: 'PT Sumber Susu Murni', label: 'PT Sumber Susu Murni' },
-                        { value: 'Mitra Sirup Barista', label: 'Mitra Sirup Barista' },
-                        { value: 'Distributor Bubuk Java', label: 'Distributor Bubuk Java' },
-                      ]}
+                      options={supplierOptions}
                     />
 
-                    <Select
+                    <Input
                       label="Lokasi Penyimpanan"
-                      value={storageLocation}
+                      value={storageLocation === '-' ? '' : storageLocation}
                       onChange={(e) => setStorageLocation(e.target.value)}
-                      options={[
-                        { value: 'Gudang Bahan Kering', label: 'Gudang Bahan Kering' },
-                        { value: 'Chiller Bar Depan', label: 'Chiller Bar Depan' },
-                        { value: 'Rak Sirup & Topping', label: 'Rak Sirup & Topping' },
-                        { value: 'Freezer Utama', label: 'Freezer Utama' },
-                      ]}
+                      placeholder="Contoh: Gudang Bahan Kering"
                     />
                   </div>
 
-                  {/* 2 Cols: Masa Simpan & Tanggal Kadaluwarsa */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField label="Masa Simpan">
                       <div className="flex items-center gap-2">
                         <Input
                           type="number"
-                          min="1"
+                          min="0"
                           value={shelfLifeValue}
                           onChange={(e) => setShelfLifeValue(Number(e.target.value))}
                           className="w-full"
@@ -370,10 +396,10 @@ export function IngredientDetailDrawer({
 
                     <Input
                       label="Tanggal Kadaluwarsa"
-                      value={expiryDate}
+                      type="date"
+                      value={expiryDate === '-' ? '' : expiryDate}
                       onChange={(e) => setExpiryDate(e.target.value)}
                       rightIcon={<Calendar className="size-4 text-neutral-400" />}
-                      placeholder="31 Des 2026"
                     />
                   </div>
                 </div>
@@ -420,7 +446,7 @@ export function IngredientDetailDrawer({
                         currentStock <= minStock ? 'text-amber-600' : 'text-emerald-600'
                       }`}
                     >
-                      {currentStock <= minStock ? 'Stok Menipis' : 'Stok Aman'}
+                      {currentStock <= 0 ? 'Stok Habis' : currentStock <= minStock ? 'Stok Menipis' : 'Stok Aman'}
                     </span>
                   </div>
                 </div>
@@ -433,60 +459,81 @@ export function IngredientDetailDrawer({
                   Daftar menu minuman/makanan yang menggunakan bahan baku ini dalam resep:
                 </p>
 
-                <div className="divide-y divide-neutral-100 border border-neutral-200 rounded-xl overflow-hidden">
-                  <div className="p-3.5 flex items-center justify-between text-xs hover:bg-neutral-50/50">
-                    <div>
-                      <p className="font-semibold text-neutral-800">Kopi Susu Gula Aren</p>
-                      <p className="text-[11px] text-neutral-400">Takaran: 18 gram / porsi</p>
-                    </div>
-                    <span className="text-[11px] font-mono text-neutral-600">± 288 porsi tersisa</span>
+                {recipeUsage.length === 0 ? (
+                  <div className="p-8 rounded-xl border border-dashed border-neutral-200 text-center text-xs text-neutral-400">
+                    Bahan baku ini belum ditautkan pada resep menu mana pun.
                   </div>
-                  <div className="p-3.5 flex items-center justify-between text-xs hover:bg-neutral-50/50">
-                    <div>
-                      <p className="font-semibold text-neutral-800">Americano / Long Black</p>
-                      <p className="text-[11px] text-neutral-400">Takaran: 20 gram / porsi</p>
-                    </div>
-                    <span className="text-[11px] font-mono text-neutral-600">± 260 porsi tersisa</span>
+                ) : (
+                  <div className="divide-y divide-neutral-100 border border-neutral-200 rounded-xl overflow-hidden">
+                    {recipeUsage.map((r) => (
+                      <div
+                        key={r.id}
+                        className="p-3.5 flex items-center justify-between text-xs hover:bg-neutral-50/50"
+                      >
+                        <div>
+                          <p className="font-semibold text-neutral-800">{r.product_name}</p>
+                          <p className="text-[11px] text-neutral-400">
+                            Takaran: {r.quantity} {unit} / porsi
+                          </p>
+                        </div>
+                        <span className="text-[11px] font-mono text-neutral-600">
+                          {r.quantity > 0 ? `± ${Math.floor(currentStock / r.quantity)} porsi tersisa` : '-'}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                  <div className="p-3.5 flex items-center justify-between text-xs hover:bg-neutral-50/50">
-                    <div>
-                      <p className="font-semibold text-neutral-800">Cappuccino & Latte</p>
-                      <p className="text-[11px] text-neutral-400">Takaran: 18 gram / porsi</p>
-                    </div>
-                    <span className="text-[11px] font-mono text-neutral-600">± 288 porsi tersisa</span>
-                  </div>
-                </div>
+                )}
               </div>
             )}
 
             {activeTab === 'history' && (
               <div className="space-y-4">
                 <p className="text-xs text-neutral-500">
-                  Riwayat 5 mutasi pergerakan inventori terakhir:
+                  Riwayat mutasi pergerakan inventori bahan baku ini dari database:
                 </p>
 
-                <div className="space-y-2.5">
-                  <div className="p-3.5 rounded-xl border border-neutral-200 bg-neutral-50/50 flex items-center justify-between text-xs">
-                    <div>
-                      <p className="font-semibold text-neutral-800">Stok Masuk (PO-2026-089)</p>
-                      <p className="text-[11px] text-neutral-400">12 Okt 2026, 14:30 • Oleh Kasir</p>
-                    </div>
-                    <span className="font-bold text-emerald-600 font-mono">+5,0 kg</span>
+                {loadingMovements ? (
+                  <div className="p-8 text-center text-xs text-neutral-400">Memuat riwayat mutasi...</div>
+                ) : movements.length === 0 ? (
+                  <div className="p-8 rounded-xl border border-dashed border-neutral-200 text-center text-xs text-neutral-400">
+                    Belum ada riwayat pergerakan stok untuk bahan baku ini.
                   </div>
-                  <div className="p-3.5 rounded-xl border border-neutral-200 bg-neutral-50/50 flex items-center justify-between text-xs">
-                    <div>
-                      <p className="font-semibold text-neutral-800">Pemakaian POS (Penjualan)</p>
-                      <p className="text-[11px] text-neutral-400">14 Okt 2026, 11:00 • Shift Pagi</p>
-                    </div>
-                    <span className="font-bold text-red-600 font-mono">-1,8 kg</span>
+                ) : (
+                  <div className="space-y-2.5">
+                    {movements.map((m: any) => {
+                      const qty = Number(m.quantity || 0);
+                      return (
+                        <div
+                          key={m.id}
+                          className="p-3.5 rounded-xl border border-neutral-200 bg-neutral-50/50 flex items-center justify-between text-xs"
+                        >
+                          <div>
+                            <p className="font-semibold text-neutral-800">
+                              {m.type} {m.notes ? `— ${m.notes}` : ''}
+                            </p>
+                            <p className="text-[11px] text-neutral-400">
+                              {m.created_at ? new Date(m.created_at).toLocaleString('id-ID') : '-'} • Oleh{' '}
+                              {m.created_by_name || 'Sistem'}
+                            </p>
+                          </div>
+                          <span
+                            className={`font-bold font-mono ${
+                              qty >= 0 ? 'text-emerald-600' : 'text-red-600'
+                            }`}
+                          >
+                            {qty >= 0 ? `+${qty}` : qty} {m.unit?.code || unit}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>
         </div>
 
-        {/* Drawer Sticky Footer matching Screenshot 1 */}
+        {/* Drawer Sticky Footer */}
         <div className="p-4 px-6 border-t border-neutral-100 flex items-center justify-between gap-4 bg-white">
           <Button
             variant="outline"

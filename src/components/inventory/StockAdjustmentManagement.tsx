@@ -1,14 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Sliders,
-  Plus,
-  Search,
-  ChevronDown,
   Check,
   CheckCircle2,
-  AlertTriangle,
 } from 'lucide-react';
 import {
   DataTable,
@@ -20,8 +15,9 @@ import {
   Drawer,
   Input,
   Textarea,
-  Pagination,
 } from '@/components/common';
+import { inventoryService } from '@/services/inventory.service';
+import { catalogService } from '@/services/catalog.service';
 
 export interface StockAdjustmentRecord {
   id: string;
@@ -37,48 +33,6 @@ export interface StockAdjustmentRecord {
   status: 'Selesai' | 'Perlu Review';
 }
 
-const INITIAL_ADJUSTMENTS: StockAdjustmentRecord[] = [
-  {
-    id: 'adj-1',
-    refNumber: 'ADJ-2026-10-015',
-    date: '14 Okt 2026, 22:00',
-    ingredientName: 'Biji Kopi Arabica',
-    systemStock: 5.5,
-    physicalStock: 5.2,
-    diffQty: -0.3,
-    unit: 'kg',
-    reason: 'Sisa serbuk di hopper grinder espresso.',
-    picName: 'Andi Pratama',
-    status: 'Selesai',
-  },
-  {
-    id: 'adj-2',
-    refNumber: 'ADJ-2026-10-014',
-    date: '13 Okt 2026, 22:00',
-    ingredientName: 'Susu UHT Full Cream',
-    systemStock: 12,
-    physicalStock: 12,
-    diffQty: 0,
-    unit: 'liter',
-    reason: 'Opname rutin tutup shift malam. Cocok.',
-    picName: 'Siti Rahma',
-    status: 'Selesai',
-  },
-  {
-    id: 'adj-3',
-    refNumber: 'ADJ-2026-10-013',
-    date: '10 Okt 2026, 22:00',
-    ingredientName: 'Sirup Gula Aren',
-    systemStock: 2,
-    physicalStock: 1,
-    diffQty: -1,
-    unit: 'liter',
-    reason: 'Botol pecah di rak penyimpanan belum dicatat.',
-    picName: 'Budi Santoso',
-    status: 'Selesai',
-  },
-];
-
 interface StockAdjustmentManagementProps {
   onShowToast: (msg: string) => void;
   isCreateOpen?: boolean;
@@ -90,64 +44,120 @@ export function StockAdjustmentManagement({
   isCreateOpen,
   onCloseCreate,
 }: StockAdjustmentManagementProps) {
-  const [records, setRecords] = useState<StockAdjustmentRecord[]>(INITIAL_ADJUSTMENTS);
+  const [records, setRecords] = useState<StockAdjustmentRecord[]>([]);
+  const [ingredients, setIngredients] = useState<any[]>([]);
+  const [stocks, setStocks] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Drawer
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [formIngredient, setFormIngredient] = useState('Biji Kopi Arabica');
-  const [formSystemStock, setFormSystemStock] = useState(5.2);
-  const [formPhysicalStock, setFormPhysicalStock] = useState(5.2);
-  const [formUnit, setFormUnit] = useState('kg');
-  const [formNotes, setFormNotes] = useState('Stock opname fisik penutupan outlet');
+  const [formIngredientId, setFormIngredientId] = useState('');
+  const [formSystemStock, setFormSystemStock] = useState(0);
+  const [formPhysicalStock, setFormPhysicalStock] = useState(0);
+  const [formUnit, setFormUnit] = useState('unit');
+  const [formNotes, setFormNotes] = useState('');
 
-  React.useEffect(() => {
+  const fetchData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const [movRes, ingRes, stkRes] = await Promise.allSettled([
+        inventoryService.getMovements({ type: 'ADJUSTMENT' }),
+        catalogService.getIngredients(),
+        inventoryService.getStocks(),
+      ]);
+
+      const rawMov = movRes.status === 'fulfilled' ? (movRes.value?.data as any) : null;
+      const movList = Array.isArray(rawMov) ? rawMov : Array.isArray(rawMov?.data) ? rawMov.data : [];
+      const ingList = ingRes.status === 'fulfilled' && Array.isArray(ingRes.value?.data) ? ingRes.value.data : [];
+      const stkList = stkRes.status === 'fulfilled' && Array.isArray(stkRes.value?.data) ? stkRes.value.data : [];
+
+      setIngredients(ingList);
+      setStocks(stkList);
+
+      const mapped: StockAdjustmentRecord[] = movList.map((m: any) => {
+        const diff = Number(m.quantity || 0);
+        const rawNotes = String(m.notes || '');
+        const match = rawNotes.match(/^\[System:([\d.]+)\|Fisik:([\d.]+)\]\s*(.*)$/);
+        const sysStock = match ? Number(match[1]) : 0;
+        const phyStock = match ? Number(match[2]) : sysStock + diff;
+        const cleanReason = match ? match[3] : rawNotes;
+
+        return {
+          id: m.id,
+          refNumber: `ADJ-${String(m.id || '').slice(-6).toUpperCase()}`,
+          date: m.created_at ? new Date(m.created_at).toLocaleString('id-ID') : '-',
+          ingredientName: m.ingredient?.name || '-',
+          systemStock: sysStock,
+          physicalStock: phyStock,
+          diffQty: Number(diff.toFixed(2)),
+          unit: m.unit?.code || m.unit?.name || m.ingredient?.unit?.code || 'unit',
+          reason: cleanReason || '-',
+          picName: m.created_by_name || 'Staf Outlet',
+          status: 'Selesai',
+        };
+      });
+
+      setRecords(mapped);
+    } catch (err) {
+      console.error('Failed to load stock adjustments:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleIngredientChange = useCallback(
+    (ingId: string) => {
+      setFormIngredientId(ingId);
+      const ing = ingredients.find((i) => i.id === ingId);
+      const stk = stocks.find((s) => s.ingredient_id === ingId);
+      const currentQty = Number(stk?.quantity ?? ing?.current_stock ?? 0);
+      setFormSystemStock(currentQty);
+      setFormPhysicalStock(currentQty);
+      setFormUnit(ing?.unit?.code || ing?.unit?.name || 'unit');
+    },
+    [ingredients, stocks]
+  );
+
+  useEffect(() => {
     if (isCreateOpen) {
+      if (ingredients.length > 0 && !formIngredientId) {
+        handleIngredientChange(ingredients[0].id);
+      }
       setIsDrawerOpen(true);
     }
-  }, [isCreateOpen]);
+  }, [isCreateOpen, ingredients, formIngredientId, handleIngredientChange]);
 
   const handleClose = () => {
     setIsDrawerOpen(false);
     if (onCloseCreate) onCloseCreate();
   };
 
-  const handleIngredientChange = (ing: string) => {
-    setFormIngredient(ing);
-    if (ing.includes('Kopi')) {
-      setFormSystemStock(5.2);
-      setFormPhysicalStock(5.2);
-      setFormUnit('kg');
-    } else if (ing.includes('Susu')) {
-      setFormSystemStock(12);
-      setFormPhysicalStock(12);
-      setFormUnit('liter');
-    } else {
-      setFormSystemStock(10);
-      setFormPhysicalStock(10);
-      setFormUnit('pcs');
+  const handleSave = async () => {
+    if (!formIngredientId) {
+      onShowToast('Pilih bahan baku yang akan di-opname!');
+      return;
     }
-  };
 
-  const handleSave = () => {
-    const diff = Number(formPhysicalStock) - Number(formSystemStock);
-    const newRecord: StockAdjustmentRecord = {
-      id: `adj-${Date.now()}`,
-      refNumber: `ADJ-2026-10-01${records.length + 1}`,
-      date: '15 Okt 2026, 21:00',
-      ingredientName: formIngredient,
-      systemStock: Number(formSystemStock),
-      physicalStock: Number(formPhysicalStock),
-      diffQty: Number(diff.toFixed(2)),
-      unit: formUnit,
-      reason: formNotes,
-      picName: 'Andi Pratama (Supervisor)',
-      status: 'Selesai',
-    };
+    try {
+      await inventoryService.adjustStock({
+        ingredient_id: formIngredientId,
+        new_quantity: Number(formPhysicalStock),
+        notes: formNotes.trim() || 'Stock opname fisik gudang',
+      });
 
-    setRecords((prev) => [newRecord, ...prev]);
-    onShowToast(`Penyesuaian stok opname ${newRecord.ingredientName} berhasil disimpan.`);
-    handleClose();
+      const ing = ingredients.find((i) => i.id === formIngredientId);
+      onShowToast(`Penyesuaian stok opname ${ing?.name || ''} berhasil disimpan.`);
+      setFormNotes('');
+      await fetchData();
+      handleClose();
+    } catch (err: any) {
+      onShowToast(err.message || 'Gagal menyimpan penyesuaian stok.');
+    }
   };
 
   const filteredRecords = records.filter((r) => {
@@ -258,6 +268,7 @@ export function StockAdjustmentManagement({
         <DataTable<StockAdjustmentRecord>
           columns={columns}
           data={filteredRecords}
+          isLoading={isLoading}
           keyExtractor={(item) => item.id}
           selectable={false}
           emptyTitle="BELUM ADA PENYESUAIAN STOK"
@@ -293,13 +304,14 @@ export function StockAdjustmentManagement({
           <Select
             label="Pilih Bahan Baku yang Dihitung"
             required
-            value={formIngredient}
+            value={formIngredientId}
             onChange={(e) => handleIngredientChange(e.target.value)}
             options={[
-              { value: 'Biji Kopi Arabica', label: 'Biji Kopi Arabica (ING-001)' },
-              { value: 'Susu UHT Full Cream', label: 'Susu UHT Full Cream (ING-003)' },
-              { value: 'Susu Oat', label: 'Susu Oat (ING-004)' },
-              { value: 'Sirup Gula Aren', label: 'Sirup Gula Aren (ING-007)' },
+              { value: '', label: '-- Pilih Bahan Baku --' },
+              ...ingredients.map((i) => ({
+                value: i.id,
+                label: `${i.name} (${i.sku})`,
+              })),
             ]}
           />
 

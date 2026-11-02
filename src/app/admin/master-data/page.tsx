@@ -312,75 +312,58 @@ export default function AdminMasterDataPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {[
-              {
-                id: 'fee-1',
-                title: 'Biaya Jasa Layanan Customer',
-                chargeTo: 'Customer Checkout',
-                rate: 'Rp 1.000',
-                unit: '/ transaksi',
-                description: 'Biaya jasa pemeliharaan aplikasi yang ditambahkan langsung ke total pembayaran customer pada struk checkout.',
-                type: 'Nominal Tetap',
-                icon: CreditCard,
-              },
-              {
-                id: 'fee-2',
-                title: 'MDR Transaksi QRIS & E-Wallet',
-                chargeTo: 'Customer / MDR Standar',
-                rate: '0.7%',
-                unit: 'per transaksi QRIS',
-                description: 'Biaya Merchant Discount Rate (MDR) transaksi kode QRIS nasional sesuai regulasi Bank Indonesia.',
-                type: 'Persentase Nilai',
-                icon: QrCode,
-              },
-              {
-                id: 'fee-3',
-                title: 'Bagi Hasil Transaksi Platform',
-                chargeTo: 'Kerjasama Merchant',
-                rate: '1.5%',
-                unit: 'dari GMV berhasil',
-                description: 'Bagi hasil kemitraan atas seluruh transaksi penjualan yang diproses secara sukses melalui sistem kasir.',
-                type: 'Revenue Sharing',
-                icon: Percent,
-              },
-            ].map((fee) => (
-              <div
-                key={fee.id}
-                className="p-6 rounded-2xl bg-[#141414] border border-neutral-800/90 shadow-2xs space-y-4 flex flex-col justify-between"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-500/10 text-[#FF5C38] border border-orange-500/20">
-                      {fee.type}
-                    </span>
-                    <span className="text-[10px] text-neutral-400 font-medium">
-                      {fee.chargeTo}
-                    </span>
+          {plans.length === 0 ? (
+            <div className="p-8 rounded-2xl bg-[#141414] border border-neutral-800 text-center text-xs text-neutral-400">
+              Belum ada skema kemitraan / fee transaksi di database.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {plans.map((plan) => (
+                <div
+                  key={plan.id}
+                  className="p-6 rounded-2xl bg-[#141414] border border-neutral-800/90 shadow-2xs space-y-4 flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-500/10 text-[#FF5C38] border border-orange-500/20">
+                        Skema Kemitraan
+                      </span>
+                      <span className="text-[10px] text-neutral-400 font-mono">
+                        {(plan as any).slug ? `/${(plan as any).slug}` : plan.id}
+                      </span>
+                    </div>
+
+                    <h3 className="text-sm font-bold text-white">{plan.name}</h3>
+
+                    <div>
+                      <span className="text-2xl font-black text-white">{formatRupiah(plan.price)}</span>
+                      <span className="text-xs text-neutral-400 font-medium"> / transaksi atau skema</span>
+                    </div>
+
+                    <div className="text-xs text-neutral-400 space-y-1">
+                      <p>Kuota Outlet: <strong className="text-neutral-200">{plan.max_outlets} Cabang</strong></p>
+                      <p>Kuota Staff: <strong className="text-neutral-200">{plan.max_staff} Akun</strong></p>
+                    </div>
                   </div>
 
-                  <h3 className="text-sm font-bold text-white">{fee.title}</h3>
-
-                  <div>
-                    <span className="text-2xl font-black text-white">{fee.rate}</span>
-                    <span className="text-xs text-neutral-400 font-medium"> {fee.unit}</span>
+                  <div className="pt-3 border-t border-neutral-800 text-xs flex items-center justify-between text-neutral-400">
+                    <span className="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px]">
+                      <span className="size-1.5 rounded-full bg-emerald-400" />
+                      {plan.is_active ? 'Aktif' : 'Nonaktif'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenPlanModal(plan)}
+                      className="px-2.5 py-1 rounded-lg border border-neutral-700 text-neutral-300 hover:text-white hover:bg-neutral-800 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <Edit2 className="size-3" />
+                      <span>Atur Skema</span>
+                    </button>
                   </div>
-
-                  <p className="text-xs text-neutral-400 leading-relaxed">
-                    {fee.description}
-                  </p>
                 </div>
-
-                <div className="pt-3 border-t border-neutral-800 text-xs flex items-center justify-between text-neutral-400">
-                  <span className="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px]">
-                    <span className="size-1.5 rounded-full bg-emerald-400" />
-                    Berlaku Otomatis
-                  </span>
-                  <span className="text-[10px] text-neutral-500 font-mono">Platform Global</span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

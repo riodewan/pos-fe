@@ -1,12 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
-  FileText,
   Plus,
-  Search,
-  ChevronDown,
-  Edit2,
   Trash2,
   MoreVertical,
   Check,
@@ -15,28 +11,27 @@ import {
   Truck,
   Printer,
   CheckCircle2,
-  AlertTriangle,
 } from 'lucide-react';
 import {
   DataTable,
   ColumnDef,
-  StatusBadge,
   Button,
   Select,
   SearchInput,
   Drawer,
-  Modal,
   Input,
   Textarea,
-  FormField,
-  Pagination,
 } from '@/components/common';
-import { formatRupiah, formatDate } from '@/utils';
+import { formatRupiah } from '@/utils';
+import { inventoryService } from '@/services/inventory.service';
+import { catalogService } from '@/services/catalog.service';
 
 export interface POItemLine {
   id: string;
+  ingredientId?: string;
   ingredientName: string;
   qty: number;
+  unitId?: string;
   unit: string;
   unitPrice: number;
 }
@@ -54,68 +49,36 @@ export interface PurchaseOrderItem {
   items: POItemLine[];
 }
 
-const INITIAL_POS: PurchaseOrderItem[] = [
-  {
-    id: 'po-1',
-    poNumber: 'PO-2026-10-001',
-    orderDate: '14 Okt 2026',
-    expectedDate: '17 Okt 2026',
-    supplierName: 'PT Kopi Nusantara',
-    itemCount: 2,
-    totalAmount: 2100000,
-    status: 'Diterima',
-    notes: 'Restok mingguan biji kopi arabica dan robusta bar utama.',
-    items: [
-      { id: '1', ingredientName: 'Biji Kopi Arabica', qty: 15, unit: 'kg', unitPrice: 120000 },
-      { id: '2', ingredientName: 'Biji Kopi Robusta', qty: 5, unit: 'kg', unitPrice: 60000 },
-    ],
-  },
-  {
-    id: 'po-2',
-    poNumber: 'PO-2026-10-002',
-    orderDate: '13 Okt 2026',
-    expectedDate: '16 Okt 2026',
-    supplierName: 'PT Sumber Susu Murni',
-    itemCount: 3,
-    totalAmount: 1450000,
-    status: 'Diajukan',
-    notes: 'Kebutuhan weekend chiller bar.',
-    items: [
-      { id: '3', ingredientName: 'Susu UHT Full Cream', qty: 40, unit: 'liter', unitPrice: 18000 },
-      { id: '4', ingredientName: 'Susu Oat Barista', qty: 20, unit: 'liter', unitPrice: 28000 },
-      { id: '5', ingredientName: 'Whipping Cream', qty: 5, unit: 'liter', unitPrice: 34000 },
-    ],
-  },
-  {
-    id: 'po-3',
-    poNumber: 'PO-2026-10-003',
-    orderDate: '11 Okt 2026',
-    expectedDate: '15 Okt 2026',
-    supplierName: 'Mitra Sirup Barista',
-    itemCount: 4,
-    totalAmount: 780000,
-    status: 'Draft',
-    notes: 'Draf pesanan sirup dan perasa.',
-    items: [
-      { id: '6', ingredientName: 'Sirup Gula Aren', qty: 10, unit: 'liter', unitPrice: 45000 },
-      { id: '7', ingredientName: 'Sirup Vanilla', qty: 5, unit: 'liter', unitPrice: 60000 },
-      { id: '8', ingredientName: 'Sirup Hazelnut', qty: 1, unit: 'liter', unitPrice: 65000 },
-    ],
-  },
-];
-
 interface PurchaseOrderManagementProps {
   onShowToast: (msg: string) => void;
   isCreateOpen?: boolean;
   onCloseCreate?: () => void;
 }
 
+const mapPurchaseStatus = (status?: string): PurchaseOrderItem['status'] => {
+  switch (String(status || '').toUpperCase()) {
+    case 'RECEIVED':
+    case 'DITERIMA':
+      return 'Diterima';
+    case 'CANCELLED':
+    case 'DIBATALKAN':
+      return 'Dibatalkan';
+    case 'DRAFT':
+    case 'DIAJUKAN':
+    default:
+      return 'Diajukan';
+  }
+};
+
 export function PurchaseOrderManagement({
   onShowToast,
   isCreateOpen,
   onCloseCreate,
 }: PurchaseOrderManagementProps) {
-  const [orders, setOrders] = useState<PurchaseOrderItem[]>(INITIAL_POS);
+  const [orders, setOrders] = useState<PurchaseOrderItem[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [ingredients, setIngredients] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedSupplier, setSelectedSupplier] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -127,17 +90,87 @@ export function PurchaseOrderManagement({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Form create states
-  const [formSupplier, setFormSupplier] = useState('PT Kopi Nusantara');
-  const [formExpectedDate, setFormExpectedDate] = useState('18 Okt 2026');
+  const [formSupplierId, setFormSupplierId] = useState('');
+  const [formPurchaseDate, setFormPurchaseDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [formNotes, setFormNotes] = useState('');
+  const [formItems, setFormItems] = useState<Array<{ ingredient_id: string; unit_id: string; quantity: number; unit_cost: number }>>([]);
 
-  React.useEffect(() => {
+  const fetchAll = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const [poRes, supRes, ingRes] = await Promise.allSettled([
+        inventoryService.getPurchases(),
+        catalogService.getSuppliers(),
+        catalogService.getIngredients(),
+      ]);
+
+      const poList = poRes.status === 'fulfilled' && Array.isArray(poRes.value?.data) ? poRes.value.data : [];
+      const supList = supRes.status === 'fulfilled' && Array.isArray(supRes.value?.data) ? supRes.value.data : [];
+      const ingList = ingRes.status === 'fulfilled' && Array.isArray(ingRes.value?.data) ? ingRes.value.data : [];
+
+      setSuppliers(supList);
+      setIngredients(ingList);
+
+      const mappedOrders: PurchaseOrderItem[] = poList.map((po: any) => {
+        const items: POItemLine[] = (po.items || []).map((it: any) => ({
+          id: it.id,
+          ingredientId: it.ingredient_id,
+          ingredientName: it.ingredient?.name || '-',
+          qty: Number(it.quantity || 0),
+          unitId: it.unit_id,
+          unit: it.unit?.code || it.unit?.name || it.ingredient?.unit?.code || 'unit',
+          unitPrice: Number(it.unit_cost || 0),
+        }));
+
+        return {
+          id: po.id,
+          poNumber: po.purchase_number || po.id,
+          orderDate: po.purchase_date || (po.created_at ? new Date(po.created_at).toLocaleDateString('id-ID') : '-'),
+          expectedDate: po.purchase_date || '-',
+          supplierName: po.supplier?.name || 'pembelian langsung',
+          itemCount: items.length,
+          totalAmount: Number(po.total_amount || 0),
+          status: mapPurchaseStatus(po.status),
+          notes: po.notes || '',
+          items,
+        };
+      });
+
+      setOrders(mappedOrders);
+    } catch (err) {
+      console.error('Failed to load purchase orders:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  useEffect(() => {
     if (isCreateOpen) {
       handleCreateNew();
     }
   }, [isCreateOpen]);
 
   const handleCreateNew = () => {
+    setFormSupplierId(suppliers[0]?.id || '');
+    setFormPurchaseDate(new Date().toISOString().split('T')[0]);
+    setFormNotes('');
+    if (ingredients.length > 0) {
+      const firstIng = ingredients[0];
+      setFormItems([
+        {
+          ingredient_id: firstIng.id,
+          unit_id: firstIng.unit_id || firstIng.unit?.id || '',
+          quantity: 1,
+          unit_cost: Number(firstIng.cost_price || 0),
+        },
+      ]);
+    } else {
+      setFormItems([]);
+    }
     setIsDrawerOpen(true);
   };
 
@@ -175,26 +208,66 @@ export function PurchaseOrderManagement({
     }
   };
 
-  const handleSavePO = () => {
-    const newPo: PurchaseOrderItem = {
-      id: `po-${Date.now()}`,
-      poNumber: `PO-2026-10-00${orders.length + 1}`,
-      orderDate: '15 Okt 2026',
-      expectedDate: formExpectedDate,
-      supplierName: formSupplier,
-      itemCount: 2,
-      totalAmount: 1250000,
-      status: 'Diajukan',
-      notes: formNotes,
-      items: [
-        { id: '10', ingredientName: 'Bahan Tambahan 1', qty: 10, unit: 'kg', unitPrice: 75000 },
-        { id: '11', ingredientName: 'Bahan Tambahan 2', qty: 10, unit: 'liter', unitPrice: 50000 },
-      ],
-    };
+  const handleAddLine = () => {
+    if (ingredients.length === 0) return;
+    const first = ingredients[0];
+    setFormItems((prev) => [
+      ...prev,
+      {
+        ingredient_id: first.id,
+        unit_id: first.unit_id || first.unit?.id || '',
+        quantity: 1,
+        unit_cost: Number(first.cost_price || 0),
+      },
+    ]);
+  };
 
-    setOrders((prev) => [newPo, ...prev]);
-    onShowToast(`Purchase Order ${newPo.poNumber} berhasil diajukan.`);
-    handleCloseDrawer();
+  const handleRemoveLine = (index: number) => {
+    setFormItems((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleSavePO = async () => {
+    if (formItems.length === 0) {
+      onShowToast('Tambahkan minimal 1 bahan baku pada Purchase Order!');
+      return;
+    }
+
+    try {
+      await inventoryService.createPurchase({
+        supplier_id: formSupplierId || undefined,
+        purchase_date: formPurchaseDate,
+        notes: formNotes || undefined,
+        items: formItems,
+      } as any);
+
+      onShowToast('Purchase Order baru berhasil diajukan.');
+      await fetchAll();
+      handleCloseDrawer();
+    } catch (err: any) {
+      onShowToast(err.message || 'Gagal membuat Purchase Order.');
+    }
+  };
+
+  const handleReceivePO = async (order: PurchaseOrderItem) => {
+    try {
+      await inventoryService.receivePurchase(order.id);
+      onShowToast(`Barang pada ${order.poNumber} berhasil diterima ke stok!`);
+      setIsDetailOpen(false);
+      await fetchAll();
+    } catch (err: any) {
+      onShowToast(err.message || 'Gagal menerima Purchase Order.');
+    }
+  };
+
+  const handleCancelPO = async (order: PurchaseOrderItem) => {
+    try {
+      await inventoryService.cancelPurchase(order.id);
+      onShowToast(`Purchase Order ${order.poNumber} dibatalkan.`);
+      setIsDetailOpen(false);
+      await fetchAll();
+    } catch (err: any) {
+      onShowToast(err.message || 'Gagal membatalkan Purchase Order.');
+    }
   };
 
   const renderStatusBadge = (status: PurchaseOrderItem['status']) => {
@@ -298,6 +371,11 @@ export function PurchaseOrderManagement({
     },
   ];
 
+  const supplierOptions = [
+    { value: 'all', label: 'Semua supplier' },
+    ...suppliers.map((s) => ({ value: s.name, label: s.name })),
+  ];
+
   return (
     <div className="space-y-4">
       {/* Filters Bar */}
@@ -310,7 +388,6 @@ export function PurchaseOrderManagement({
               { value: 'all', label: 'Semua status' },
               { value: 'Diajukan', label: 'Diajukan' },
               { value: 'Diterima', label: 'Diterima' },
-              { value: 'Draft', label: 'Draft' },
               { value: 'Dibatalkan', label: 'Dibatalkan' },
             ]}
             className="w-44 h-9 text-xs"
@@ -319,12 +396,7 @@ export function PurchaseOrderManagement({
           <Select
             value={selectedSupplier}
             onChange={(e) => setSelectedSupplier(e.target.value)}
-            options={[
-              { value: 'all', label: 'Semua supplier' },
-              { value: 'PT Kopi Nusantara', label: 'PT Kopi Nusantara' },
-              { value: 'PT Sumber Susu Murni', label: 'PT Sumber Susu Murni' },
-              { value: 'Mitra Sirup Barista', label: 'Mitra Sirup Barista' },
-            ]}
+            options={supplierOptions}
             className="w-48 h-9 text-xs"
           />
         </div>
@@ -345,6 +417,7 @@ export function PurchaseOrderManagement({
         <DataTable<PurchaseOrderItem>
           columns={columns}
           data={filteredOrders}
+          isLoading={isLoading}
           keyExtractor={(item) => item.id}
           selectable={true}
           selectedIds={selectedIds}
@@ -382,22 +455,22 @@ export function PurchaseOrderManagement({
                   Tutup
                 </Button>
                 {selectedOrder.status === 'Diajukan' && (
-                  <Button
-                    variant="primary"
-                    className="bg-emerald-600 hover:bg-emerald-700"
-                    onClick={() => {
-                      setOrders((prev) =>
-                        prev.map((o) =>
-                          o.id === selectedOrder.id ? { ...o, status: 'Diterima' } : o
-                        )
-                      );
-                      onShowToast(`Barang pada ${selectedOrder.poNumber} berhasil diterima ke stok!`);
-                      setIsDetailOpen(false);
-                    }}
-                    leftIcon={<Check className="size-4 stroke-[3]" />}
-                  >
-                    Terima Barang
-                  </Button>
+                  <>
+                    <Button
+                      variant="danger"
+                      onClick={() => handleCancelPO(selectedOrder)}
+                    >
+                      Batalkan PO
+                    </Button>
+                    <Button
+                      variant="primary"
+                      className="bg-emerald-600 hover:bg-emerald-700"
+                      onClick={() => handleReceivePO(selectedOrder)}
+                      leftIcon={<Check className="size-4 stroke-[3]" />}
+                    >
+                      Terima Barang
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -410,8 +483,8 @@ export function PurchaseOrderManagement({
                 <p className="font-semibold text-neutral-900 mt-0.5">{selectedOrder.supplierName}</p>
               </div>
               <div>
-                <p className="text-neutral-500">Estimasi Tiba</p>
-                <p className="font-semibold text-neutral-900 mt-0.5">{selectedOrder.expectedDate}</p>
+                <p className="text-neutral-500">Tanggal PO</p>
+                <p className="font-semibold text-neutral-900 mt-0.5">{selectedOrder.orderDate}</p>
               </div>
               <div>
                 <p className="text-neutral-500">Status PO</p>
@@ -481,23 +554,111 @@ export function PurchaseOrderManagement({
       >
         <div className="space-y-5">
           <Select
-            label="Pilih Vendor / Supplier"
-            required
-            value={formSupplier}
-            onChange={(e) => setFormSupplier(e.target.value)}
+            label="Pilih Vendor / Supplier (Opsional)"
+            value={formSupplierId}
+            onChange={(e) => setFormSupplierId(e.target.value)}
             options={[
-              { value: 'PT Kopi Nusantara', label: 'PT Kopi Nusantara' },
-              { value: 'PT Sumber Susu Murni', label: 'PT Sumber Susu Murni' },
-              { value: 'Mitra Sirup Barista', label: 'Mitra Sirup Barista' },
+              { value: '', label: '-- Tanpa Supplier / Pembelian Langsung --' },
+              ...suppliers.map((s) => ({ value: s.id, label: s.name })),
             ]}
           />
 
           <Input
-            label="Estimasi Tanggal Pengiriman"
-            value={formExpectedDate}
-            onChange={(e) => setFormExpectedDate(e.target.value)}
-            placeholder="18 Okt 2026"
+            label="Tanggal Order"
+            type="date"
+            required
+            value={formPurchaseDate}
+            onChange={(e) => setFormPurchaseDate(e.target.value)}
           />
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-neutral-800">Daftar Bahan Baku Dipesan *</label>
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                onClick={handleAddLine}
+                leftIcon={<Plus className="size-3.5" />}
+              >
+                Tambah Baris Bahan
+              </Button>
+            </div>
+
+            {ingredients.length === 0 ? (
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                Belum ada bahan baku di database. Tambahkan bahan baku terlebih dahulu pada tab Bahan.
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {formItems.map((line, idx) => (
+                  <div key={idx} className="p-3 rounded-xl border border-neutral-200 bg-neutral-50/50 grid grid-cols-12 gap-2 items-end">
+                    <div className="col-span-5">
+                      <Select
+                        label={idx === 0 ? 'Bahan Baku' : undefined}
+                        value={line.ingredient_id}
+                        onChange={(e) => {
+                          const ing = ingredients.find((i) => i.id === e.target.value);
+                          setFormItems((prev) =>
+                            prev.map((it, i) =>
+                              i === idx
+                                ? {
+                                    ...it,
+                                    ingredient_id: e.target.value,
+                                    unit_id: ing?.unit_id || ing?.unit?.id || it.unit_id,
+                                    unit_cost: Number(ing?.cost_price || it.unit_cost || 0),
+                                  }
+                                : it
+                            )
+                          );
+                        }}
+                        options={ingredients.map((i) => ({
+                          value: i.id,
+                          label: `${i.name} (${i.unit?.code || i.unit?.name || ''})`,
+                        }))}
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <Input
+                        label={idx === 0 ? 'Qty' : undefined}
+                        type="number"
+                        min="0.1"
+                        step="0.1"
+                        value={line.quantity}
+                        onChange={(e) =>
+                          setFormItems((prev) =>
+                            prev.map((it, i) => (i === idx ? { ...it, quantity: Number(e.target.value) } : it))
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <Input
+                        label={idx === 0 ? 'Harga Satuan' : undefined}
+                        type="number"
+                        min="0"
+                        value={line.unit_cost}
+                        onChange={(e) =>
+                          setFormItems((prev) =>
+                            prev.map((it, i) => (i === idx ? { ...it, unit_cost: Number(e.target.value) } : it))
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="col-span-1 flex justify-end pb-1">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveLine(idx)}
+                        className="p-1.5 text-neutral-400 hover:text-red-600 rounded-lg"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <Textarea
             label="Catatan Tambahan untuk Vendor"

@@ -1,26 +1,21 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  ArrowUpRight,
-  Plus,
-  Search,
-  ChevronDown,
-  AlertTriangle,
   CheckCircle2,
 } from 'lucide-react';
 import {
   DataTable,
   ColumnDef,
-  StatusBadge,
   Button,
   Select,
   SearchInput,
   Drawer,
   Input,
   Textarea,
-  Pagination,
 } from '@/components/common';
+import { inventoryService } from '@/services/inventory.service';
+import { catalogService } from '@/services/catalog.service';
 
 export interface StockOutRecord {
   id: string;
@@ -29,46 +24,10 @@ export interface StockOutRecord {
   ingredientName: string;
   qty: number;
   unit: string;
-  reason: 'Bahan Kedaluwarsa' | 'Kemasan Rusak / Bocor' | 'Gagal Racik (Spill)' | 'Uji Rasa / Demo' | 'Lainnya';
+  reason: string;
   picName: string;
   notes?: string;
 }
-
-const INITIAL_STOCK_OUT: StockOutRecord[] = [
-  {
-    id: 'out-1',
-    refNumber: 'OUT-2026-10-032',
-    date: '14 Okt 2026, 17:00',
-    ingredientName: 'Susu UHT Full Cream',
-    qty: 1,
-    unit: 'liter',
-    reason: 'Gagal Racik (Spill)',
-    picName: 'Andi Pratama',
-    notes: 'Tumpah saat proses frothing susu rush hour.',
-  },
-  {
-    id: 'out-2',
-    refNumber: 'OUT-2026-10-031',
-    date: '13 Okt 2026, 21:30',
-    ingredientName: 'Sirup Vanilla',
-    qty: 0.2,
-    unit: 'liter',
-    reason: 'Uji Rasa / Demo',
-    picName: 'Siti Rahma',
-    notes: 'Kalibrasi rasa menu seasonal baru.',
-  },
-  {
-    id: 'out-3',
-    refNumber: 'OUT-2026-10-030',
-    date: '10 Okt 2026, 11:15',
-    ingredientName: 'Biji Kopi Arabica',
-    qty: 0.5,
-    unit: 'kg',
-    reason: 'Kemasan Rusak / Bocor',
-    picName: 'Budi Santoso',
-    notes: 'Kemasan sobek terkena cutter saat unboxing.',
-  },
-];
 
 interface StockOutManagementProps {
   onShowToast: (msg: string) => void;
@@ -81,45 +40,122 @@ export function StockOutManagement({
   isCreateOpen,
   onCloseCreate,
 }: StockOutManagementProps) {
-  const [records, setRecords] = useState<StockOutRecord[]>(INITIAL_STOCK_OUT);
+  const [records, setRecords] = useState<StockOutRecord[]>([]);
+  const [ingredients, setIngredients] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [reasonFilter, setReasonFilter] = useState('all');
 
   // Drawer
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [formIngredient, setFormIngredient] = useState('Susu UHT Full Cream');
+  const [formIngredientId, setFormIngredientId] = useState('');
   const [formQty, setFormQty] = useState(1);
-  const [formUnit, setFormUnit] = useState('liter');
-  const [formReason, setFormReason] = useState<StockOutRecord['reason']>('Gagal Racik (Spill)');
+  const [formReason, setFormReason] = useState('Gagal Racik (Spill)');
   const [formNotes, setFormNotes] = useState('');
 
-  React.useEffect(() => {
+  const fetchData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const [wstRes, ingRes] = await Promise.allSettled([
+        inventoryService.getWastages(),
+        catalogService.getIngredients(),
+      ]);
+
+      const wstList = wstRes.status === 'fulfilled' && Array.isArray(wstRes.value?.data) ? wstRes.value.data : [];
+      const ingList = ingRes.status === 'fulfilled' && Array.isArray(ingRes.value?.data) ? ingRes.value.data : [];
+
+      setIngredients(ingList);
+      if (ingList.length > 0 && !formIngredientId) {
+        setFormIngredientId(ingList[0].id);
+      }
+
+      const flattened: StockOutRecord[] = [];
+      for (const w of wstList as any[]) {
+        const items = Array.isArray(w.items) ? w.items : [];
+        if (items.length === 0) {
+          flattened.push({
+            id: w.id,
+            refNumber: w.wastage_number || `OUT-${String(w.id || '').slice(-6).toUpperCase()}`,
+            date: w.wastage_date || (w.created_at ? new Date(w.created_at).toLocaleString('id-ID') : '-'),
+            ingredientName: '-',
+            qty: 0,
+            unit: '',
+            reason: w.reason || 'Lainnya',
+            picName: w.created_by_name || 'Staf Outlet',
+            notes: w.notes || '',
+          });
+        } else {
+          for (const it of items) {
+            flattened.push({
+              id: `${w.id}-${it.id}`,
+              refNumber: w.wastage_number || `OUT-${String(w.id || '').slice(-6).toUpperCase()}`,
+              date: w.wastage_date || (w.created_at ? new Date(w.created_at).toLocaleString('id-ID') : '-'),
+              ingredientName: it.ingredient?.name || '-',
+              qty: Number(it.quantity || 0),
+              unit: it.unit?.code || it.unit?.name || it.ingredient?.unit?.code || 'unit',
+              reason: w.reason || 'Lainnya',
+              picName: w.created_by_name || 'Staf Outlet',
+              notes: w.notes || '',
+            });
+          }
+        }
+      }
+
+      setRecords(flattened);
+    } catch (err) {
+      console.error('Failed to load wastage records:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [formIngredientId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
     if (isCreateOpen) {
+      if (ingredients.length > 0 && !formIngredientId) {
+        setFormIngredientId(ingredients[0].id);
+      }
       setIsDrawerOpen(true);
     }
-  }, [isCreateOpen]);
+  }, [isCreateOpen, ingredients, formIngredientId]);
 
   const handleClose = () => {
     setIsDrawerOpen(false);
     if (onCloseCreate) onCloseCreate();
   };
 
-  const handleSave = () => {
-    const newRecord: StockOutRecord = {
-      id: `out-${Date.now()}`,
-      refNumber: `OUT-2026-10-03${records.length + 1}`,
-      date: '15 Okt 2026, 12:00',
-      ingredientName: formIngredient,
-      qty: Number(formQty),
-      unit: formUnit,
-      reason: formReason,
-      picName: 'Andi Pratama (Kasir)',
-      notes: formNotes,
-    };
+  const handleSave = async () => {
+    const ing = ingredients.find((i) => i.id === formIngredientId);
+    if (!ing || Number(formQty) <= 0) {
+      onShowToast('Pilih bahan baku dan masukkan jumlah keluar yang valid!');
+      return;
+    }
 
-    setRecords((prev) => [newRecord, ...prev]);
-    onShowToast(`Stok keluar ${newRecord.qty} ${newRecord.unit} ${newRecord.ingredientName} tercatat.`);
-    handleClose();
+    try {
+      await inventoryService.createWastage({
+        wastage_date: new Date().toISOString().split('T')[0],
+        reason: formReason,
+        notes: formNotes || undefined,
+        items: [
+          {
+            ingredient_id: ing.id,
+            unit_id: ing.unit_id || ing.unit?.id,
+            quantity: Number(formQty),
+          },
+        ],
+      } as any);
+
+      onShowToast(`Stok keluar -${formQty} ${ing.unit?.code || ''} ${ing.name} tercatat.`);
+      setFormNotes('');
+      setFormQty(1);
+      await fetchData();
+      handleClose();
+    } catch (err: any) {
+      onShowToast(err.message || 'Gagal mencatat stok keluar (pastikan stok mencukupi).');
+    }
   };
 
   const filteredRecords = records.filter((r) => {
@@ -132,6 +168,8 @@ export function StockOutManagement({
     }
     return true;
   });
+
+  const selectedIng = ingredients.find((i) => i.id === formIngredientId);
 
   const columns: ColumnDef<StockOutRecord>[] = [
     {
@@ -218,6 +256,7 @@ export function StockOutManagement({
         <DataTable<StockOutRecord>
           columns={columns}
           data={filteredRecords}
+          isLoading={isLoading}
           keyExtractor={(item) => item.id}
           selectable={false}
           emptyTitle="BELUM ADA STOK KELUAR / WASTAGE"
@@ -253,13 +292,14 @@ export function StockOutManagement({
           <Select
             label="Pilih Bahan Baku"
             required
-            value={formIngredient}
-            onChange={(e) => setFormIngredient(e.target.value)}
+            value={formIngredientId}
+            onChange={(e) => setFormIngredientId(e.target.value)}
             options={[
-              { value: 'Susu UHT Full Cream', label: 'Susu UHT Full Cream (ING-003)' },
-              { value: 'Biji Kopi Arabica', label: 'Biji Kopi Arabica (ING-001)' },
-              { value: 'Sirup Vanilla', label: 'Sirup Vanilla (ING-008)' },
-              { value: 'Sirup Gula Aren', label: 'Sirup Gula Aren (ING-007)' },
+              { value: '', label: '-- Pilih Bahan Baku --' },
+              ...ingredients.map((i) => ({
+                value: i.id,
+                label: `${i.name} (${i.sku})`,
+              })),
             ]}
           />
 
@@ -272,15 +312,11 @@ export function StockOutManagement({
               value={formQty}
               onChange={(e) => setFormQty(Number(e.target.value))}
             />
-            <Select
+            <Input
               label="Satuan"
-              value={formUnit}
-              onChange={(e) => setFormUnit(e.target.value)}
-              options={[
-                { value: 'liter', label: 'liter' },
-                { value: 'kg', label: 'kg' },
-                { value: 'pcs', label: 'pcs' },
-              ]}
+              value={selectedIng?.unit?.code || selectedIng?.unit?.name || '-'}
+              disabled
+              className="bg-neutral-50 font-mono"
             />
           </div>
 
@@ -288,7 +324,7 @@ export function StockOutManagement({
             label="Alasan Pengeluaran"
             required
             value={formReason}
-            onChange={(e) => setFormReason(e.target.value as any)}
+            onChange={(e) => setFormReason(e.target.value)}
             options={[
               { value: 'Gagal Racik (Spill)', label: 'Gagal Racik (Tumpah / Salah Ukur)' },
               { value: 'Bahan Kedaluwarsa', label: 'Bahan Kedaluwarsa / Rusak Kualitas' },

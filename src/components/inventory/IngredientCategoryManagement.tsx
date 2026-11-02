@@ -1,11 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Tag,
-  Plus,
-  Search,
-  ChevronDown,
   Edit2,
   Trash2,
   Check,
@@ -23,8 +20,8 @@ import {
   Input,
   Textarea,
   FormField,
-  Pagination,
 } from '@/components/common';
+import { catalogService } from '@/services/catalog.service';
 
 export interface IngredientCategoryItem {
   id: string;
@@ -34,57 +31,6 @@ export interface IngredientCategoryItem {
   status: 'Aktif' | 'Nonaktif';
   description?: string;
 }
-
-const INITIAL_CATEGORIES: IngredientCategoryItem[] = [
-  {
-    id: 'icat-1',
-    name: 'Kopi',
-    code: 'CAT-KOP',
-    itemCount: 2,
-    status: 'Aktif',
-    description: 'Biji kopi sangrai arabica, robusta, dan house blend.',
-  },
-  {
-    id: 'icat-2',
-    name: 'Susu',
-    code: 'CAT-SUS',
-    itemCount: 2,
-    status: 'Aktif',
-    description: 'Susu segar UHT, susu nabati oat, almond, dan krimer.',
-  },
-  {
-    id: 'icat-3',
-    name: 'Bubuk',
-    code: 'CAT-BBK',
-    itemCount: 2,
-    status: 'Aktif',
-    description: 'Bubuk matcha murni, dark chocolate, red velvet, taro.',
-  },
-  {
-    id: 'icat-4',
-    name: 'Sirup',
-    code: 'CAT-SRP',
-    itemCount: 2,
-    status: 'Aktif',
-    description: 'Sirup perasa karamel, vanilla, hazelnut, pandan, gula aren cair.',
-  },
-  {
-    id: 'icat-5',
-    name: 'Minuman',
-    code: 'CAT-MNM',
-    itemCount: 1,
-    status: 'Aktif',
-    description: 'Air mineral galon, teh melati kering, soda kaleng.',
-  },
-  {
-    id: 'icat-6',
-    name: 'Kemasan',
-    code: 'CAT-KMS',
-    itemCount: 4,
-    status: 'Aktif',
-    description: 'Paper cup, plastic cup sealing, sedotan stainless, kantong take-away.',
-  },
-];
 
 interface IngredientCategoryManagementProps {
   onShowToast: (msg: string) => void;
@@ -97,10 +43,10 @@ export function IngredientCategoryManagement({
   isCreateOpen,
   onCloseCreate,
 }: IngredientCategoryManagementProps) {
-  const [categories, setCategories] = useState<IngredientCategoryItem[]>(INITIAL_CATEGORIES);
+  const [categories, setCategories] = useState<IngredientCategoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   // Drawer states
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -113,7 +59,33 @@ export function IngredientCategoryManagement({
   // Delete modal
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
-  React.useEffect(() => {
+  const fetchCategories = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const res = await catalogService.getIngredientCategories();
+      const list = Array.isArray(res?.data) ? res.data : [];
+      setCategories(
+        list.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          code: c.code || `CAT-${String(c.name || '').substring(0, 3).toUpperCase()}`,
+          itemCount: Number(c.itemCount ?? c.item_count ?? 0),
+          status: c.status === 'Nonaktif' ? 'Nonaktif' : 'Aktif',
+          description: c.description || '',
+        }))
+      );
+    } catch (err) {
+      console.error('Failed to load ingredient categories:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  useEffect(() => {
     if (isCreateOpen) {
       handleCreateNew();
     }
@@ -142,48 +114,47 @@ export function IngredientCategoryManagement({
     if (onCloseCreate) onCloseCreate();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formName.trim()) {
       onShowToast('Nama kategori bahan wajib diisi!');
       return;
     }
 
-    if (editingCategory) {
-      setCategories((prev) =>
-        prev.map((c) =>
-          c.id === editingCategory.id
-            ? {
-                ...c,
-                name: formName,
-                code: formCode || `CAT-${formName.substring(0, 3).toUpperCase()}`,
-                status: formStatus,
-                description: formDescription,
-              }
-            : c
-        )
-      );
-      onShowToast(`Kategori "${formName}" berhasil diperbarui.`);
-    } else {
-      const newCat: IngredientCategoryItem = {
-        id: `icat-${Date.now()}`,
-        name: formName,
-        code: formCode || `CAT-${formName.substring(0, 3).toUpperCase()}`,
-        itemCount: 0,
-        status: formStatus,
-        description: formDescription,
-      };
-      setCategories((prev) => [...prev, newCat]);
-      onShowToast(`Kategori baru "${formName}" berhasil ditambahkan.`);
+    try {
+      if (editingCategory) {
+        await catalogService.updateIngredientCategory(editingCategory.id, {
+          name: formName.trim(),
+          code: formCode.trim() || `CAT-${formName.substring(0, 3).toUpperCase()}`,
+          status: formStatus,
+          description: formDescription.trim(),
+        });
+        onShowToast(`Kategori "${formName}" berhasil diperbarui.`);
+      } else {
+        await catalogService.createIngredientCategory({
+          name: formName.trim(),
+          code: formCode.trim() || `CAT-${formName.substring(0, 3).toUpperCase()}`,
+          status: formStatus,
+          description: formDescription.trim(),
+        });
+        onShowToast(`Kategori baru "${formName}" berhasil ditambahkan.`);
+      }
+      await fetchCategories();
+      handleClose();
+    } catch (err: any) {
+      onShowToast(err.message || 'Gagal menyimpan kategori bahan.');
     }
-
-    handleClose();
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleteTarget) return;
-    setCategories((prev) => prev.filter((c) => c.id !== deleteTarget.id));
-    onShowToast(`Kategori "${deleteTarget.name}" berhasil dihapus.`);
-    setDeleteTarget(null);
+    try {
+      await catalogService.deleteIngredientCategory(deleteTarget.id);
+      onShowToast(`Kategori "${deleteTarget.name}" berhasil dihapus.`);
+      setDeleteTarget(null);
+      await fetchCategories();
+    } catch (err: any) {
+      onShowToast(err.message || 'Gagal menghapus kategori.');
+    }
   };
 
   const filteredCategories = categories.filter((item) => {
@@ -304,6 +275,7 @@ export function IngredientCategoryManagement({
         <DataTable<IngredientCategoryItem>
           columns={columns}
           data={filteredCategories}
+          isLoading={isLoading}
           keyExtractor={(item) => item.id}
           selectable={false}
           onRowClick={handleEdit}

@@ -35,8 +35,27 @@ export const catalogService = {
   getUnits: () =>
     api.get<ApiResponse<Unit[]>>('/catalog/units'),
 
-  createUnit: (data: Partial<Unit>) =>
+  createUnit: (data: Omit<Partial<Unit>, 'type'> & { code?: string; type?: string }) =>
     api.post<ApiResponse<Unit>>('/catalog/units', data),
+
+  updateUnit: (id: string, data: Omit<Partial<Unit>, 'type'> & { code?: string; type?: string }) =>
+    api.put<ApiResponse<Unit>>(`/catalog/units/${id}`, data),
+
+  deleteUnit: (id: string) =>
+    api.delete<ApiResponse<null>>(`/catalog/units/${id}`),
+
+  // Ingredient Categories
+  getIngredientCategories: () =>
+    api.get<ApiResponse<any[]>>('/catalog/ingredient-categories'),
+
+  createIngredientCategory: (data: { name: string; code?: string; status?: string; description?: string }) =>
+    api.post<ApiResponse<any>>('/catalog/ingredient-categories', data),
+
+  updateIngredientCategory: (id: string, data: { name: string; code?: string; status?: string; description?: string }) =>
+    api.put<ApiResponse<any>>(`/catalog/ingredient-categories/${id}`, data),
+
+  deleteIngredientCategory: (id: string) =>
+    api.delete<ApiResponse<null>>(`/catalog/ingredient-categories/${id}`),
 
   // Suppliers
   getSuppliers: () =>

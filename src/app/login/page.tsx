@@ -3,7 +3,7 @@
 import React, { useState, Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, EyeOff, AlertCircle, Loader2, Store, UserCheck, Package, Shield, Code, ChefHat, Users } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { AuthLayout } from '@/components/common/AuthLayout';
 import { ApiError } from '@/lib/api';
@@ -18,7 +18,6 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showDemoModal, setShowDemoModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(
     searchParams.get('expired') ? 'Sesi Anda telah berakhir. Silakan login kembali.' : null
   );
@@ -63,103 +62,8 @@ function LoginForm() {
     }
   };
 
-  const handleQuickFill = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setErrorMsg(null);
-    setShowDemoModal(false);
-  };
-
-  const devHelper = (
-    <div>
-      <button
-        type="button"
-        onClick={() => setShowDemoModal(!showDemoModal)}
-        className="size-8 rounded-full bg-gray-900/10 hover:bg-gray-900/20 text-gray-500 hover:text-gray-900 flex items-center justify-center transition-all backdrop-blur-sm"
-        title="Demo Accounts Helper (Dev Mode)"
-      >
-        <Code className="size-3.5" />
-      </button>
-
-      {showDemoModal && (
-        <div className="absolute bottom-10 right-0 w-72 p-3 bg-white rounded-xl shadow-xl border border-gray-200 animate-in fade-in zoom-in-95 duration-150">
-          <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
-            Pilih Akun Testing (6 Role)
-          </div>
-          <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
-            <button
-              type="button"
-              onClick={() => handleQuickFill('admin@pos.com', 'Password123!')}
-              className="w-full p-2 rounded-lg text-left text-xs hover:bg-gray-50 border border-transparent hover:border-gray-200 flex items-center justify-between"
-            >
-              <span className="flex items-center gap-1.5 font-medium text-gray-800">
-                <Shield className="size-3.5 text-purple-600" /> Admin Internal
-              </span>
-              <span className="text-[10px] text-gray-400">admin@...</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickFill('owner@kopinusantara.com', 'Password123!')}
-              className="w-full p-2 rounded-lg text-left text-xs hover:bg-gray-50 border border-transparent hover:border-gray-200 flex items-center justify-between"
-            >
-              <span className="flex items-center gap-1.5 font-medium text-gray-800">
-                <Store className="size-3.5 text-[#FF5C38]" /> Owner
-              </span>
-              <span className="text-[10px] text-gray-400">owner@...</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickFill('manager@kopinusantara.com', 'Password123!')}
-              className="w-full p-2 rounded-lg text-left text-xs hover:bg-gray-50 border border-transparent hover:border-gray-200 flex items-center justify-between"
-            >
-              <span className="flex items-center gap-1.5 font-medium text-gray-800">
-                <Users className="size-3.5 text-blue-600" /> Manager
-              </span>
-              <span className="text-[10px] text-gray-400">manager@...</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickFill('kasir@kopinusantara.com', 'Password123!')}
-              className="w-full p-2 rounded-lg text-left text-xs hover:bg-gray-50 border border-transparent hover:border-gray-200 flex items-center justify-between"
-            >
-              <span className="flex items-center gap-1.5 font-medium text-gray-800">
-                <UserCheck className="size-3.5 text-purple-600" /> Kasir (POS)
-              </span>
-              <span className="text-[10px] text-gray-400">kasir@...</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickFill('inventory@kopinusantara.com', 'Password123!')}
-              className="w-full p-2 rounded-lg text-left text-xs hover:bg-gray-50 border border-transparent hover:border-gray-200 flex items-center justify-between"
-            >
-              <span className="flex items-center gap-1.5 font-medium text-gray-800">
-                <Package className="size-3.5 text-amber-600" /> Inventory
-              </span>
-              <span className="text-[10px] text-gray-400">inventory@...</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickFill('dapur@kopinusantara.com', 'Password123!')}
-              className="w-full p-2 rounded-lg text-left text-xs hover:bg-gray-50 border border-transparent hover:border-gray-200 flex items-center justify-between"
-            >
-              <span className="flex items-center gap-1.5 font-medium text-gray-800">
-                <ChefHat className="size-3.5 text-emerald-600" /> Dapur (KDS)
-              </span>
-              <span className="text-[10px] text-gray-400">dapur@...</span>
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
   return (
-    <AuthLayout floatingHelper={devHelper}>
+    <AuthLayout>
       {/* Form Container - Vertically Centered & Wide like Figma */}
       <div className="w-full max-w-[540px] mx-auto my-auto py-4">
         {/* Header */}

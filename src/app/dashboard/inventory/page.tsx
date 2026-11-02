@@ -99,27 +99,30 @@ function InventoryContent() {
 
       const mapped: InventoryIngredient[] = ingData.map((item: any) => {
         const stock = stockData.find((s: any) => s.ingredient_id === item.id);
-        const currentStock = stock?.quantity ?? item.current_stock ?? 5;
-        const minStock = Number(item.min_stock) || 2;
-        const status = Number(currentStock) <= 0 ? 'Habis' : Number(currentStock) <= minStock ? 'Menipis' : 'Aman';
+        const currentStock = Number(stock?.quantity ?? item.current_stock ?? 0);
+        const minStock = Number(item.min_stock ?? 0);
+        const status = currentStock <= 0 ? 'Habis' : currentStock <= minStock ? 'Menipis' : 'Aman';
 
         return {
           id: item.id,
           name: item.name,
           sku: item.sku || `ING-${item.id.slice(0, 5).toUpperCase()}`,
-          category: (item.category?.name || item.category || 'Kopi') as any,
-          unit: (item.unit?.symbol || item.unit?.name || 'kg') as any,
-          currentStock: Number(currentStock),
-          minStock: Number(minStock),
-          costPrice: Number(item.cost_price || item.average_cost || 0),
+          category: item.category?.name || item.category || '-',
+          unit: item.unit?.code || item.unit?.symbol || item.unit?.name || '-',
+          unitId: item.unit_id || item.unit?.id,
+          currentStock,
+          minStock,
+          costPrice: Number(item.cost_price ?? stock?.average_cost ?? 0),
           status,
           description: item.description || '',
-          image: item.image_url || '/img/ingredients/biji_kopi_arabica.jpg',
-          supplier: item.supplier?.name || 'PT Kopi Nusantara',
-          storageLocation: item.storage_location || 'Gudang Bahan Kering',
-          shelfLifeValue: Number(item.shelf_life_value) || 12,
+          image: item.image_url || undefined,
+          supplier: item.supplier?.name || '-',
+          supplierId: item.supplier_id || item.supplier?.id,
+          storageLocation: item.storage_location || '-',
+          shelfLifeValue: Number(item.shelf_life_value ?? 0),
           shelfLifeUnit: item.shelf_life_unit || 'Bulan',
-          expiryDate: item.expiry_date || '31 Des 2026',
+          expiryDate: item.expiry_date || '',
+          recipeItems: Array.isArray(item.recipe_items) ? item.recipe_items : [],
         };
       });
       setIngredients(mapped);
@@ -233,58 +236,62 @@ function InventoryContent() {
   };
 
   const handleSaveIngredient = async (updated: InventoryIngredient) => {
-    setIngredients((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
     try {
       await catalogService.updateIngredient(updated.id, {
         name: updated.name,
         sku: updated.sku,
-        category: updated.category,
+        category: updated.category === '-' ? null : updated.category,
+        unit: updated.unit === '-' ? undefined : updated.unit,
         cost_price: updated.costPrice,
         min_stock: updated.minStock,
+        current_stock: updated.currentStock,
         description: updated.description,
-        image_url: updated.image,
-        storage_location: updated.storageLocation,
+        image_url: updated.image || null,
+        supplier_name: updated.supplier === '-' ? null : updated.supplier,
+        storage_location: updated.storageLocation === '-' ? null : updated.storageLocation,
         shelf_life_value: updated.shelfLifeValue,
         shelf_life_unit: updated.shelfLifeUnit,
+        expiry_date: updated.expiryDate || null,
       } as any);
       showToast(`Bahan "${updated.name}" berhasil diperbarui.`);
-    } catch (err) {
-      console.warn('Backend update ingredient warning:', err);
-      showToast(`Bahan "${updated.name}" diperbarui.`);
+      fetchIngredientsAndStocks();
+    } catch (err: any) {
+      toast.error(err.message || `Gagal memperbarui bahan "${updated.name}".`);
     }
   };
 
   const handleDeleteIngredient = async (id: string) => {
-    setIngredients((prev) => prev.filter((item) => item.id !== id));
     try {
       await catalogService.deleteIngredient(id);
+      setIngredients((prev) => prev.filter((item) => item.id !== id));
       showToast('Bahan berhasil dihapus dari inventori.');
-    } catch (err) {
-      console.warn('Backend delete ingredient warning:', err);
-      showToast('Bahan dihapus.');
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal menghapus bahan.');
     }
   };
 
   const handleAddIngredient = async (newItem: InventoryIngredient) => {
-    setIngredients((prev) => [newItem, ...prev]);
     try {
       await catalogService.createIngredient({
         name: newItem.name,
         sku: newItem.sku,
-        category: newItem.category,
+        category: newItem.category === '-' ? null : newItem.category,
+        unit: newItem.unit,
         cost_price: newItem.costPrice,
         min_stock: newItem.minStock,
+        current_stock: newItem.currentStock,
         description: newItem.description,
-        image_url: newItem.image,
-        storage_location: newItem.storageLocation,
+        image_url: newItem.image || null,
+        supplier_name: newItem.supplier || null,
+        storage_location: newItem.storageLocation || null,
         shelf_life_value: newItem.shelfLifeValue,
         shelf_life_unit: newItem.shelfLifeUnit,
+        expiry_date: newItem.expiryDate || null,
       } as any);
       showToast(`Bahan baru "${newItem.name}" berhasil ditambahkan.`);
       fetchIngredientsAndStocks();
-    } catch (err) {
-      console.warn('Backend create ingredient warning:', err);
-      showToast(`Bahan baru "${newItem.name}" ditambahkan.`);
+    } catch (err: any) {
+      toast.error(err.message || `Gagal menambahkan bahan "${newItem.name}".`);
     }
   };
 
@@ -372,13 +379,17 @@ function InventoryContent() {
       render: (item) => (
         <div className="flex items-center gap-3">
           {/* Thumbnail */}
-          <div className="size-10 rounded-lg overflow-hidden border border-neutral-200 shrink-0 relative bg-neutral-100 shadow-2xs">
-            <Image
-              src={item.image || '/img/ingredients/biji_kopi_arabica.jpg'}
-              alt={item.name}
-              fill
-              className="object-cover"
-            />
+          <div className="size-10 rounded-lg overflow-hidden border border-neutral-200 shrink-0 relative bg-neutral-100 shadow-2xs flex items-center justify-center text-neutral-400">
+            {item.image ? (
+              <Image
+                src={item.image}
+                alt={item.name}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <Package className="size-4" />
+            )}
           </div>
 
           <div>
@@ -592,11 +603,9 @@ function InventoryContent() {
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 options={[
                   { value: 'all', label: 'Semua kategori' },
-                  { value: 'Kopi', label: 'Kopi' },
-                  { value: 'Susu', label: 'Susu' },
-                  { value: 'Bubuk', label: 'Bubuk' },
-                  { value: 'Sirup', label: 'Sirup' },
-                  { value: 'Minuman', label: 'Minuman' },
+                  ...Array.from(
+                    new Set(ingredients.map((i) => i.category).filter((c) => c && c !== '-'))
+                  ).map((c) => ({ value: c, label: c })),
                 ]}
                 className="w-44 h-9 text-xs"
               />

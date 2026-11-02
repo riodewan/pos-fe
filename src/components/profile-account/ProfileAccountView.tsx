@@ -39,7 +39,7 @@ const INITIAL_ACCOUNT_DATA: UserAccountProfile = {
   phone: '',
   role: '',
   avatarUrl: null,
-  outletCount: 1,
+  outletCount: 0,
   joinedDate: '-',
   lastLogin: {
     datetime: '-',

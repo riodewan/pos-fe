@@ -1,11 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Scale,
-  Plus,
-  Search,
-  ChevronDown,
   Edit2,
   Trash2,
   Check,
@@ -22,8 +19,8 @@ import {
   Modal,
   Input,
   FormField,
-  Pagination,
 } from '@/components/common';
+import { catalogService } from '@/services/catalog.service';
 
 export interface IngredientUnitItem {
   id: string;
@@ -33,28 +30,46 @@ export interface IngredientUnitItem {
   status: 'Aktif' | 'Nonaktif';
 }
 
-const INITIAL_UNITS: IngredientUnitItem[] = [
-  { id: 'u-1', name: 'Kilogram', symbol: 'kg', type: 'Berat', status: 'Aktif' },
-  { id: 'u-2', name: 'Gram', symbol: 'g', type: 'Berat', status: 'Aktif' },
-  { id: 'u-3', name: 'Liter', symbol: 'liter', type: 'Volume', status: 'Aktif' },
-  { id: 'u-4', name: 'Mililiter', symbol: 'ml', type: 'Volume', status: 'Aktif' },
-  { id: 'u-5', name: 'Pieces / Buah', symbol: 'pcs', type: 'Kuantitas', status: 'Aktif' },
-  { id: 'u-6', name: 'Porsi / Sachet', symbol: 'porsi', type: 'Kuantitas', status: 'Aktif' },
-  { id: 'u-7', name: 'Pack / Dus', symbol: 'pack', type: 'Kuantitas', status: 'Aktif' },
-];
-
 interface IngredientUnitManagementProps {
   onShowToast: (msg: string) => void;
   isCreateOpen?: boolean;
   onCloseCreate?: () => void;
 }
 
+const mapBackendTypeToLabel = (type?: string): IngredientUnitItem['type'] => {
+  switch (String(type || '').toUpperCase()) {
+    case 'WEIGHT':
+    case 'BERAT':
+      return 'Berat';
+    case 'VOLUME':
+      return 'Volume';
+    case 'COUNT':
+    case 'KUANTITAS':
+      return 'Kuantitas';
+    default:
+      return 'Kuantitas';
+  }
+};
+
+const mapLabelToBackendType = (label: IngredientUnitItem['type']): 'WEIGHT' | 'VOLUME' | 'COUNT' => {
+  switch (label) {
+    case 'Berat':
+      return 'WEIGHT';
+    case 'Volume':
+      return 'VOLUME';
+    case 'Kuantitas':
+    default:
+      return 'COUNT';
+  }
+};
+
 export function IngredientUnitManagement({
   onShowToast,
   isCreateOpen,
   onCloseCreate,
 }: IngredientUnitManagementProps) {
-  const [units, setUnits] = useState<IngredientUnitItem[]>(INITIAL_UNITS);
+  const [units, setUnits] = useState<IngredientUnitItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
 
@@ -69,7 +84,32 @@ export function IngredientUnitManagement({
   // Delete modal
   const [deleteTarget, setDeleteTarget] = useState<IngredientUnitItem | null>(null);
 
-  React.useEffect(() => {
+  const fetchUnits = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const res = await catalogService.getUnits();
+      const list = Array.isArray(res?.data) ? res.data : [];
+      setUnits(
+        list.map((u: any) => ({
+          id: u.id,
+          name: u.name,
+          symbol: u.code || u.symbol || '',
+          type: mapBackendTypeToLabel(u.type),
+          status: 'Aktif',
+        }))
+      );
+    } catch (err) {
+      console.error('Failed to fetch units:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUnits();
+  }, [fetchUnits]);
+
+  useEffect(() => {
     if (isCreateOpen) {
       handleCreateNew();
     }
@@ -98,47 +138,44 @@ export function IngredientUnitManagement({
     if (onCloseCreate) onCloseCreate();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formName.trim() || !formSymbol.trim()) {
       onShowToast('Nama dan simbol satuan wajib diisi!');
       return;
     }
 
-    if (editingUnit) {
-      setUnits((prev) =>
-        prev.map((u) =>
-          u.id === editingUnit.id
-            ? {
-                ...u,
-                name: formName,
-                symbol: formSymbol.toLowerCase(),
-                type: formType,
-                status: formStatus,
-              }
-            : u
-        )
-      );
-      onShowToast(`Satuan "${formName}" berhasil diperbarui.`);
-    } else {
-      const newUnit: IngredientUnitItem = {
-        id: `u-${Date.now()}`,
-        name: formName,
-        symbol: formSymbol.toLowerCase(),
-        type: formType,
-        status: formStatus,
+    try {
+      const payload = {
+        name: formName.trim(),
+        code: formSymbol.trim().toLowerCase(),
+        type: mapLabelToBackendType(formType),
       };
-      setUnits((prev) => [...prev, newUnit]);
-      onShowToast(`Satuan baru "${formName}" (${formSymbol}) berhasil ditambahkan.`);
-    }
 
-    handleClose();
+      if (editingUnit) {
+        await catalogService.updateUnit(editingUnit.id, payload);
+        onShowToast(`Satuan "${formName}" berhasil diperbarui.`);
+      } else {
+        await catalogService.createUnit(payload);
+        onShowToast(`Satuan baru "${formName}" (${formSymbol}) berhasil ditambahkan.`);
+      }
+
+      await fetchUnits();
+      handleClose();
+    } catch (err: any) {
+      onShowToast(err.message || 'Gagal menyimpan satuan ukur.');
+    }
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleteTarget) return;
-    setUnits((prev) => prev.filter((u) => u.id !== deleteTarget.id));
-    onShowToast(`Satuan "${deleteTarget.name}" berhasil dihapus.`);
-    setDeleteTarget(null);
+    try {
+      await catalogService.deleteUnit(deleteTarget.id);
+      onShowToast(`Satuan "${deleteTarget.name}" berhasil dihapus.`);
+      setDeleteTarget(null);
+      await fetchUnits();
+    } catch (err: any) {
+      onShowToast(err.message || 'Gagal menghapus satuan (mungkin masih digunakan oleh bahan baku).');
+    }
   };
 
   const filteredUnits = units.filter((u) => {
@@ -262,6 +299,7 @@ export function IngredientUnitManagement({
         <DataTable<IngredientUnitItem>
           columns={columns}
           data={filteredUnits}
+          isLoading={isLoading}
           keyExtractor={(item) => item.id}
           selectable={false}
           onRowClick={handleEdit}
@@ -322,7 +360,6 @@ export function IngredientUnitManagement({
               { value: 'Berat', label: 'Berat (Massa)' },
               { value: 'Volume', label: 'Volume (Cair)' },
               { value: 'Kuantitas', label: 'Kuantitas (Satuan Hitung / Pcs)' },
-              { value: 'Lainnya', label: 'Lainnya' },
             ]}
           />
 

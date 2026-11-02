@@ -102,35 +102,7 @@ export function CustomerDetailDrawer({
     }
   };
 
-  const dummyTransactions = customer.transactions && customer.transactions.length > 0 ? customer.transactions : [
-    {
-      id: 'tx-1',
-      orderNumber: 'ORD-2024-0012',
-      date: '12 Jan 2024 14:30',
-      items: '2x Kopi Susu Aren, 1x Croissant Butter',
-      amount: 68000,
-      paymentMethod: 'QRIS',
-      status: 'Selesai' as const,
-    },
-    {
-      id: 'tx-2',
-      orderNumber: 'ORD-2024-0009',
-      date: '10 Jan 2024 11:15',
-      items: '1x Caramel Macchiato, 1x Cinnamon Roll',
-      amount: 52000,
-      paymentMethod: 'Kartu Debit',
-      status: 'Selesai' as const,
-    },
-    {
-      id: 'tx-3',
-      orderNumber: 'ORD-2024-0004',
-      date: '05 Jan 2024 16:45',
-      items: '3x Iced Americano',
-      amount: 75000,
-      paymentMethod: 'Tunai',
-      status: 'Selesai' as const,
-    },
-  ];
+  const customerTransactions = customer.transactions ?? [];
 
   return (
     <>
@@ -376,7 +348,7 @@ export function CustomerDetailDrawer({
                   <div className="space-y-3">
                     <div className="flex items-center justify-between pb-1">
                       <p className="text-xs font-bold text-neutral-800">
-                        Total {dummyTransactions.length} Transaksi Terakhir
+                        Total {customerTransactions.length} Transaksi Terakhir
                       </p>
                       <p className="text-xs font-semibold text-neutral-500">
                         Total Belanja: {formatRupiah(customer.totalSpent)}
@@ -384,7 +356,12 @@ export function CustomerDetailDrawer({
                     </div>
 
                     <div className="space-y-2.5">
-                      {dummyTransactions.map((tx) => (
+                      {customerTransactions.length === 0 && (
+                        <p className="py-8 text-center text-xs text-neutral-400">
+                          Belum ada transaksi untuk pelanggan ini.
+                        </p>
+                      )}
+                      {customerTransactions.map((tx) => (
                         <div
                           key={tx.id}
                           className="p-3.5 rounded-xl border border-neutral-200/80 bg-white hover:border-neutral-300 transition-colors shadow-2xs space-y-2"

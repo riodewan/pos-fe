@@ -1,27 +1,21 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  ArrowDownLeft,
-  Plus,
-  Search,
-  ChevronDown,
-  Check,
   CheckCircle2,
-  Calendar,
 } from 'lucide-react';
 import {
   DataTable,
   ColumnDef,
-  StatusBadge,
   Button,
   Select,
   SearchInput,
   Drawer,
   Input,
   Textarea,
-  Pagination,
 } from '@/components/common';
+import { inventoryService } from '@/services/inventory.service';
+import { catalogService } from '@/services/catalog.service';
 
 export interface StockInRecord {
   id: string;
@@ -30,57 +24,10 @@ export interface StockInRecord {
   ingredientName: string;
   qty: number;
   unit: string;
-  sourceType: 'Purchase Order' | 'Pembelian Langsung' | 'Retur Konsumen' | 'Transfer Gudang';
+  sourceType: string;
   receiverName: string;
   notes?: string;
 }
-
-const INITIAL_STOCK_IN: StockInRecord[] = [
-  {
-    id: 'in-1',
-    refNumber: 'IN-2026-10-089',
-    date: '14 Okt 2026, 14:30',
-    ingredientName: 'Biji Kopi Arabica',
-    qty: 15,
-    unit: 'kg',
-    sourceType: 'Purchase Order',
-    receiverName: 'Andi Pratama',
-    notes: 'Kondisi kemasan rapi dan segel utuh.',
-  },
-  {
-    id: 'in-2',
-    refNumber: 'IN-2026-10-088',
-    date: '13 Okt 2026, 10:15',
-    ingredientName: 'Susu UHT Full Cream',
-    qty: 40,
-    unit: 'liter',
-    sourceType: 'Purchase Order',
-    receiverName: 'Siti Rahma',
-    notes: 'Masuk chiller bar utama.',
-  },
-  {
-    id: 'in-3',
-    refNumber: 'IN-2026-10-087',
-    date: '12 Okt 2026, 16:45',
-    ingredientName: 'Sirup Gula Aren',
-    qty: 10,
-    unit: 'liter',
-    sourceType: 'Pembelian Langsung',
-    receiverName: 'Andi Pratama',
-    notes: 'Beli darurat di pasar modern.',
-  },
-  {
-    id: 'in-4',
-    refNumber: 'IN-2026-10-086',
-    date: '11 Okt 2026, 09:00',
-    ingredientName: 'Matcha Powder',
-    qty: 2,
-    unit: 'kg',
-    sourceType: 'Transfer Gudang',
-    receiverName: 'Budi Santoso',
-    notes: 'Mutasi dari gudang pusat.',
-  },
-];
 
 interface StockInManagementProps {
   onShowToast: (msg: string) => void;
@@ -93,45 +40,97 @@ export function StockInManagement({
   isCreateOpen,
   onCloseCreate,
 }: StockInManagementProps) {
-  const [records, setRecords] = useState<StockInRecord[]>(INITIAL_STOCK_IN);
+  const [records, setRecords] = useState<StockInRecord[]>([]);
+  const [ingredients, setIngredients] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
 
   // Drawer
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [formIngredient, setFormIngredient] = useState('Biji Kopi Arabica');
-  const [formQty, setFormQty] = useState(10);
-  const [formUnit, setFormUnit] = useState('kg');
-  const [formSource, setFormSource] = useState<StockInRecord['sourceType']>('Purchase Order');
+  const [formIngredientId, setFormIngredientId] = useState('');
+  const [formQty, setFormQty] = useState(1);
+  const [formSource, setFormSource] = useState('Pembelian Langsung');
   const [formNotes, setFormNotes] = useState('');
 
-  React.useEffect(() => {
+  const fetchData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const [movRes, ingRes] = await Promise.allSettled([
+        inventoryService.getMovements({ type: 'PURCHASE' }),
+        catalogService.getIngredients(),
+      ]);
+
+      const rawMov = movRes.status === 'fulfilled' ? (movRes.value?.data as any) : null;
+      const movList = Array.isArray(rawMov) ? rawMov : Array.isArray(rawMov?.data) ? rawMov.data : [];
+      const ingList = ingRes.status === 'fulfilled' && Array.isArray(ingRes.value?.data) ? ingRes.value.data : [];
+
+      setIngredients(ingList);
+      if (ingList.length > 0 && !formIngredientId) {
+        setFormIngredientId(ingList[0].id);
+      }
+
+      const mapped: StockInRecord[] = movList.map((m: any) => ({
+        id: m.id,
+        refNumber: `IN-${String(m.id || '').slice(-6).toUpperCase()}`,
+        date: m.created_at ? new Date(m.created_at).toLocaleString('id-ID') : '-',
+        ingredientName: m.ingredient?.name || '-',
+        qty: Math.abs(Number(m.quantity || 0)),
+        unit: m.unit?.code || m.unit?.name || m.ingredient?.unit?.code || 'unit',
+        sourceType: m.reference_type === 'PURCHASE' ? 'Purchase Order' : (m.reference_type || 'Pembelian Langsung'),
+        receiverName: m.created_by_name || 'Staf Outlet',
+        notes: m.notes || '',
+      }));
+
+      setRecords(mapped);
+    } catch (err) {
+      console.error('Failed to load stock-in movements:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [formIngredientId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
     if (isCreateOpen) {
+      if (ingredients.length > 0 && !formIngredientId) {
+        setFormIngredientId(ingredients[0].id);
+      }
       setIsDrawerOpen(true);
     }
-  }, [isCreateOpen]);
+  }, [isCreateOpen, ingredients, formIngredientId]);
 
   const handleClose = () => {
     setIsDrawerOpen(false);
     if (onCloseCreate) onCloseCreate();
   };
 
-  const handleSave = () => {
-    const newRecord: StockInRecord = {
-      id: `in-${Date.now()}`,
-      refNumber: `IN-2026-10-09${records.length + 1}`,
-      date: '15 Okt 2026, 10:00',
-      ingredientName: formIngredient,
-      qty: Number(formQty),
-      unit: formUnit,
-      sourceType: formSource,
-      receiverName: 'Andi Pratama (Kasir)',
-      notes: formNotes,
-    };
+  const handleSave = async () => {
+    if (!formIngredientId || Number(formQty) <= 0) {
+      onShowToast('Pilih bahan baku dan masukkan jumlah masuk yang valid!');
+      return;
+    }
 
-    setRecords((prev) => [newRecord, ...prev]);
-    onShowToast(`Stok masuk ${newRecord.qty} ${newRecord.unit} ${newRecord.ingredientName} tercatat.`);
-    handleClose();
+    try {
+      await inventoryService.recordStockIn({
+        ingredient_id: formIngredientId,
+        quantity: Number(formQty),
+        source_type: formSource,
+        notes: formNotes || undefined,
+      });
+
+      const ing = ingredients.find((i) => i.id === formIngredientId);
+      onShowToast(`Stok masuk +${formQty} ${ing?.unit?.code || ''} ${ing?.name || ''} tercatat.`);
+      setFormNotes('');
+      setFormQty(1);
+      await fetchData();
+      handleClose();
+    } catch (err: any) {
+      onShowToast(err.message || 'Gagal mencatat stok masuk.');
+    }
   };
 
   const filteredRecords = records.filter((r) => {
@@ -144,6 +143,8 @@ export function StockInManagement({
     }
     return true;
   });
+
+  const selectedIng = ingredients.find((i) => i.id === formIngredientId);
 
   const columns: ColumnDef<StockInRecord>[] = [
     {
@@ -229,6 +230,7 @@ export function StockInManagement({
         <DataTable<StockInRecord>
           columns={columns}
           data={filteredRecords}
+          isLoading={isLoading}
           keyExtractor={(item) => item.id}
           selectable={false}
           emptyTitle="BELUM ADA STOK MASUK"
@@ -264,14 +266,14 @@ export function StockInManagement({
           <Select
             label="Pilih Bahan Baku"
             required
-            value={formIngredient}
-            onChange={(e) => setFormIngredient(e.target.value)}
+            value={formIngredientId}
+            onChange={(e) => setFormIngredientId(e.target.value)}
             options={[
-              { value: 'Biji Kopi Arabica', label: 'Biji Kopi Arabica (ING-001)' },
-              { value: 'Susu UHT Full Cream', label: 'Susu UHT Full Cream (ING-003)' },
-              { value: 'Susu Oat', label: 'Susu Oat (ING-004)' },
-              { value: 'Sirup Gula Aren', label: 'Sirup Gula Aren (ING-007)' },
-              { value: 'Matcha Powder', label: 'Matcha Powder (ING-005)' },
+              { value: '', label: '-- Pilih Bahan Baku --' },
+              ...ingredients.map((i) => ({
+                value: i.id,
+                label: `${i.name} (${i.sku})`,
+              })),
             ]}
           />
 
@@ -284,15 +286,11 @@ export function StockInManagement({
               value={formQty}
               onChange={(e) => setFormQty(Number(e.target.value))}
             />
-            <Select
+            <Input
               label="Satuan"
-              value={formUnit}
-              onChange={(e) => setFormUnit(e.target.value)}
-              options={[
-                { value: 'kg', label: 'kg' },
-                { value: 'liter', label: 'liter' },
-                { value: 'pcs', label: 'pcs' },
-              ]}
+              value={selectedIng?.unit?.code || selectedIng?.unit?.name || '-'}
+              disabled
+              className="bg-neutral-50 font-mono"
             />
           </div>
 
@@ -300,7 +298,7 @@ export function StockInManagement({
             label="Sumber Penerimaan"
             required
             value={formSource}
-            onChange={(e) => setFormSource(e.target.value as any)}
+            onChange={(e) => setFormSource(e.target.value)}
             options={[
               { value: 'Purchase Order', label: 'Purchase Order Vendor' },
               { value: 'Pembelian Langsung', label: 'Pembelian Langsung / Petty Cash' },

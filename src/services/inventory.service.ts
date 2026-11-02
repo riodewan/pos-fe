@@ -22,8 +22,11 @@ export const inventoryService = {
   getStocks: () =>
     api.get<ApiResponse<StockBalance[]>>('/inventory/stocks'),
 
-  adjustStock: (data: { ingredient_id: string; quantity: number; notes: string }) =>
-    api.post<ApiResponse<null>>('/inventory/adjustments', data),
+  adjustStock: (data: { ingredient_id: string; new_quantity: number; notes: string }) =>
+    api.post<ApiResponse<any>>('/inventory/adjustments', data),
+
+  recordStockIn: (data: { ingredient_id: string; quantity: number; source_type?: string; notes?: string }) =>
+    api.post<ApiResponse<StockMovement>>('/inventory/stock-in', data),
 
   // Wastage
   getWastages: () =>

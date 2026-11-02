@@ -1,24 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
-import Image from 'next/image';
+import React, { useState, useEffect } from 'react';
 import {
-  X,
-  Plus,
   CheckCircle2,
-  Calendar,
-  Layers,
-  Sparkles,
 } from 'lucide-react';
 import {
   Button,
   Input,
   Textarea,
   Select,
-  FormField,
   Drawer,
 } from '@/components/common';
 import { InventoryIngredient } from './IngredientDetailDrawer';
+import { catalogService } from '@/services/catalog.service';
 
 interface AddIngredientDrawerProps {
   isOpen: boolean;
@@ -33,17 +27,49 @@ export function AddIngredientDrawer({
 }: AddIngredientDrawerProps) {
   const [name, setName] = useState('');
   const [sku, setSku] = useState('');
-  const [category, setCategory] = useState<InventoryIngredient['category']>('Kopi');
-  const [unit, setUnit] = useState('Kg');
-  const [currentStock, setCurrentStock] = useState<number>(10);
-  const [minStock, setMinStock] = useState<number>(2);
-  const [costPrice, setCostPrice] = useState<number>(50000);
+  const [category, setCategory] = useState('');
+  const [unit, setUnit] = useState('kg');
+  const [currentStock, setCurrentStock] = useState<number>(0);
+  const [minStock, setMinStock] = useState<number>(0);
+  const [costPrice, setCostPrice] = useState<number>(0);
   const [description, setDescription] = useState('');
-  const [supplier, setSupplier] = useState('PT Kopi Nusantara');
-  const [storageLocation, setStorageLocation] = useState('Gudang Bahan Kering');
-  const [shelfLifeValue, setShelfLifeValue] = useState(12);
-  const [shelfLifeUnit, setShelfLifeUnit] = useState<'Hari' | 'Bulan' | 'Tahun'>('Bulan');
-  const [expiryDate, setExpiryDate] = useState('31 Des 2026');
+  const [supplier, setSupplier] = useState('');
+  const [storageLocation, setStorageLocation] = useState('');
+
+  const [dbCategories, setDbCategories] = useState<string[]>([]);
+  const [dbUnits, setDbUnits] = useState<Array<{ id: string; code: string; name: string }>>([]);
+  const [dbSuppliers, setDbSuppliers] = useState<Array<{ id: string; name: string }>>([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    Promise.allSettled([
+      catalogService.getIngredientCategories(),
+      catalogService.getUnits(),
+      catalogService.getSuppliers(),
+    ]).then(([catRes, unitRes, supRes]) => {
+      if (catRes.status === 'fulfilled' && Array.isArray(catRes.value?.data)) {
+        const cats = catRes.value.data.map((c: any) => c.name).filter(Boolean);
+        setDbCategories(cats);
+        if (cats.length > 0 && !category) {
+          setCategory(cats[0]);
+        }
+      }
+      if (unitRes.status === 'fulfilled' && Array.isArray(unitRes.value?.data)) {
+        const units = unitRes.value.data.map((u: any) => ({
+          id: u.id,
+          code: u.code || u.name,
+          name: u.name,
+        }));
+        setDbUnits(units);
+        if (units.length > 0 && !unit) {
+          setUnit(units[0].code);
+        }
+      }
+      if (supRes.status === 'fulfilled' && Array.isArray(supRes.value?.data)) {
+        setDbSuppliers(supRes.value.data.map((s: any) => ({ id: s.id, name: s.name })));
+      }
+    });
+  }, [isOpen, category, unit]);
 
   if (!isOpen) return null;
 
@@ -51,24 +77,20 @@ export function AddIngredientDrawer({
     e.preventDefault();
     if (!name.trim()) return;
 
-    const generatedSku = sku.trim() || `ING-0${Math.floor(Math.random() * 90) + 10}`;
+    const generatedSku = sku.trim() || `ING-${Date.now().toString().slice(-5)}`;
     const newItem: InventoryIngredient = {
       id: `ing-${Date.now()}`,
       name: name.trim(),
       sku: generatedSku,
-      category,
-      unit,
+      category: category.trim() || '-',
+      unit: unit.trim() || 'kg',
       currentStock,
       minStock,
       costPrice,
-      status: currentStock <= minStock ? 'Menipis' : 'Aman',
+      status: currentStock <= 0 ? 'Habis' : currentStock <= minStock ? 'Menipis' : 'Aman',
       description,
       supplier,
       storageLocation,
-      shelfLifeValue,
-      shelfLifeUnit,
-      expiryDate,
-      image: '/img/ingredients/biji_kopi_arabica.jpg',
     };
 
     onAdd(newItem);
@@ -79,12 +101,14 @@ export function AddIngredientDrawer({
   const handleReset = () => {
     setName('');
     setSku('');
-    setCategory('Kopi');
-    setUnit('Kg');
-    setCurrentStock(10);
-    setMinStock(2);
-    setCostPrice(50000);
+    setCategory(dbCategories[0] || '');
+    setUnit(dbUnits[0]?.code || 'kg');
+    setCurrentStock(0);
+    setMinStock(0);
+    setCostPrice(0);
     setDescription('');
+    setSupplier('');
+    setStorageLocation('');
   };
 
   return (
@@ -118,7 +142,7 @@ export function AddIngredientDrawer({
           onChange={(e) => {
             setName(e.target.value);
             if (!sku) {
-              setSku(`ING-0${Math.floor(Math.random() * 89) + 10}`);
+              setSku(`ING-${Math.floor(Math.random() * 899) + 100}`);
             }
           }}
           placeholder="Contoh: Biji Kopi Robusta Premium"
@@ -129,57 +153,73 @@ export function AddIngredientDrawer({
             label="Kode SKU / Barcode"
             value={sku}
             onChange={(e) => setSku(e.target.value)}
-            placeholder="ING-011"
+            placeholder="ING-001"
             className="font-mono uppercase"
           />
 
-          <Select
-            label="Kategori"
-            required
-            value={category}
-            onChange={(e) => setCategory(e.target.value as any)}
-            options={[
-              { value: 'Kopi', label: 'Kopi' },
-              { value: 'Susu', label: 'Susu' },
-              { value: 'Bubuk', label: 'Bubuk' },
-              { value: 'Sirup', label: 'Sirup' },
-              { value: 'Minuman', label: 'Minuman' },
-              { value: 'Lainnya', label: 'Lainnya' },
-            ]}
-          />
+          {dbCategories.length > 0 ? (
+            <Select
+              label="Kategori"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              options={[
+                { value: '', label: '-- Pilih Kategori --' },
+                ...dbCategories.map((c) => ({ value: c, label: c })),
+              ]}
+            />
+          ) : (
+            <Input
+              label="Kategori"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              placeholder="Contoh: Kopi"
+            />
+          )}
         </div>
 
         <div className="grid grid-cols-3 gap-3">
-          <Select
-            label="Satuan"
-            required
-            value={unit}
-            onChange={(e) => setUnit(e.target.value)}
-            options={[
-              { value: 'Kg', label: 'Kg' },
-              { value: 'liter', label: 'liter' },
-              { value: 'pcs', label: 'pcs' },
-              { value: 'gram', label: 'gram' },
-              { value: 'ml', label: 'ml' },
-            ]}
-          />
+          {dbUnits.length > 0 ? (
+            <Select
+              label="Satuan"
+              required
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+              options={dbUnits.map((u) => ({
+                value: u.code,
+                label: `${u.name} (${u.code})`,
+              }))}
+            />
+          ) : (
+            <Input
+              label="Satuan"
+              required
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+              placeholder="kg / liter / pcs"
+            />
+          )}
           <Input
             label="Stok Awal"
             type="number"
+            min="0"
+            step="0.1"
             value={currentStock}
             onChange={(e) => setCurrentStock(Number(e.target.value))}
           />
           <Input
             label="Stok Minimum"
             type="number"
+            min="0"
+            step="0.1"
             value={minStock}
             onChange={(e) => setMinStock(Number(e.target.value))}
           />
         </div>
 
         <Input
-          label={`Harga Modal (per ${unit})`}
+          label={`Harga Modal (per ${unit || 'unit'})`}
           type="number"
+          min="0"
           prefix="Rp"
           value={costPrice}
           onChange={(e) => setCostPrice(Number(e.target.value))}
@@ -195,24 +235,19 @@ export function AddIngredientDrawer({
 
         <div className="grid grid-cols-2 gap-4">
           <Select
-            label="Merk / Supplier"
+            label="Merk / Supplier (Opsional)"
             value={supplier}
             onChange={(e) => setSupplier(e.target.value)}
             options={[
-              { value: 'PT Kopi Nusantara', label: 'PT Kopi Nusantara' },
-              { value: 'PT Sumber Susu Murni', label: 'PT Sumber Susu Murni' },
-              { value: 'Mitra Sirup Barista', label: 'Mitra Sirup Barista' },
+              { value: '', label: '-- Tanpa Supplier --' },
+              ...dbSuppliers.map((s) => ({ value: s.name, label: s.name })),
             ]}
           />
-          <Select
-            label="Lokasi Penyimpanan"
+          <Input
+            label="Lokasi Penyimpanan (Opsional)"
             value={storageLocation}
             onChange={(e) => setStorageLocation(e.target.value)}
-            options={[
-              { value: 'Gudang Bahan Kering', label: 'Gudang Bahan Kering' },
-              { value: 'Chiller Bar Depan', label: 'Chiller Bar Depan' },
-              { value: 'Rak Sirup & Topping', label: 'Rak Sirup & Topping' },
-            ]}
+            placeholder="Contoh: Gudang Bahan Kering"
           />
         </div>
       </form>
