@@ -268,7 +268,7 @@ export function ProfileAccountView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">
-            Profile Akun
+            Profil Akun
           </h1>
           <p className="text-xs sm:text-sm text-neutral-500 mt-1">
             Kelola informasi akun pengguna, keamanan sandi, dan preferensi notifikasi.
@@ -509,7 +509,7 @@ export function ProfileAccountView() {
                         }`}
                       />
                     </button>
-                    <span className="text-xs font-bold text-neutral-700">In App</span>
+                    <span className="text-xs font-bold text-neutral-700">Notif Aplikasi</span>
                   </div>
                 </div>
               </div>
@@ -570,7 +570,7 @@ export function ProfileAccountView() {
                         }`}
                       />
                     </button>
-                    <span className="text-xs font-bold text-neutral-700">In App</span>
+                    <span className="text-xs font-bold text-neutral-700">Notif Aplikasi</span>
                   </div>
                 </div>
               </div>
@@ -631,7 +631,7 @@ export function ProfileAccountView() {
                         }`}
                       />
                     </button>
-                    <span className="text-xs font-bold text-neutral-700">In App</span>
+                    <span className="text-xs font-bold text-neutral-700">Notif Aplikasi</span>
                   </div>
                 </div>
               </div>
@@ -692,7 +692,7 @@ export function ProfileAccountView() {
                         }`}
                       />
                     </button>
-                    <span className="text-xs font-bold text-neutral-700">In App</span>
+                    <span className="text-xs font-bold text-neutral-700">Notif Aplikasi</span>
                   </div>
                 </div>
               </div>
@@ -772,7 +772,7 @@ export function ProfileAccountView() {
 
             <div className="space-y-3.5 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-neutral-500 font-medium">Role Hak Akses</span>
+                <span className="text-neutral-500 font-medium">Peran Akun</span>
                 <span className="font-bold text-[#FF5C38] px-2 py-0.5 rounded-lg bg-orange-50 border border-orange-100">
                   {profile.role}
                 </span>

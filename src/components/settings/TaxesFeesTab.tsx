@@ -68,9 +68,8 @@ export function TaxesFeesTab({
     setActiveMenuId(null);
   };
 
-  if (isDemoEmpty || displayItems.length === 0) {
+  if (displayItems.length === 0) {
     return (
-      /* SCREENSHOT 3: EMPTY STATE */
       <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-2xs p-12 sm:p-24 flex flex-col items-center justify-center text-center min-h-[500px] animate-in fade-in duration-150">
         <div className="relative mb-4">
           <div className="size-20 rounded-2xl bg-neutral-100 flex items-center justify-center text-neutral-300">
@@ -89,22 +88,13 @@ export function TaxesFeesTab({
         <div className="flex items-center gap-3 mt-6">
           <Button
             type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setIsDemoEmpty(false)}
-            className="text-xs text-neutral-600"
-          >
-            Tampilkan Contoh Data (Gambar 2)
-          </Button>
-
-          <Button
-            type="button"
             variant="primary"
             size="sm"
             onClick={onOpenAddModal}
             className="bg-[#FF5C38] hover:bg-[#E04B28] text-white font-bold text-xs"
+            leftIcon={<Plus className="size-3.5" />}
           >
-            <Plus className="size-3.5 mr-1" /> Tambah Pajak atau Biaya
+            Tambah Pajak & Biaya
           </Button>
         </div>
       </div>

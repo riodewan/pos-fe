@@ -398,7 +398,7 @@ export function ProfileOutletView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">
-            Profile Outlet
+            Profil Outlet
           </h1>
           <p className="text-xs sm:text-sm text-neutral-500 mt-1">
             Kelola informasi, operasional, fasilitas, dan media untuk setiap outlet
@@ -925,11 +925,11 @@ export function ProfileOutletView() {
                 Status Outlet
               </h2>
 
-              {/* Status Operasional (NemuHUB) */}
+              {/* Status Operasional Kasir */}
               <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-neutral-50/50 border border-neutral-100">
                 <div>
                   <p className="text-xs font-bold text-neutral-900">
-                    Status Operasional (NemuHUB)
+                    Status Operasional Kasir
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <span

@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { ProfileAccountView } from '@/components/profile-account/ProfileAccountView';
 
 export const metadata: Metadata = {
-  title: 'Profile Akun | NemuHUB',
+  title: 'Profil Akun | NemuHUB',
   description: 'Kelola informasi akun, keamanan, dan preferensi pengguna NemuHUB.',
 };
 

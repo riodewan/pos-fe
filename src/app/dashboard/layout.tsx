@@ -485,7 +485,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           : 'hover:text-neutral-200'
                       )}
                     >
-                      Profile
+                      Profil
                     </Link>
                     {canAccessSettings && (
                       <>
@@ -674,7 +674,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     href="/dashboard/settings/account"
                     className="flex items-center gap-2 px-3 py-2 hover:bg-white/5 text-neutral-200 hover:text-white transition-colors"
                   >
-                    <span>Profile Akun</span>
+                    <span>Profil Akun</span>
                   </Link>
 
                   <div className="border-t border-neutral-800/80 my-1" />

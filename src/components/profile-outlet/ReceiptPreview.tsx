@@ -10,13 +10,13 @@ interface ReceiptPreviewProps {
 }
 
 export function ReceiptPreview({ config, logoUrl, storeName }: ReceiptPreviewProps) {
-  const displayName = config.displayName || storeName || 'Outlet NemuPOS';
+  const displayName = config.displayName || storeName || 'Outlet Anda';
   const initials = displayName
     .split(' ')
     .filter(Boolean)
     .slice(0, 2)
     .map((w) => w[0].toUpperCase())
-    .join('') || 'NP';
+    .join('') || 'OT';
 
   return (
     <div className="w-full sm:w-56 bg-white border border-neutral-200/90 rounded-xl shadow-xs p-3.5 text-[10px] font-mono text-neutral-700 flex flex-col justify-between shrink-0 select-none">
