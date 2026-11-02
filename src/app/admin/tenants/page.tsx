@@ -335,8 +335,7 @@ export default function AdminTenantsPage() {
                   <th className="py-3.5 px-4">Email Kontak</th>
                   <th className="py-3.5 px-4">Jumlah Outlet</th>
                   <th className="py-3.5 px-4">Total Staff</th>
-                  <th className="py-3.5 px-4">Komisi Platform & Pajak</th>
-                  <th className="py-3.5 px-4">Pendapatan Platform (Hak Kita)</th>
+                  <th className="py-3.5 px-4">Tarif Komisi & Pajak</th>
                   <th className="py-3.5 px-4">Status Akun</th>
                   <th className="py-3.5 px-4">Tgl Daftar</th>
                   <th className="py-3.5 px-4 text-right">Aksi</th>
@@ -368,23 +367,12 @@ export default function AdminTenantsPage() {
                       </span>
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="flex flex-col gap-1">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 text-[#FF5C38] border border-orange-200/80 text-[10.5px] font-bold w-fit">
-                          <Percent className="size-3" />
-                          Platform: {Number(t.platform_fee_percentage ?? 0)}%
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 text-[#FF5C38] border border-orange-200/80 text-[10.5px] font-bold">
+                          Komisi: {Number(t.platform_fee_percentage ?? 0)}%
                         </span>
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-neutral-100 text-neutral-600 text-[10px] font-semibold w-fit">
-                          Pajak Mitra: {Number(t.tax_percentage ?? 10)}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-bold text-[#FF5C38] text-xs font-mono">
-                          {formatRupiah(t.platform_revenue ?? 0)}
-                        </span>
-                        <span className="text-[10px] text-neutral-400">
-                          Hak Mitra (+Pajak): {formatRupiah(t.merchant_net_revenue ?? 0)}
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10.5px] font-bold">
+                          Pajak: {Number(t.tax_percentage ?? 10)}%
                         </span>
                       </div>
                     </td>

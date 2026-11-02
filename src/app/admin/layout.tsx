@@ -18,6 +18,7 @@ import {
   ArrowLeft,
   ChevronRight,
   Users,
+  Percent,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -51,6 +52,11 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
         href: '/admin/tenants',
         label: 'Mitra Bisnis & Toko',
         icon: Building2,
+      },
+      {
+        href: '/admin/commissions',
+        label: 'Komisi, Pajak & Revenue',
+        icon: Percent,
       },
       {
         href: '/admin/users',
@@ -324,6 +330,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   )}
                 />
                 <span>Platform</span>
+              </Link>
+
+              <Link
+                href="/admin/commissions"
+                className={cn(
+                  'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all',
+                  pathname?.startsWith('/admin/commissions')
+                    ? 'bg-[#FF5C38] text-white shadow-xs'
+                    : 'text-neutral-300 hover:text-white hover:bg-white/10'
+                )}
+              >
+                <Percent
+                  className={cn(
+                    'size-3.5',
+                    pathname?.startsWith('/admin/commissions') ? 'text-white' : 'text-[#FF5C38]'
+                  )}
+                />
+                <span>Komisi & Pajak</span>
               </Link>
 
               <Link

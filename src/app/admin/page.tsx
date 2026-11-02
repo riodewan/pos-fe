@@ -202,7 +202,10 @@ export default function AdminOverviewPage() {
         </div>
 
         {/* Pendapatan Komisi Platform (Hak Kita - Eksklusif Internal Admin) */}
-        <div className="p-5 rounded-2xl bg-orange-50/70 border border-orange-200 shadow-2xs space-y-2">
+        <Link
+          href="/admin/commissions"
+          className="p-5 rounded-2xl bg-orange-50/70 hover:bg-orange-50 border border-orange-200 shadow-2xs space-y-2 transition-colors group block"
+        >
           <div className="flex items-center justify-between text-[#FF5C38]">
             <span className="text-xs font-bold">Pendapatan Biaya Platform (Kita)</span>
             <div className="size-9 rounded-xl bg-[#FF5C38] text-white flex items-center justify-center shadow-2xs">
@@ -214,10 +217,11 @@ export default function AdminOverviewPage() {
               {formatRupiah(kpis?.total_platform_revenue ?? 0)}
             </span>
           </div>
-          <p className="text-[11px] text-orange-800/80 font-medium">
-            Biaya layanan platform (hanya diakses Admin)
+          <p className="text-[11px] text-orange-800/80 font-medium flex items-center gap-1">
+            <span>Kelola Komisi & Pajak Mitra</span>
+            <ChevronRight className="size-3 group-hover:translate-x-0.5 transition-transform" />
           </p>
-        </div>
+        </Link>
       </div>
 
       {/* Two Column Section: Recent Tenants & Pending Approvals */}
