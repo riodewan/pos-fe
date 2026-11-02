@@ -46,6 +46,7 @@ export interface TenantMembership {
   name: string;
   slug?: string;
   role: string;
+  status?: string;
   stores?: Store[];
 }
 

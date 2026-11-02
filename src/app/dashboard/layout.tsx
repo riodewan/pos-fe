@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, Suspense, useMemo } from 'react';
+import React, { useState, Suspense, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Coffee,
   ChevronsUpDown,
@@ -54,6 +54,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const { user, activeTenant, logout, canAccess, isInternalAdmin } = useAuth();
   const { isLoading, isAuthenticated } = useRequireAuth();
+  const router = useRouter();
+
+  // Redirect unapproved / pending merchant to KYB verification screen
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && !isInternalAdmin) {
+      if (!activeTenant || activeTenant.status === 'PENDING' || activeTenant.status === 'REJECTED') {
+        router.replace('/kyb');
+      }
+    }
+  }, [isLoading, isAuthenticated, isInternalAdmin, activeTenant, router]);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);

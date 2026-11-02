@@ -129,4 +129,16 @@ export const tenantService = {
 
   deletePaymentMethod: (id: string) =>
     api.delete<ApiResponse<null>>(`/store/payment-methods/${id}`),
+
+  // KYB Verification & Onboarding Approval
+  submitKyb: (data: any) =>
+    api.post<ApiResponse<any>>('/tenant/kyb/submit', data, { skipStore: true }),
+
+  getKybStatus: () =>
+    api.get<ApiResponse<{
+      has_submitted: boolean;
+      status: 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED';
+      tenant?: any;
+      approval?: any;
+    }>>('/tenant/kyb/status', { skipStore: true }),
 };

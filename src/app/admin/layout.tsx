@@ -242,12 +242,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   >
                     <span>Profile Akun</span>
                   </Link>
-                  <Link
-                    href="/dashboard"
-                    className="flex items-center gap-2 px-3 py-2 hover:bg-white/5 text-neutral-200 hover:text-white transition-colors"
-                  >
-                    <span>Ke Dashboard Toko</span>
-                  </Link>
                   <div className="border-t border-neutral-800 my-1" />
                   <button
                     type="button"

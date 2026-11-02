@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -14,9 +14,17 @@ import {
   ChevronDown,
   Clock,
   AlertCircle,
+  RefreshCw,
+  LogOut,
+  ArrowRight,
+  ShieldAlert,
+  Loader2,
+  Store,
 } from 'lucide-react';
 import { AuthLayout } from '@/components/common/AuthLayout';
 import { ReviewSummaryCard } from '@/components/common/ReviewSummaryCard';
+import { useAuth } from '@/context/AuthContext';
+import { tenantService } from '@/services/tenant.service';
 
 interface UploadedFile {
   name: string;
@@ -28,9 +36,18 @@ interface UploadedFile {
 
 export default function KybPage() {
   const router = useRouter();
+  const { user, isAuthenticated, isLoading: authLoading, logout, refreshUser } = useAuth();
 
-  // Current Step: 0 = Overview, 1 = Info Bisnis, 2 = Dokumen Legal, 3 = Info Pemilik, 4 = Review, 5 = Submitted Success
+  // Current Step: 0 = Overview, 1 = Info Bisnis, 2 = Dokumen Legal, 3 = Info Pemilik, 4 = Review, 5 = Status / Approval Screen
   const [step, setStep] = useState<number>(0);
+  const [loadingStatus, setLoadingStatus] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Status tracking: 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED'
+  const [kybStatus, setKybStatus] = useState<'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED'>('NOT_SUBMITTED');
+  const [approvalData, setApprovalData] = useState<any>(null);
 
   // Form Step 1: Informasi Bisnis
   const [businessName, setBusinessName] = useState('Kopi Mantap');
@@ -62,10 +79,10 @@ export default function KybPage() {
   });
 
   // Form Step 3: Informasi Pemilik
-  const [ownerName, setOwnerName] = useState('Andi Pratama');
+  const [ownerName, setOwnerName] = useState('');
   const [ownerNik, setOwnerNik] = useState('317545123456789');
   const [ownerRole, setOwnerRole] = useState('Pemilik');
-  const [ownerEmail, setOwnerEmail] = useState('andi.pratama@example.com');
+  const [ownerEmail, setOwnerEmail] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('081234567890');
   const [ownerAddress, setOwnerAddress] = useState(
     'Jl. Melati No. 10, Jakarta Barat, Jakarta, Indonesia'
@@ -79,6 +96,67 @@ export default function KybPage() {
   useEffect(() => {
     document.title = 'Verifikasi Informasi Bisnis (KYB) — NemuPOS';
   }, []);
+
+  // Fetch live KYB status from backend
+  const checkKybStatus = useCallback(async (isManualRefresh = false) => {
+    try {
+      if (isManualRefresh) setIsRefreshing(true);
+      else setLoadingStatus(true);
+
+      const res = await tenantService.getKybStatus();
+      if (res?.data) {
+        const { status, approval, tenant } = res.data;
+        setKybStatus(status);
+        setApprovalData(approval);
+
+        if (status === 'APPROVED') {
+          setStep(5);
+          // Refresh user context so activeTenant updates to ACTIVE
+          await refreshUser();
+        } else if (status === 'PENDING') {
+          setStep(5);
+          if (approval?.payload?.business_name) {
+            setBusinessName(approval.payload.business_name);
+          }
+        } else if (status === 'REJECTED') {
+          setStep(5);
+          if (approval?.payload) {
+            const p = approval.payload;
+            if (p.business_name) setBusinessName(p.business_name);
+            if (p.business_type) setBusinessType(p.business_type);
+            if (p.business_category) setBusinessCategory(p.business_category);
+            if (p.business_address) setBusinessAddress(p.business_address);
+            if (p.owner_name) setOwnerName(p.owner_name);
+            if (p.owner_nik) setOwnerNik(p.owner_nik);
+            if (p.owner_phone) setOwnerPhone(p.owner_phone);
+            if (p.owner_address) setOwnerAddress(p.owner_address);
+          }
+        } else {
+          // NOT_SUBMITTED: populate initial owner info from logged in user if available
+          if (user) {
+            setOwnerName((prev) => prev || user.name || '');
+            setOwnerEmail((prev) => prev || user.email || '');
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to check KYB status:', err);
+    } finally {
+      setLoadingStatus(false);
+      setIsRefreshing(false);
+    }
+  }, [user, refreshUser]);
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.replace('/login');
+      return;
+    }
+
+    if (!authLoading && isAuthenticated) {
+      checkKybStatus();
+    }
+  }, [authLoading, isAuthenticated, checkKybStatus, router]);
 
   const handleFileUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -103,8 +181,50 @@ export default function KybPage() {
     router.push('/dashboard');
   };
 
-  const handleSubmitAll = () => {
-    setStep(5);
+  const handleSubmitAll = async () => {
+    if (!businessName.trim()) {
+      setErrorMessage('Nama bisnis wajib diisi.');
+      setStep(1);
+      return;
+    }
+
+    setSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      const payload = {
+        business_name: businessName.trim(),
+        business_type: businessType,
+        business_category: businessCategory,
+        outlet_count: outletCount,
+        business_address: businessAddress,
+        nib_file: nibFile ? { name: nibFile.name, size: nibFile.size } : null,
+        npwp_file: npwpFile ? { name: npwpFile.name, size: npwpFile.size } : null,
+        siu_file: siuFile ? { name: siuFile.name, size: siuFile.size } : null,
+        owner_name: ownerName || user?.name || '',
+        owner_nik: ownerNik,
+        owner_role: ownerRole,
+        owner_email: ownerEmail || user?.email || '',
+        owner_phone: ownerPhone,
+        owner_address: ownerAddress,
+      };
+
+      const res = await tenantService.submitKyb(payload);
+      if (res?.data) {
+        setApprovalData(res.data.approval);
+        setKybStatus('PENDING');
+        setStep(5);
+        await refreshUser();
+      }
+    } catch (err: any) {
+      console.error('Error submitting KYB:', err);
+      setErrorMessage(
+        err.response?.data?.message ||
+          'Gagal mengirim data verifikasi. Silakan periksa kembali isian form atau coba beberapa saat lagi.'
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -864,78 +984,280 @@ export default function KybPage() {
                 </div>
               </ReviewSummaryCard>
 
+              {/* Error Message if submit fails */}
+              {errorMessage && (
+                <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2 animate-in fade-in">
+                  <AlertCircle className="size-4 shrink-0 mt-0.5 text-red-500" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
               {/* Navigation Buttons */}
               <div className="flex items-center gap-3 pt-2">
                 <button
                   type="button"
+                  disabled={submitting}
                   onClick={() => setStep(3)}
-                  className="flex-1 h-11 rounded-xl border border-[#FF5C38] text-[#FF5C38] bg-white hover:bg-[#FF5C38]/5 font-medium text-sm transition-all"
+                  className="flex-1 h-11 rounded-xl border border-[#FF5C38] text-[#FF5C38] bg-white hover:bg-[#FF5C38]/5 font-medium text-sm transition-all disabled:opacity-50"
                 >
                   Kembali
                 </button>
                 <button
                   type="button"
+                  disabled={submitting}
                   onClick={handleSubmitAll}
-                  className="flex-1 h-11 rounded-xl text-white font-medium text-sm transition-all hover:brightness-95 shadow-sm"
+                  className="flex-1 h-11 rounded-xl text-white font-medium text-sm transition-all hover:brightness-95 shadow-sm flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
                   style={{
                     backgroundColor: '#FF5C38',
                   }}
                 >
-                  Lanjut
+                  {submitting ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      <span>Mengirim Pengajuan...</span>
+                    </>
+                  ) : (
+                    <span>Kirim Verifikasi KYB</span>
+                  )}
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* ----------------- STEP 5: DATA VERIFIKASI BERHASIL DIKIRIM (Screenshot 1) ----------------- */}
+        {/* ----------------- STEP 5: LIVE APPROVAL STATUS SCREEN ----------------- */}
         {step === 5 && (
-          <div className="w-full max-w-[500px] mx-auto my-auto py-8 flex flex-col items-center text-center animate-in fade-in duration-300">
-            {/* Hourglass / Clock Status Icon */}
-            <div className="size-28 rounded-full bg-[#FFF7ED] flex items-center justify-center mb-6 shadow-xs">
-              <div className="size-18 rounded-full bg-[#C2410C] text-white flex items-center justify-center shadow-md">
-                <Clock className="size-9 stroke-[2.4]" />
+          <div className="w-full max-w-[540px] mx-auto my-auto py-6 flex flex-col items-center text-center animate-in fade-in duration-300">
+            {/* Loading status spinner */}
+            {loadingStatus ? (
+              <div className="py-16 flex flex-col items-center">
+                <Loader2 className="size-10 animate-spin text-[#FF5C38] mb-3" />
+                <p className="text-sm text-neutral-500">Memeriksa status verifikasi bisnis...</p>
               </div>
-            </div>
+            ) : kybStatus === 'APPROVED' ? (
+              /* ================= 5A: APPROVED CELEBRATION ================= */
+              <div className="w-full flex flex-col items-center animate-in zoom-in-95 duration-200">
+                <div className="size-24 rounded-full bg-emerald-50 border-4 border-emerald-100 flex items-center justify-center mb-6 shadow-sm">
+                  <div className="size-16 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-md">
+                    <Check className="size-9 stroke-[3]" />
+                  </div>
+                </div>
 
-            {/* Title */}
-            <h2 className="text-[26px] sm:text-[30px] font-bold text-[#111827] tracking-tight leading-tight mb-2">
-              Data verifikasi bisnis berhasil dikirim
-            </h2>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-3">
+                  <CheckCircle2 className="size-3.5" />
+                  <span>Akun Telah Disetujui Super Admin</span>
+                </div>
 
-            {/* Description */}
-            <p className="text-sm text-[#6B7280] max-w-sm mb-6 leading-relaxed">
-              Kami sedang meninjau informasi dan dokumen yang kamu kirim. Proses verifikasi biasanya memerlukan waktu 1–2 hari kerja.
-            </p>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111827] tracking-tight leading-tight mb-2">
+                  Selamat, Toko Anda Siap Digunakan!
+                </h2>
 
-            {/* Blue Info Callout Banner */}
-            <div className="w-full bg-[#EFF6FF] border border-[#DBEAFE] rounded-xl p-3.5 sm:p-4 flex items-start gap-3 text-left mb-8">
-              <AlertCircle className="size-5 text-[#2563EB] shrink-0 mt-0.5" />
-              <p className="text-xs sm:text-[13px] text-[#1E40AF] leading-relaxed">
-                Kamu akan menerima notifikasi melalui email dan dashboard setelah proses verifikasi selesai.
-              </p>
-            </div>
+                <p className="text-sm text-[#4B5563] max-w-md mb-6 leading-relaxed">
+                  Verifikasi KYB untuk bisnis <span className="font-bold text-neutral-900">{approvalData?.payload?.business_name || businessName}</span> telah disetujui oleh tim Super Admin. Toko dan outlet utama Anda kini aktif.
+                </p>
 
-            {/* Action Buttons */}
-            <div className="w-full flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => router.push('/dashboard')}
-                className="flex-1 h-12 rounded-xl border border-[#FF5C38] text-[#FF5C38] bg-white hover:bg-[#FF5C38]/5 font-medium text-sm transition-all"
-              >
-                Kembali ke Dashboard
-              </button>
-              <button
-                type="button"
-                onClick={() => router.push('/dashboard')}
-                className="flex-1 h-12 rounded-xl text-white font-medium text-sm transition-all hover:brightness-95 shadow-sm"
-                style={{
-                  backgroundColor: '#FF5C38',
-                }}
-              >
-                Lihat Status Verifikasi
-              </button>
-            </div>
+                <div className="w-full bg-white border border-emerald-200 rounded-2xl p-4 text-left shadow-xs mb-8 space-y-2">
+                  <div className="flex items-center justify-between text-xs pb-2 border-b border-neutral-100">
+                    <span className="text-neutral-500">Status Toko:</span>
+                    <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">AKTIF</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs pb-2 border-b border-neutral-100">
+                    <span className="text-neutral-500">Kategori Bisnis:</span>
+                    <span className="font-medium text-neutral-900">{approvalData?.payload?.business_category || businessCategory}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-neutral-500">Outlet Utama:</span>
+                    <span className="font-medium text-neutral-900">{approvalData?.payload?.business_name || businessName} - Outlet Pusat</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => router.push('/dashboard')}
+                  className="w-full h-12 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 hover:brightness-95 active:scale-[0.99] transition-all shadow-md cursor-pointer"
+                  style={{ backgroundColor: '#FF5C38' }}
+                >
+                  <span>Buka Dashboard Toko Sekarang</span>
+                  <ArrowRight className="size-4" />
+                </button>
+              </div>
+            ) : kybStatus === 'REJECTED' ? (
+              /* ================= 5B: REJECTED / REVISION REQUIRED ================= */
+              <div className="w-full flex flex-col items-center animate-in zoom-in-95 duration-200">
+                <div className="size-24 rounded-full bg-red-50 border-4 border-red-100 flex items-center justify-center mb-6 shadow-sm">
+                  <div className="size-16 rounded-full bg-red-600 text-white flex items-center justify-center shadow-md">
+                    <ShieldAlert className="size-8 stroke-[2.4]" />
+                  </div>
+                </div>
+
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-800 text-xs font-bold mb-3">
+                  <AlertCircle className="size-3.5" />
+                  <span>Verifikasi Perlu Perbaikan</span>
+                </div>
+
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111827] tracking-tight leading-tight mb-2">
+                  Pengajuan Memerlukan Revisi
+                </h2>
+
+                <p className="text-sm text-[#4B5563] max-w-md mb-6 leading-relaxed">
+                  Super Admin telah memeriksa data dan dokumen verifikasi bisnis Anda. Silakan baca catatan berikut untuk memperbarui dokumen.
+                </p>
+
+                {/* Rejection Note from Super Admin */}
+                <div className="w-full bg-red-50/80 border border-red-200 rounded-2xl p-4 text-left mb-6 shadow-xs">
+                  <p className="text-xs font-bold text-red-900 mb-1 flex items-center gap-1.5">
+                    <AlertCircle className="size-3.5 text-red-600" />
+                    Catatan Review dari Super Admin:
+                  </p>
+                  <p className="text-xs text-red-800 leading-relaxed font-medium bg-white/70 p-3 rounded-xl border border-red-100">
+                    {approvalData?.review_notes || 'Mohon periksa kembali keabsahan data NIB / NPWP atau lampirkan dokumen yang terbaca jelas.'}
+                  </p>
+                </div>
+
+                {/* Actions */}
+                <div className="w-full flex flex-col sm:flex-row items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => logout?.()}
+                    className="w-full sm:w-auto px-5 h-12 rounded-xl border border-neutral-300 text-neutral-700 bg-white hover:bg-neutral-50 font-medium text-sm transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <LogOut className="size-4 text-neutral-500" />
+                    <span>Keluar</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="flex-1 w-full h-12 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 hover:brightness-95 active:scale-[0.99] transition-all shadow-md cursor-pointer"
+                    style={{ backgroundColor: '#FF5C38' }}
+                  >
+                    <span>Perbaiki Data & Ajukan Ulang</span>
+                    <ArrowRight className="size-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* ================= 5C: PENDING SUPER ADMIN APPROVAL ================= */
+              <div className="w-full flex flex-col items-center">
+                {/* Pulsing Status Icon */}
+                <div className="relative size-24 rounded-full bg-amber-50 border-4 border-amber-100 flex items-center justify-center mb-6 shadow-sm">
+                  <div className="size-16 rounded-full bg-[#EA580C] text-white flex items-center justify-center shadow-md animate-pulse">
+                    <Clock className="size-8 stroke-[2.4]" />
+                  </div>
+                </div>
+
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold mb-3">
+                  <span className="size-2 rounded-full bg-amber-500 animate-ping" />
+                  <span>Sedang Ditinjau oleh Super Admin</span>
+                </div>
+
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-[#111827] tracking-tight leading-tight mb-2">
+                  Menunggu Persetujuan Akun
+                </h2>
+
+                <p className="text-sm text-[#6B7280] max-w-md mb-6 leading-relaxed">
+                  Pengajuan verifikasi bisnis toko <span className="font-semibold text-neutral-900">{approvalData?.payload?.business_name || businessName}</span> telah kami terima. Tim Super Admin kami sedang memverifikasi data dan dokumen tokomu.
+                </p>
+
+                {/* Stepper Timeline Card */}
+                <div className="w-full bg-[#FAFAFA] border border-neutral-200/80 rounded-2xl p-4 sm:p-5 text-left mb-6 shadow-2xs space-y-3.5">
+                  <p className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">
+                    Tahapan Pendaftaran:
+                  </p>
+
+                  {/* Step A */}
+                  <div className="flex items-start gap-3">
+                    <div className="size-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <Check className="size-3.5 stroke-[3]" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-neutral-800">1. Registrasi Akun</p>
+                      <p className="text-[11px] text-neutral-500">Akun pengguna berhasil dibuat.</p>
+                    </div>
+                    <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">Selesai</span>
+                  </div>
+
+                  {/* Step B */}
+                  <div className="flex items-start gap-3">
+                    <div className="size-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <Check className="size-3.5 stroke-[3]" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-neutral-800">2. Pengajuan Dokumen KYB</p>
+                      <p className="text-[11px] text-neutral-500">Data bisnis & informasi pemilik terkirim.</p>
+                    </div>
+                    <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">Terkirim</span>
+                  </div>
+
+                  {/* Step C */}
+                  <div className="flex items-start gap-3">
+                    <div className="size-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5 animate-pulse">
+                      <Clock className="size-3.5 stroke-[2.5]" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-amber-900">3. Review & Verifikasi Super Admin</p>
+                      <p className="text-[11px] text-neutral-500">Pemeriksaan legalitas oleh Admin Internal platform.</p>
+                    </div>
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded">Proses</span>
+                  </div>
+
+                  {/* Step D */}
+                  <div className="flex items-start gap-3 opacity-60">
+                    <div className="size-6 rounded-full bg-neutral-200 text-neutral-500 flex items-center justify-center shrink-0 mt-0.5">
+                      <Store className="size-3.5" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-neutral-700">4. Pembukaan Akses Dashboard Toko</p>
+                      <p className="text-[11px] text-neutral-500">Fitur POS, outlet, dan transaksi siap digunakan.</p>
+                    </div>
+                    <span className="text-[10px] font-semibold text-neutral-400 bg-neutral-100 px-2 py-0.5 rounded">Menunggu</span>
+                  </div>
+                </div>
+
+                {/* Submitted Summary Box */}
+                <div className="w-full bg-white border border-neutral-200/90 rounded-2xl p-4 text-left shadow-2xs mb-6 text-xs space-y-2">
+                  <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
+                    <span className="text-neutral-500">Nama Bisnis:</span>
+                    <span className="font-bold text-neutral-900">{approvalData?.payload?.business_name || businessName}</span>
+                  </div>
+                  <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
+                    <span className="text-neutral-500">Tipe & Kategori:</span>
+                    <span className="font-medium text-neutral-800">
+                      {approvalData?.payload?.business_type || businessType} • {approvalData?.payload?.business_category || businessCategory}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
+                    <span className="text-neutral-500">Penanggung Jawab:</span>
+                    <span className="font-medium text-neutral-800">{approvalData?.payload?.owner_name || ownerName || user?.name}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-neutral-500">Estimasi Review:</span>
+                    <span className="font-semibold text-amber-700">1x24 Jam Kerja</span>
+                  </div>
+                </div>
+
+                {/* Refresh and Logout Buttons */}
+                <div className="w-full flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => logout?.()}
+                    className="px-4 h-12 rounded-xl border border-neutral-200 text-neutral-600 bg-white hover:bg-neutral-50 font-medium text-sm transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <LogOut className="size-4" />
+                    <span>Keluar</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isRefreshing}
+                    onClick={() => checkKybStatus(true)}
+                    className="flex-1 h-12 rounded-xl text-white font-semibold text-sm transition-all hover:brightness-95 shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
+                    style={{ backgroundColor: '#FF5C38' }}
+                  >
+                    <RefreshCw className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    <span>{isRefreshing ? 'Memeriksa...' : 'Periksa Ulang Status'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
