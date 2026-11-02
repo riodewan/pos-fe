@@ -40,6 +40,8 @@ interface PosCartPanelProps {
   orderNotes: string;
   discountAmount: number;
   orderType?: 'DINE_IN' | 'TAKEAWAY' | 'DELIVERY' | 'QR_ORDER';
+  taxAmount?: number;
+  serviceFeeAmount?: number;
   deliveryFee?: number;
   packagingFee?: number;
   courierName?: string;
@@ -67,6 +69,8 @@ export function PosCartPanel({
   orderNotes,
   discountAmount,
   orderType = 'DINE_IN',
+  taxAmount,
+  serviceFeeAmount,
   deliveryFee = 0,
   packagingFee = 0,
   courierName = 'GoSend',
@@ -97,13 +101,13 @@ export function PosCartPanel({
   const [tempCustomerName, setTempCustomerName] = useState(customerName);
   const [tempCustomerPhone, setTempCustomerPhone] = useState(customerPhone);
 
-  // Calculations matching Screenshot 1
+  // Calculations matching outlet configuration
   const subtotal = cart.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
     0
   );
-  const tax = Math.round(subtotal * 0.1); // 10%
-  const nesosFee = cart.length > 0 ? 1910 : 0; // Platform / POS fee
+  const tax = taxAmount !== undefined ? taxAmount : Math.round(subtotal * 0.1);
+  const nesosFee = serviceFeeAmount !== undefined ? serviceFeeAmount : 0;
   const deliveryCost = orderType === 'DELIVERY' ? deliveryFee : 0;
   const packagingCost = orderType === 'TAKEAWAY' ? packagingFee : 0;
   const total = Math.max(

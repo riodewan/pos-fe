@@ -48,6 +48,7 @@ import { PageLoader } from '@/components/common/PageLoader';
 import { catalogService, posService } from '@/services';
 import { tenantService } from '@/services/tenant.service';
 import { useStore } from '@/context/StoreContext';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { deduceProductCategory } from '@/utils';
 
@@ -58,6 +59,7 @@ function PosContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { activeStore } = useStore();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   // Active top-level view: 'register' (Kasir) | 'orders' (Daftar Pesanan / KDS)
@@ -88,6 +90,7 @@ function PosContent() {
 
   // Active taxes & fees configured in Pengaturan Outlet
   const [taxFees, setTaxFees] = useState<any[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   const [lastOrderNumber, setLastOrderNumber] = useState('');
 
   // Customer & Table
@@ -118,24 +121,51 @@ function PosContent() {
   const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false);
   const [isQrIncomingOpen, setIsQrIncomingOpen] = useState(false);
 
-  // Load real products and tax/fee configuration
-  useEffect(() => {
-    async function loadData() {
-      setIsLoadingCatalog(true);
-      try {
-        const [catRes, taxRes]: [any, any] = await Promise.allSettled([
-          catalogService.getProducts(),
-          tenantService.getTaxesFees(),
-        ]);
-
-        if (catRes.status === 'fulfilled' && catRes.value?.data) {
-          const mapped: PosProduct[] = catRes.value.data.map((p: any) => ({
+  // Load real products, tax/fee configuration, and payment methods
+  const refreshCatalog = React.useCallback(async () => {
+    try {
+      const catRes: any = await catalogService.getProducts();
+      if (catRes?.data) {
+        const mapped: PosProduct[] = catRes.data
+          .filter((p: any) => p.status !== 'INACTIVE')
+          .map((p: any) => ({
             id: p.id,
             name: p.name,
             price: Number(p.selling_price),
             imageUrl: p.image_url || null,
             category: deduceProductCategory(p.name, p.description || '', p.sku || ''),
+            availablePortions: p.available_portions ?? null,
+            costPrice: Number(p.cost_price ?? 0),
           }));
+        setProducts(mapped);
+      }
+    } catch {
+      // ignore background refresh error
+    }
+  }, []);
+
+  useEffect(() => {
+    async function loadData() {
+      setIsLoadingCatalog(true);
+      try {
+        const [catRes, taxRes, pmRes]: [any, any, any] = await Promise.allSettled([
+          catalogService.getProducts(),
+          tenantService.getTaxesFees(),
+          tenantService.getPaymentMethods(),
+        ]);
+
+        if (catRes.status === 'fulfilled' && catRes.value?.data) {
+          const mapped: PosProduct[] = catRes.value.data
+            .filter((p: any) => p.status !== 'INACTIVE')
+            .map((p: any) => ({
+              id: p.id,
+              name: p.name,
+              price: Number(p.selling_price),
+              imageUrl: p.image_url || null,
+              category: deduceProductCategory(p.name, p.description || '', p.sku || ''),
+              availablePortions: p.available_portions ?? null,
+              costPrice: Number(p.cost_price ?? 0),
+            }));
           setProducts(mapped);
         }
 
@@ -143,9 +173,15 @@ function PosContent() {
           const list = (taxRes.value?.data?.data ?? taxRes.value?.data ?? []) as any[];
           setTaxFees(list.filter((t) => t.is_active));
         }
+
+        if (pmRes.status === 'fulfilled') {
+          const pms = (pmRes.value?.data?.data ?? pmRes.value?.data ?? []) as any[];
+          setPaymentMethods(pms);
+        }
       } catch (e) {
         setProducts([]);
         setTaxFees([]);
+        setPaymentMethods([]);
       } finally {
         setIsLoadingCatalog(false);
       }
@@ -225,11 +261,21 @@ function PosContent() {
 
   // Cart operations
   const handleAddToCart = (product: PosProduct) => {
+    if (product.availablePortions !== null && product.availablePortions !== undefined && product.availablePortions <= 0) {
+      toast.error(`Stok bahan baku untuk "${product.name}" sedang habis.`);
+      return;
+    }
+
     setCart((prev) => {
       const idx = prev.findIndex((item) => item.product.id === product.id);
       if (idx > -1) {
+        const nextQty = prev[idx].quantity + 1;
+        if (product.availablePortions !== null && product.availablePortions !== undefined && nextQty > product.availablePortions) {
+          toast.error(`Stok bahan baku "${product.name}" hanya cukup untuk ${product.availablePortions} porsi.`);
+          return prev;
+        }
         const next = [...prev];
-        next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 };
+        next[idx] = { ...next[idx], quantity: nextQty };
         return next;
       }
       return [...prev, { product, quantity: 1, notes: '' }];
@@ -242,6 +288,15 @@ function PosContent() {
         .map((item) => {
           if (item.product.id === productId) {
             const newQty = item.quantity + delta;
+            if (
+              delta > 0 &&
+              item.product.availablePortions !== null &&
+              item.product.availablePortions !== undefined &&
+              newQty > item.product.availablePortions
+            ) {
+              toast.error(`Stok bahan baku "${item.product.name}" hanya cukup untuk ${item.product.availablePortions} porsi.`);
+              return item;
+            }
             return newQty > 0 ? { ...item, quantity: newQty } : null;
           }
           return item;
@@ -292,7 +347,13 @@ function PosContent() {
     tendered: number,
     change: number
   ) => {
+    let createdOrderId: string | null = null;
     try {
+      const normalizedMethod =
+        method.toUpperCase() === 'DEBIT' || method.toUpperCase() === 'CARD'
+          ? 'EDC'
+          : method.toUpperCase();
+
       const res: any = await posService.createOrder({
         table_id: selectedTableId || null,
         channel: orderType,
@@ -309,17 +370,26 @@ function PosContent() {
         })),
       });
       const created = res?.data?.data ?? res?.data;
-      const orderId = created?.id;
-      if (orderId) {
-        await posService.processPayment(orderId, {
-          method: method.toUpperCase() as any,
+      createdOrderId = created?.id || null;
+      if (createdOrderId) {
+        await posService.processPayment(createdOrderId, {
+          method: normalizedMethod as any,
           amount: Number(created?.total_amount ?? totalAmount),
           metadata: { tendered, change },
         });
         setLastOrderNumber(created?.order_number || '');
+        toast.success(`Transaksi #${created?.order_number || ''} berhasil dibayar & stok bahan otomatis dikurangi!`);
+        await refreshCatalog();
       }
     } catch (e: any) {
-      toast.error(e?.response?.data?.message || 'Gagal menyimpan pesanan. Silakan coba lagi.');
+      if (createdOrderId) {
+        try {
+          await posService.cancelOrder(createdOrderId, 'Pembayaran gagal / stok tidak cukup');
+        } catch {
+          // ignore cleanup error
+        }
+      }
+      toast.error(e?.message || e?.response?.data?.message || 'Gagal menyimpan pesanan. Silakan coba lagi.');
       return;
     }
 
@@ -521,6 +591,8 @@ function PosContent() {
               orderNotes={orderNotes}
               discountAmount={discountAmount}
               orderType={orderType}
+              taxAmount={tax}
+              serviceFeeAmount={nesosFee}
               deliveryFee={deliveryFee}
               packagingFee={packagingFee}
               courierName={courierName}
@@ -564,6 +636,7 @@ function PosContent() {
         totalAmount={totalAmount}
         customerName={customerName}
         selectedTable={selectedTable}
+        paymentMethods={paymentMethods}
         onClose={() => setIsPaymentOpen(false)}
         onSuccess={handlePaymentSuccess}
       />
@@ -578,10 +651,25 @@ function PosContent() {
         selectedTable={selectedTable}
         orderNotes={orderNotes}
         discountAmount={discountAmount}
+        taxAmount={tax}
+        serviceFeeAmount={nesosFee}
         deliveryCost={deliveryCost}
         packagingCost={packagingCost}
         courierName={courierName}
-        onClose={() => setIsBillPrintOpen(false)}
+        cashierName={user?.name || 'Kasir'}
+        storeName={activeStore?.name || 'NemuPOS Outlet'}
+        storeAddress={activeStore?.address || undefined}
+        storePhone={activeStore?.phone || undefined}
+        onClose={() => {
+          setIsBillPrintOpen(false);
+          if (lastOrderNumber) {
+            setCart([]);
+            setDiscountAmount(0);
+            setOrderNotes('');
+            setCustomerName('');
+            setCustomerPhone('');
+          }
+        }}
       />
 
       {/* Discount & Voucher Modal */}

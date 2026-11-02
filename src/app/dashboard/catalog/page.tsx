@@ -93,8 +93,22 @@ export default function MenuCatalogPage() {
         const category = rawCategory || meta.category;
         const type = rawType || meta.type;
         const price = Number(p.selling_price) || 0;
-        const cost = Number((p as any).cost_price) || Math.round(price * 0.3);
-        const margin = price > 0 ? Math.round(((price - cost) / price) * 100 * 10) / 10 : 70;
+        const cost = Number((p as any).cost_price) || 0;
+        const margin = price > 0 ? Math.round(((price - cost) / price) * 100 * 10) / 10 : 0;
+
+        const rawRecipeItems = Array.isArray((p as any).recipe?.items)
+          ? (p as any).recipe.items.map((ri: any) => ({
+              id: ri.id,
+              ingredientId: ri.ingredient_id,
+              name: ri.ingredient_name || 'Bahan',
+              unitId: ri.unit_id,
+              unit: ri.unit_code || 'pcs',
+              amount: Number(ri.quantity) || 0,
+              unitCost: Number(ri.unit_cost) || 0,
+              cost: Number(ri.subtotal_cost) || Math.round((Number(ri.quantity) || 0) * (Number(ri.unit_cost) || 0)),
+              currentStock: Number(ri.current_stock ?? 0),
+            }))
+          : [];
 
         return {
           id: p.id,
@@ -108,6 +122,8 @@ export default function MenuCatalogPage() {
           status: p.status === 'ACTIVE' ? 'Aktif' : 'Nonaktif',
           description: p.description || '',
           image: p.image_url || undefined,
+          availablePortions: (p as any).available_portions ?? null,
+          recipeItems: rawRecipeItems,
         };
       });
 
@@ -164,6 +180,16 @@ export default function MenuCatalogPage() {
 
   const handleSaveItem = async (updated: MenuItem) => {
     try {
+      const recipePayload = Array.isArray(updated.recipeItems)
+        ? updated.recipeItems
+            .filter((ri) => ri.ingredientId && ri.amount > 0)
+            .map((ri) => ({
+              ingredient_id: ri.ingredientId,
+              unit_id: ri.unitId || undefined,
+              quantity: ri.amount,
+            }))
+        : [];
+
       if (drawerMode === 'create') {
         await catalogService.createProduct({
           name: updated.name,
@@ -175,8 +201,9 @@ export default function MenuCatalogPage() {
           category: updated.category,
           type: updated.type,
           cost_price: updated.cost,
+          recipe_items: recipePayload,
         } as any);
-        showToast(`Menu ${updated.name} berhasil dibuat di database!`);
+        showToast(`Menu ${updated.name} beserta resep berhasil dibuat di database!`);
       } else {
         await catalogService.updateProduct(updated.id, {
           name: updated.name,
@@ -188,14 +215,15 @@ export default function MenuCatalogPage() {
           category: updated.category,
           type: updated.type,
           cost_price: updated.cost,
+          recipe_items: recipePayload,
         } as any);
-        showToast(`Menu ${updated.name} berhasil diperbarui di database!`);
+        showToast(`Menu ${updated.name} beserta resep berhasil diperbarui di database!`);
       }
       await loadProducts();
       setIsDrawerOpen(false);
     } catch (err: any) {
       console.error('Failed to save product:', err);
-      showToast(err?.response?.data?.message || 'Gagal menyimpan menu ke database.');
+      showToast(err?.message || err?.response?.data?.message || 'Gagal menyimpan menu ke database.');
     }
   };
 

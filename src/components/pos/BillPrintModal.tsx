@@ -16,10 +16,15 @@ interface BillPrintModalProps {
   selectedTable: string;
   orderNotes?: string;
   discountAmount: number;
+  taxAmount?: number;
+  serviceFeeAmount?: number;
   deliveryCost?: number;
   packagingCost?: number;
   courierName?: string;
   cashierName?: string;
+  storeName?: string;
+  storeAddress?: string;
+  storePhone?: string;
   onClose: () => void;
 }
 
@@ -32,10 +37,15 @@ export function BillPrintModal({
   selectedTable,
   orderNotes,
   discountAmount,
+  taxAmount,
+  serviceFeeAmount,
   deliveryCost = 0,
   packagingCost = 0,
   courierName,
-  cashierName = 'Andi Pratama',
+  cashierName = 'Kasir',
+  storeName = 'NemuPOS Outlet',
+  storeAddress,
+  storePhone,
   onClose,
 }: BillPrintModalProps) {
   if (!isOpen) return null;
@@ -44,8 +54,8 @@ export function BillPrintModal({
     (sum, item) => sum + item.product.price * item.quantity,
     0
   );
-  const tax = Math.round(subtotal * 0.1);
-  const nesosFee = cart.length > 0 ? 1910 : 0;
+  const tax = taxAmount !== undefined ? taxAmount : Math.round(subtotal * 0.1);
+  const nesosFee = serviceFeeAmount !== undefined ? serviceFeeAmount : 0;
   const total = Math.max(
     0,
     subtotal + tax + nesosFee + deliveryCost + packagingCost - discountAmount
@@ -81,13 +91,17 @@ export function BillPrintModal({
       <div className="bg-neutral-50/70 p-4 rounded-xl border border-neutral-200/80 font-mono text-xs text-neutral-800 space-y-3">
         {/* Receipt Header */}
         <div className="text-center space-y-0.5 border-b border-dashed border-neutral-300 pb-3">
-          <p className="font-bold text-sm text-neutral-900 tracking-wider">
-            KOPI MANTAP
+          <p className="font-bold text-sm text-neutral-900 tracking-wider uppercase">
+            {storeName}
           </p>
-          <p className="text-[11px] text-neutral-500">
-            Jl. Melati No. 25, Menteng, Jakarta
-          </p>
-          <p className="text-[11px] text-neutral-500">Telp: 021-555-0192</p>
+          {storeAddress && (
+            <p className="text-[11px] text-neutral-500">
+              {storeAddress}
+            </p>
+          )}
+          {storePhone && (
+            <p className="text-[11px] text-neutral-500">Telp: {storePhone}</p>
+          )}
         </div>
 
         {/* Order Info */}

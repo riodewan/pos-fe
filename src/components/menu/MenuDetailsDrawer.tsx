@@ -22,6 +22,19 @@ import {
 } from 'lucide-react';
 import { StatusBadge, Button, Modal } from '@/components/common';
 import { formatRupiah } from '@/utils';
+import { catalogService } from '@/services/catalog.service';
+
+export interface MenuRecipeIngredient {
+  id: string;
+  ingredientId: string;
+  name: string;
+  unitId?: string;
+  unit: string;
+  amount: number;
+  unitCost: number;
+  cost: number;
+  currentStock?: number;
+}
 
 export interface MenuItem {
   id: string;
@@ -35,6 +48,8 @@ export interface MenuItem {
   status: 'Aktif' | 'Nonaktif';
   description?: string;
   image?: string;
+  availablePortions?: number | null;
+  recipeItems?: MenuRecipeIngredient[];
 }
 
 export interface MenuDetailsDrawerProps {
@@ -62,10 +77,23 @@ interface VariantGroup {
 
 interface IngredientItem {
   id: string;
+  ingredientId: string;
   name: string;
+  unitId?: string;
   unit: string;
   amount: number;
+  unitCost: number;
   cost: number;
+  currentStock?: number;
+}
+
+interface StoreIngredientOption {
+  id: string;
+  name: string;
+  unitId: string;
+  unitCode: string;
+  costPrice: number;
+  currentStock: number;
 }
 
 export function MenuDetailsDrawer({
@@ -117,12 +145,9 @@ export function MenuDetailsDrawer({
 
   // TAB 3: Bahan & HPP
   const [activeVariantTab, setActiveVariantTab] = useState('Regular (Default)');
-  const [ingredients, setIngredients] = useState<IngredientItem[]>([
-    { id: 'ing-1', name: 'Kopi Espresso', unit: 'ml', amount: 30, cost: 5000 },
-    { id: 'ing-2', name: 'Susu UHT', unit: 'ml', amount: 120, cost: 1000 },
-    { id: 'ing-3', name: 'Syrup Gula Aren', unit: 'ml', amount: 20, cost: 1000 },
-    { id: 'ing-4', name: 'Es Batu', unit: 'gr', amount: 100, cost: 1000 },
-  ]);
+  const [storeIngredients, setStoreIngredients] = useState<StoreIngredientOption[]>([]);
+  const [ingredients, setIngredients] = useState<IngredientItem[]>([]);
+  const [manualCost, setManualCost] = useState(0);
 
   // TAB 4: Pengaturan
   const [isAvailable, setIsAvailable] = useState(true);
@@ -134,6 +159,28 @@ export function MenuDetailsDrawer({
   const [isNewBadge, setIsNewBadge] = useState(false);
   const [isFavoriteBadge, setIsFavoriteBadge] = useState(false);
 
+  // Load real ingredients from store inventory when drawer opens
+  useEffect(() => {
+    if (!isOpen) return;
+    catalogService
+      .getIngredients()
+      .then((res) => {
+        const list = Array.isArray(res?.data) ? res.data : [];
+        const mapped: StoreIngredientOption[] = list.map((ing: any) => ({
+          id: ing.id,
+          name: ing.name,
+          unitId: ing.unit_id || ing.unit?.id || '',
+          unitCode: ing.unit?.code || ing.unit?.name || 'pcs',
+          costPrice: Number(ing.cost_price ?? 0),
+          currentStock: Number(ing.current_stock ?? 0),
+        }));
+        setStoreIngredients(mapped);
+      })
+      .catch(() => {
+        setStoreIngredients([]);
+      });
+  }, [isOpen]);
+
   // Sync state when item changes
   useEffect(() => {
     if (item) {
@@ -141,20 +188,53 @@ export function MenuDetailsDrawer({
       setCategory(item.category || 'Kopi');
       setType(item.type || 'Minuman');
       setStatus(item.status || 'Aktif');
-      setDescription(item.description || 'Kopi espresso dengan susu fresh dan gula aren');
-      setPrice(item.price || 28000);
+      setDescription(item.description || '');
+      setPrice(item.price || 0);
+      setManualCost(item.cost || 0);
       setIsAvailable(item.status === 'Aktif');
+      if (Array.isArray(item.recipeItems)) {
+        setIngredients(
+          item.recipeItems.map((ri) => ({
+            id: ri.id || `ri-${ri.ingredientId}`,
+            ingredientId: ri.ingredientId,
+            name: ri.name,
+            unitId: ri.unitId,
+            unit: ri.unit || 'pcs',
+            amount: Number(ri.amount) || 1,
+            unitCost: Number(ri.unitCost) || 0,
+            cost: Number(ri.cost) || Math.round((Number(ri.amount) || 0) * (Number(ri.unitCost) || 0)),
+            currentStock: ri.currentStock,
+          }))
+        );
+      } else {
+        setIngredients([]);
+      }
     }
   }, [item]);
 
   if (!isOpen) return null;
 
   // HPP Calculation
-  const totalCost = ingredients.reduce((acc, ing) => acc + ing.cost, 0);
+  const recipeCost = ingredients.reduce((acc, ing) => acc + (Number(ing.cost) || 0), 0);
+  const totalCost = ingredients.length > 0 ? Math.round(recipeCost) : manualCost;
   const netProfit = Math.max(0, price - totalCost);
   const calculatedMargin = price > 0 ? Number((((price - totalCost) / price) * 100).toFixed(1)) : 0;
 
   const handleSaveMenu = (isDraft = false) => {
+    const validRecipeItems = ingredients
+      .filter((ing) => ing.ingredientId && ing.amount > 0)
+      .map((ing) => ({
+        id: ing.id,
+        ingredientId: ing.ingredientId,
+        name: ing.name,
+        unitId: ing.unitId,
+        unit: ing.unit,
+        amount: ing.amount,
+        unitCost: ing.unitCost,
+        cost: ing.cost,
+        currentStock: ing.currentStock,
+      }));
+
     const finalItem: MenuItem = {
       id: item?.id || `m-${Date.now()}`,
       name: name.trim() || 'Menu Tanpa Nama',
@@ -166,6 +246,7 @@ export function MenuDetailsDrawer({
       margin: calculatedMargin,
       status: isDraft ? 'Nonaktif' : status,
       description,
+      recipeItems: validRecipeItems,
     };
 
     setSavedItem(finalItem);
@@ -179,11 +260,42 @@ export function MenuDetailsDrawer({
   };
 
   const handleAddIngredient = () => {
+    const unused = storeIngredients.find(
+      (si) => !ingredients.some((i) => i.ingredientId === si.id)
+    ) || storeIngredients[0];
+
     const newId = `ing-${Date.now()}`;
-    setIngredients((prev) => [
-      ...prev,
-      { id: newId, name: 'Bahan Tambahan', unit: 'ml', amount: 10, cost: 500 },
-    ]);
+    if (unused) {
+      const defaultAmount = 1;
+      setIngredients((prev) => [
+        ...prev,
+        {
+          id: newId,
+          ingredientId: unused.id,
+          name: unused.name,
+          unitId: unused.unitId,
+          unit: unused.unitCode,
+          amount: defaultAmount,
+          unitCost: unused.costPrice,
+          cost: Math.round(defaultAmount * unused.costPrice),
+          currentStock: unused.currentStock,
+        },
+      ]);
+    } else {
+      setIngredients((prev) => [
+        ...prev,
+        {
+          id: newId,
+          ingredientId: '',
+          name: '',
+          unitId: '',
+          unit: '-',
+          amount: 1,
+          unitCost: 0,
+          cost: 0,
+        },
+      ]);
+    }
   };
 
   const handleRemoveIngredient = (id: string) => {
@@ -727,65 +839,100 @@ export function MenuDetailsDrawer({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-100">
-                        {ingredients.map((ing) => (
-                          <tr key={ing.id} className="hover:bg-neutral-50/50">
-                            <td className="py-2.5 px-3">
-                              <input
-                                type="checkbox"
-                                defaultChecked
-                                className="rounded border-neutral-300 size-3.5 text-[#FF4D4D] focus:ring-0"
-                              />
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <div className="relative">
-                                <select
-                                  value={ing.name}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    setIngredients((prev) =>
-                                      prev.map((i) => (i.id === ing.id ? { ...i, name: val } : i))
-                                    );
-                                  }}
-                                  className="w-full h-8 pl-2.5 pr-7 rounded-lg border border-neutral-200 bg-white text-xs font-semibold text-neutral-800 appearance-none cursor-pointer focus:outline-none"
-                                >
-                                  <option value="Kopi Espresso">Kopi Espresso</option>
-                                  <option value="Susu UHT">Susu UHT</option>
-                                  <option value="Syrup Gula Aren">Syrup Gula Aren</option>
-                                  <option value="Es Batu">Es Batu</option>
-                                  <option value="Matcha Powder">Matcha Powder</option>
-                                  <option value="Bubuk Cokelat">Bubuk Cokelat</option>
-                                </select>
-                                <ChevronDown className="size-3 text-neutral-400 absolute right-2 top-2.5 pointer-events-none" />
-                              </div>
-                            </td>
-                            <td className="py-2.5 px-3 text-neutral-600 font-medium">{ing.unit}</td>
-                            <td className="py-2.5 px-3">
-                              <input
-                                type="number"
-                                value={ing.amount}
-                                onChange={(e) => {
-                                  const val = Number(e.target.value);
-                                  setIngredients((prev) =>
-                                    prev.map((i) => (i.id === ing.id ? { ...i, amount: val } : i))
-                                  );
-                                }}
-                                className="w-16 h-8 px-2 rounded-lg border border-neutral-200 text-xs text-neutral-900 focus:outline-none"
-                              />
-                            </td>
-                            <td className="py-2.5 px-3 font-semibold text-neutral-800">
-                              {formatRupiah(ing.cost)}
-                            </td>
-                            <td className="py-2.5 px-2">
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveIngredient(ing.id)}
-                                className="p-1 rounded text-neutral-300 hover:text-red-600 hover:bg-red-50"
-                              >
-                                <X className="size-3.5" />
-                              </button>
+                        {ingredients.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="py-8 px-4 text-center text-xs text-neutral-400">
+                              Belum ada bahan baku yang dipilih untuk menu ini. Klik <strong>+ Tambah Bahan</strong> di bawah untuk mengatur takaran resep & HPP otomatis.
                             </td>
                           </tr>
-                        ))}
+                        ) : (
+                          ingredients.map((ing) => (
+                            <tr key={ing.id} className="hover:bg-neutral-50/50">
+                              <td className="py-2.5 px-3">
+                                <input
+                                  type="checkbox"
+                                  defaultChecked
+                                  className="rounded border-neutral-300 size-3.5 text-[#FF4D4D] focus:ring-0"
+                                />
+                              </td>
+                              <td className="py-2.5 px-3">
+                                <div className="relative">
+                                  <select
+                                    value={ing.ingredientId}
+                                    onChange={(e) => {
+                                      const selectedId = e.target.value;
+                                      const found = storeIngredients.find((si) => si.id === selectedId);
+                                      if (!found) return;
+                                      setIngredients((prev) =>
+                                        prev.map((i) =>
+                                          i.id === ing.id
+                                            ? {
+                                                ...i,
+                                                ingredientId: found.id,
+                                                name: found.name,
+                                                unitId: found.unitId,
+                                                unit: found.unitCode,
+                                                unitCost: found.costPrice,
+                                                cost: Math.round((Number(i.amount) || 0) * found.costPrice),
+                                                currentStock: found.currentStock,
+                                              }
+                                            : i
+                                        )
+                                      );
+                                    }}
+                                    className="w-full h-8 pl-2.5 pr-7 rounded-lg border border-neutral-200 bg-white text-xs font-semibold text-neutral-800 appearance-none cursor-pointer focus:outline-none"
+                                  >
+                                    <option value="" disabled>
+                                      -- Pilih Bahan Baku --
+                                    </option>
+                                    {storeIngredients.map((si) => (
+                                      <option key={si.id} value={si.id}>
+                                        {si.name} (Stok: {si.currentStock} {si.unitCode} • {formatRupiah(si.costPrice)}/{si.unitCode})
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <ChevronDown className="size-3 text-neutral-400 absolute right-2 top-2.5 pointer-events-none" />
+                                </div>
+                              </td>
+                              <td className="py-2.5 px-3 text-neutral-600 font-medium">{ing.unit}</td>
+                              <td className="py-2.5 px-3">
+                                <input
+                                  type="number"
+                                  min="0.01"
+                                  step="any"
+                                  value={ing.amount}
+                                  onChange={(e) => {
+                                    const val = Math.max(0, Number(e.target.value));
+                                    setIngredients((prev) =>
+                                      prev.map((i) =>
+                                        i.id === ing.id
+                                          ? {
+                                              ...i,
+                                              amount: val,
+                                              cost: Math.round(val * (Number(i.unitCost) || 0)),
+                                            }
+                                          : i
+                                      )
+                                    );
+                                  }}
+                                  className="w-16 h-8 px-2 rounded-lg border border-neutral-200 text-xs text-neutral-900 focus:outline-none"
+                                />
+                              </td>
+                              <td className="py-2.5 px-3 font-semibold text-neutral-800">
+                                {formatRupiah(ing.cost)}
+                              </td>
+                              <td className="py-2.5 px-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveIngredient(ing.id)}
+                                  className="p-1 rounded text-neutral-300 hover:text-red-600 hover:bg-red-50"
+                                >
+                                  <X className="size-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
                       </tbody>
                     </table>
                   </div>

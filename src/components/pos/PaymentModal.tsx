@@ -1,13 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Banknote,
   QrCode,
   CreditCard,
-  CheckCircle2,
-  Receipt,
-  Printer,
+  Building2,
 } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/common/Button';
@@ -19,6 +17,12 @@ interface PaymentModalProps {
   totalAmount: number;
   customerName: string;
   selectedTable: string;
+  paymentMethods?: Array<{
+    id: string;
+    name: string;
+    type: string;
+    is_active: boolean;
+  }>;
   onClose: () => void;
   onSuccess: (method: string, tendered: number, change: number) => void;
 }
@@ -28,12 +32,19 @@ export function PaymentModal({
   totalAmount,
   customerName,
   selectedTable,
+  paymentMethods = [],
   onClose,
   onSuccess,
 }: PaymentModalProps) {
-  const [method, setMethod] = useState<'CASH' | 'QRIS' | 'DEBIT'>('CASH');
+  const [method, setMethod] = useState<'CASH' | 'QRIS' | 'EDC' | 'TRANSFER'>('CASH');
   const [cashTendered, setCashTendered] = useState<number>(totalAmount);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setCashTendered(totalAmount);
+    }
+  }, [isOpen, totalAmount]);
 
   if (!isOpen) return null;
 
@@ -47,13 +58,19 @@ export function PaymentModal({
 
   const change = Math.max(0, cashTendered - totalAmount);
 
-  const handlePay = () => {
+  const handlePay = async () => {
     setIsProcessing(true);
-    setTimeout(() => {
+    try {
+      await onSuccess(method, cashTendered, change);
+    } finally {
       setIsProcessing(false);
-      onSuccess(method, cashTendered, change);
-    }, 600);
+    }
   };
+
+  // Resolve active payment methods from store settings or fallback to standard methods
+  const hasTransfer = paymentMethods.some(
+    (pm) => pm.is_active && (pm.type?.toUpperCase().includes('TRANSFER') || pm.name?.toUpperCase().includes('TRANSFER'))
+  );
 
   return (
     <Modal
@@ -137,18 +154,36 @@ export function PaymentModal({
             <button
               type="button"
               onClick={() => {
-                setMethod('DEBIT');
+                setMethod('EDC');
                 setCashTendered(totalAmount);
               }}
               className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 transition-colors cursor-pointer ${
-                method === 'DEBIT'
+                method === 'EDC'
                   ? 'border-[#FF5C38] bg-rose-50/50 text-[#FF5C38] font-bold'
                   : 'border-neutral-200 hover:bg-neutral-50 text-neutral-700'
               }`}
             >
               <CreditCard className="size-5" />
-              <span className="text-xs">Kartu Debit</span>
+              <span className="text-xs">Kartu Debit / EDC</span>
             </button>
+
+            {hasTransfer && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMethod('TRANSFER');
+                  setCashTendered(totalAmount);
+                }}
+                className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 transition-colors cursor-pointer ${
+                  method === 'TRANSFER'
+                    ? 'border-[#FF5C38] bg-rose-50/50 text-[#FF5C38] font-bold'
+                    : 'border-neutral-200 hover:bg-neutral-50 text-neutral-700'
+                }`}
+              >
+                <Building2 className="size-5" />
+                <span className="text-xs">Transfer Bank</span>
+              </button>
+            )}
           </div>
         </div>
 

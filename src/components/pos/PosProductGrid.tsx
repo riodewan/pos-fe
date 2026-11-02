@@ -21,6 +21,8 @@ export interface PosProduct {
   imageUrl?: string | null;
   category?: string;
   isFavorite?: boolean;
+  availablePortions?: number | null;
+  costPrice?: number;
 }
 
 
@@ -143,9 +145,24 @@ export function PosProductGrid({
                   <h4 className="text-xs font-bold text-neutral-900 line-clamp-1 leading-snug group-hover:text-[#FF5C38] transition-colors">
                     {item.name}
                   </h4>
-                  <p className="text-xs font-medium text-neutral-500">
-                    {formatRupiah(item.price)}
-                  </p>
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-xs font-medium text-neutral-500">
+                      {formatRupiah(item.price)}
+                    </p>
+                    {item.availablePortions !== null && item.availablePortions !== undefined && (
+                      <span
+                        className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
+                          item.availablePortions <= 0
+                            ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                            : item.availablePortions <= 5
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        }`}
+                      >
+                        {item.availablePortions <= 0 ? 'Habis' : `${item.availablePortions} porsi`}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
