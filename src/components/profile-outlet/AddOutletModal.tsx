@@ -8,6 +8,7 @@ import { Input } from '@/components/common/Input';
 import { Textarea } from '@/components/common/Textarea';
 import { Select } from '@/components/common/Select';
 import { tenantService } from '@/services/tenant.service';
+import { MapLocationPickerModal } from './MapLocationPickerModal';
 
 interface AddOutletModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export function AddOutletModal({
   const [category, setCategory] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
 
   useEffect(() => {
@@ -159,9 +161,19 @@ export function AddOutletModal({
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-neutral-700 mb-1">
-            Alamat Lengkap Outlet
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-xs font-bold text-neutral-700">
+              Alamat Lengkap Outlet
+            </label>
+            <button
+              type="button"
+              onClick={() => setIsMapModalOpen(true)}
+              className="text-xs font-bold text-[#FF5C38] hover:text-[#E04B28] flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <MapPin className="size-3.5" />
+              <span>Pilih dari Peta</span>
+            </button>
+          </div>
           <Textarea
             rows={2}
             placeholder="Jl. Nama Jalan No. XX, Kecamatan, Kota"
@@ -170,6 +182,16 @@ export function AddOutletModal({
           />
         </div>
       </form>
+
+      {/* Modal: Tentukan Pinpoint Alamat */}
+      <MapLocationPickerModal
+        isOpen={isMapModalOpen}
+        onClose={() => setIsMapModalOpen(false)}
+        initialAddress={address}
+        onSelectLocation={({ address: pickedAddr }) => {
+          setAddress(pickedAddr);
+        }}
+      />
     </Modal>
   );
 }
