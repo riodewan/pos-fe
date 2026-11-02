@@ -99,14 +99,31 @@ export const tenantService = {
     api.delete<ApiResponse<null>>(`/tenant/customers/${id}`, { skipStore: true }),
 
   // Notifications
-  getNotifications: (params?: { category?: string; unread_only?: boolean }) =>
-    api.get<ApiResponse<any[]>>('/tenant/notifications', { params }),
+  getNotifications: (params?: {
+    category?: string;
+    unread_only?: boolean;
+    status?: string;
+    search?: string;
+    per_page?: number;
+  }) =>
+    api.get<ApiResponse<any[]> & { unread_count?: number; counts?: any }>('/tenant/notifications', { params }),
 
   markNotificationRead: (id: string) =>
     api.patch<ApiResponse<any>>(`/tenant/notifications/${id}/read`),
 
+  markNotificationUnread: (id: string) =>
+    api.patch<ApiResponse<any>>(`/tenant/notifications/${id}/unread`),
+
+  deleteNotification: (id: string) =>
+    api.delete<ApiResponse<any>>(`/tenant/notifications/${id}`),
+
   markAllNotificationsRead: () =>
     api.post<ApiResponse<null>>('/tenant/notifications/mark-all-read'),
+
+  clearAllNotifications: (readOnly: boolean = true) =>
+    api.delete<ApiResponse<null>>('/tenant/notifications/clear-all', {
+      params: { read_only: readOnly ? 1 : 0 },
+    }),
 
   // Store Outlet Profile
   getOutletProfile: (storeId?: string) =>

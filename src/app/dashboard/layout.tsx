@@ -20,6 +20,7 @@ import {
   Printer,
   ChefHat,
   Mail,
+  Bell,
   ChevronDown,
   Calendar,
   Lock,
@@ -35,6 +36,7 @@ import { getInitials } from '@/utils';
 import { cn } from '@/lib/utils';
 import { NemuLogo } from '@/components/common/NemuLogo';
 import { getLandingPageForRole } from '@/constants/navigation';
+import { tenantService } from '@/services/tenant.service';
 
 interface NavigationItemDef {
   href: string;
@@ -67,6 +69,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [unreadNotifsCount, setUnreadNotifsCount] = useState<number>(0);
+
+  // Poll unread notification count
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const fetchUnread = async () => {
+      try {
+        const res = await tenantService.getNotifications({ unread_only: true, per_page: 1 });
+        if (typeof res?.unread_count === 'number') {
+          setUnreadNotifsCount(res.unread_count);
+        }
+      } catch {}
+    };
+
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, pathname]);
 
   // Current tab from search params
   const currentTab =
@@ -591,14 +611,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Link
               href="/dashboard/notifications"
               className={cn(
-                'size-9 rounded-xl border flex items-center justify-center transition-colors shadow-2xs cursor-pointer',
+                'relative size-9 rounded-xl border flex items-center justify-center transition-colors shadow-2xs cursor-pointer',
                 pathname.startsWith('/dashboard/notifications')
                   ? 'bg-[#FF5C38] border-[#FF5C38] text-white shadow-xs'
                   : 'border-neutral-800 bg-[#1E1E1E] hover:bg-neutral-800 text-neutral-300'
               )}
               title="Notifikasi"
             >
-              <Mail className="size-4" />
+              <Bell className="size-4" />
+              {unreadNotifsCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-[#FF5C38] text-[10px] font-bold text-white shadow-xs animate-pulse">
+                  {unreadNotifsCount > 99 ? '99+' : unreadNotifsCount}
+                </span>
+              )}
             </Link>
 
             {(isInternalAdmin || user?.is_internal) && (
