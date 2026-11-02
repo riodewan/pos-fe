@@ -16,6 +16,7 @@ import { adminService, PlatformTenantItem } from '@/services/admin.service';
 import { Button } from '@/components/common/Button';
 import { Pagination, DEFAULT_PAGE_SIZE_OPTIONS } from '@/components/common';
 import { useToast } from '@/context/ToastContext';
+import { formatRupiah } from '@/utils';
 
 export default function AdminTenantsPage() {
   const { toast } = useToast();
@@ -335,6 +336,7 @@ export default function AdminTenantsPage() {
                   <th className="py-3.5 px-4">Jumlah Outlet</th>
                   <th className="py-3.5 px-4">Total Staff</th>
                   <th className="py-3.5 px-4">Komisi Platform & Pajak</th>
+                  <th className="py-3.5 px-4">Pendapatan Platform (Hak Kita)</th>
                   <th className="py-3.5 px-4">Status Akun</th>
                   <th className="py-3.5 px-4">Tgl Daftar</th>
                   <th className="py-3.5 px-4 text-right">Aksi</th>
@@ -372,7 +374,17 @@ export default function AdminTenantsPage() {
                           Platform: {Number(t.platform_fee_percentage ?? 0)}%
                         </span>
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-neutral-100 text-neutral-600 text-[10px] font-semibold w-fit">
-                          Pajak: {Number(t.tax_percentage ?? 10)}%
+                          Pajak Mitra: {Number(t.tax_percentage ?? 10)}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-bold text-[#FF5C38] text-xs font-mono">
+                          {formatRupiah(t.platform_revenue ?? 0)}
+                        </span>
+                        <span className="text-[10px] text-neutral-400">
+                          Hak Mitra (+Pajak): {formatRupiah(t.merchant_net_revenue ?? 0)}
                         </span>
                       </div>
                     </td>
@@ -756,6 +768,43 @@ export default function AdminTenantsPage() {
                         month: 'short',
                         year: 'numeric',
                       })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Ringkasan Pembagian Dana Transaksi (Hak Platform vs Hak Mitra) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3.5 rounded-xl bg-orange-50 border border-orange-200">
+                    <span className="text-[10.5px] text-[#FF5C38] font-bold uppercase">
+                      Pendapatan Komisi Platform (Kita)
+                    </span>
+                    <p className="text-base font-extrabold text-[#FF5C38] mt-1 font-mono">
+                      {formatRupiah(selectedTenant.platform_revenue ?? 0)}
+                    </p>
+                    <p className="text-[10px] text-orange-800/80 mt-0.5">
+                      Biaya layanan platform dari {selectedTenant.total_orders_completed ?? 0} transaksi
+                    </p>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200">
+                    <span className="text-[10.5px] text-emerald-700 font-bold uppercase">
+                      Hak Bersih Mitra (Termasuk Pajak)
+                    </span>
+                    <p className="text-base font-extrabold text-emerald-700 mt-1 font-mono">
+                      {formatRupiah(selectedTenant.merchant_net_revenue ?? 0)}
+                    </p>
+                    <p className="text-[10px] text-emerald-700/80 mt-0.5">
+                      Termasuk pajak toko {formatRupiah(selectedTenant.tax_collected ?? 0)}
+                    </p>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-neutral-50 border border-neutral-200">
+                    <span className="text-[10.5px] text-neutral-500 font-bold uppercase">
+                      Total GMV Transaksi Customer
+                    </span>
+                    <p className="text-base font-bold text-neutral-900 mt-1 font-mono">
+                      {formatRupiah(selectedTenant.total_gmv ?? 0)}
+                    </p>
+                    <p className="text-[10px] text-neutral-400 mt-0.5">
+                      Total dibayarkan oleh pelanggan
                     </p>
                   </div>
                 </div>

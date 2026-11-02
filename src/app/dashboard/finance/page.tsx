@@ -83,7 +83,7 @@ export default function FinancePage() {
   const [channels, setChannels] = useState<ChannelReconciliation[]>([]);
   const [disbursements, setDisbursements] = useState<DisbursementRecord[]>([]);
   const [audits, setAudits] = useState<CashierShiftAudit[]>([]);
-  const [totals, setTotals] = useState<{ net: number; mdr: number; cash: number } | null>(null);
+  const [totals, setTotals] = useState<{ net: number; tax: number; mdr: number; cash: number } | null>(null);
   const [available, setAvailable] = useState<number | null>(null);
   const [transferFee, setTransferFee] = useState(4500);
 
@@ -176,6 +176,7 @@ export default function FinancePage() {
           setChannels(list);
           setTotals((prev) => ({
             net: data.totals?.net_settlement ?? 0,
+            tax: data.totals?.total_tax ?? 0,
             mdr: data.totals?.total_mdr ?? 0,
             cash: prev?.cash ?? 0,
           }));
@@ -189,7 +190,7 @@ export default function FinancePage() {
         const data = (res as any)?.data?.data ?? (res as any)?.data;
         if (data?.cashiers) {
           const cash = data.cashiers.reduce((s: number, c: any) => s + (c.cash_total || 0), 0);
-          setTotals((prev) => ({ net: prev?.net ?? 0, mdr: prev?.mdr ?? 0, cash }));
+          setTotals((prev) => ({ net: prev?.net ?? 0, tax: prev?.tax ?? 0, mdr: prev?.mdr ?? 0, cash }));
         }
       } catch (err) {
         console.error('Gagal memuat ringkasan kasir', err);
@@ -494,9 +495,15 @@ export default function FinancePage() {
       {/* 4 Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
-          <p className="text-xs font-medium text-neutral-500">Dana Siap Dicairkan</p>
+          <p className="text-xs font-medium text-neutral-500">Dana Siap Dicairkan (Hak Mitra)</p>
           <p className="text-2xl font-bold text-neutral-900 tracking-tight">{available !== null ? formatRupiah(available) : totals ? formatRupiah(totals.net) : formatRupiah(0)}</p>
-          <p className="text-[11px] text-emerald-600 font-medium">QRIS & Payment Gateway</p>
+          <p className="text-[11px] text-emerald-600 font-medium">Penjualan Bersih + Pajak Toko</p>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
+          <p className="text-xs font-medium text-neutral-500">Total Pajak Toko (Masuk Mitra)</p>
+          <p className="text-2xl font-bold text-neutral-900 tracking-tight">{totals ? formatRupiah(totals.tax) : formatRupiah(0)}</p>
+          <p className="text-[11px] text-emerald-600 font-medium">Sudah termasuk dalam dana mitra</p>
         </div>
 
         <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
@@ -506,15 +513,9 @@ export default function FinancePage() {
         </div>
 
         <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
-          <p className="text-xs font-medium text-neutral-500">Estimasi Biaya MDR (0.7%)</p>
-          <p className="text-2xl font-bold text-neutral-900 tracking-tight">{totals ? formatRupiah(totals.mdr) : formatRupiah(0)}</p>
-          <p className="text-[11px] text-neutral-400">Potongan transaksi QRIS</p>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
           <p className="text-xs font-medium text-neutral-500">Selisih Rekonsiliasi</p>
           <p className="text-2xl font-bold text-emerald-600 tracking-tight">Rp0 (Match 100%)</p>
-          <p className="text-[11px] text-emerald-600 font-medium">Tidak ada perbedaan kas</p>
+          <p className="text-[11px] text-emerald-600 font-medium">Biaya platform terpisah otomatis</p>
         </div>
       </div>
 

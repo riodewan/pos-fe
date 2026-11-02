@@ -16,6 +16,9 @@ export interface PlatformOverviewKPIs {
   total_users: number;
   total_orders: number;
   total_gmv: number;
+  total_platform_revenue?: number;
+  total_merchant_revenue?: number;
+  total_merchant_tax?: number;
   pending_approvals: number;
 }
 
@@ -29,6 +32,11 @@ export interface PlatformTenantItem {
   status: 'ACTIVE' | 'PENDING' | 'REJECTED' | 'SUSPENDED' | 'INACTIVE';
   platform_fee_percentage?: number;
   tax_percentage?: number;
+  total_orders_completed?: number;
+  total_gmv?: number;
+  platform_revenue?: number;
+  merchant_net_revenue?: number;
+  tax_collected?: number;
   stores_count?: number;
   tenant_users_count?: number;
   created_at: string;

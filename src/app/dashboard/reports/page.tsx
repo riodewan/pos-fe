@@ -312,11 +312,11 @@ export default function ReportsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
-            <p className="text-xs font-medium text-neutral-500">Total Pendapatan (Revenue)</p>
+            <p className="text-xs font-medium text-neutral-500">Total Pendapatan Toko (Revenue)</p>
             <p className="text-2xl font-bold text-neutral-900 tracking-tight">
               {formatRupiah(kpis.total_revenue)}
             </p>
-            <p className="text-[11px] text-emerald-600 font-medium">Termasuk PPN & Biaya Layanan</p>
+            <p className="text-[11px] text-emerald-600 font-medium">Penjualan Bersih + Pajak Toko</p>
           </div>
 
           <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
@@ -411,17 +411,18 @@ export default function ReportsPage() {
                 <span>{formatRupiah(kpis.net_sales)}</span>
               </div>
               <div className="flex justify-between py-2.5">
-                <span className="text-neutral-500">Pajak Restoran (PB1 10%):</span>
-                <span className="font-semibold text-neutral-900">{formatRupiah(kpis.tax)}</span>
-              </div>
-              <div className="flex justify-between py-2.5">
-                <span className="text-neutral-500">Biaya Layanan (Service Charge):</span>
-                <span className="font-semibold text-neutral-900">{formatRupiah(kpis.service_charge)}</span>
+                <span className="text-neutral-500">Pajak Toko / Restoran (Masuk ke Mitra):</span>
+                <span className="font-semibold text-neutral-900">
+                  {formatRupiah((kpis as any).total_tax ?? kpis.tax ?? 0)}
+                </span>
               </div>
               <div className="flex justify-between pt-3 text-sm font-bold text-[#E5484D]">
-                <span>Total Penerimaan (Revenue):</span>
+                <span>Total Penerimaan Toko (Revenue Mitra):</span>
                 <span>{formatRupiah(kpis.total_revenue)}</span>
               </div>
+              <p className="text-[11px] text-neutral-400 pt-2">
+                * Biaya Layanan Platform langsung dipisahkan ke sistem NemuPOS dan tidak termasuk dalam pendapatan toko.
+              </p>
             </div>
           </div>
 

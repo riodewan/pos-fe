@@ -132,7 +132,7 @@ export default function AdminOverviewPage() {
       )}
 
       {/* KPI Cards Grid (Clean NemuHub White Cards) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Total Tenants */}
         <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
           <div className="flex items-center justify-between text-neutral-500">
@@ -165,36 +165,57 @@ export default function AdminOverviewPage() {
           <p className="text-[11px] text-neutral-400">Titik lokasi kasir yang beroperasi</p>
         </div>
 
-        {/* Total Users across platform */}
-        <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
-          <div className="flex items-center justify-between text-neutral-500">
-            <span className="text-xs font-medium">Total Pengguna Platform</span>
-            <div className="size-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <Users className="size-4" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-neutral-900">{kpis?.total_users ?? 0}</span>
-            <span className="text-xs text-neutral-500 font-medium">Akun</span>
-          </div>
-          <p className="text-[11px] text-neutral-400">Owner, Manager, Kasir, Gudang, Dapur</p>
-        </div>
-
         {/* Total GMV (Gross Merchandise Value) */}
         <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
           <div className="flex items-center justify-between text-neutral-500">
             <span className="text-xs font-medium">Total GMV Transaksi</span>
-            <div className="size-9 rounded-xl bg-orange-50 text-[#FF5C38] flex items-center justify-center">
+            <div className="size-9 rounded-xl bg-neutral-100 text-neutral-700 flex items-center justify-center">
               <TrendingUp className="size-4" />
             </div>
           </div>
           <div className="flex items-baseline gap-1.5 truncate">
-            <span className="text-xl sm:text-2xl font-bold text-neutral-900 truncate">
+            <span className="text-xl font-bold text-neutral-900 truncate">
               {formatRupiah(kpis?.total_gmv ?? 0)}
             </span>
           </div>
           <p className="text-[11px] text-neutral-400">
             {kpis?.total_orders ?? 0} transaksi berhasil diproses
+          </p>
+        </div>
+
+        {/* Hak Mitra (Net Sales + Pajak Mitra) */}
+        <div className="p-5 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2">
+          <div className="flex items-center justify-between text-neutral-500">
+            <span className="text-xs font-medium">Hak Mitra (Termasuk Pajak)</span>
+            <div className="size-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <Users className="size-4" />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-1.5 truncate">
+            <span className="text-xl font-bold text-emerald-700 truncate">
+              {formatRupiah(kpis?.total_merchant_revenue ?? 0)}
+            </span>
+          </div>
+          <p className="text-[11px] text-neutral-400">
+            Termasuk Pajak Mitra {formatRupiah(kpis?.total_merchant_tax ?? 0)}
+          </p>
+        </div>
+
+        {/* Pendapatan Komisi Platform (Hak Kita - Eksklusif Internal Admin) */}
+        <div className="p-5 rounded-2xl bg-orange-50/70 border border-orange-200 shadow-2xs space-y-2">
+          <div className="flex items-center justify-between text-[#FF5C38]">
+            <span className="text-xs font-bold">Pendapatan Biaya Platform (Kita)</span>
+            <div className="size-9 rounded-xl bg-[#FF5C38] text-white flex items-center justify-center shadow-2xs">
+              <TrendingUp className="size-4" />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-1.5 truncate">
+            <span className="text-xl font-extrabold text-[#FF5C38] truncate">
+              {formatRupiah(kpis?.total_platform_revenue ?? 0)}
+            </span>
+          </div>
+          <p className="text-[11px] text-orange-800/80 font-medium">
+            Biaya layanan platform (hanya diakses Admin)
           </p>
         </div>
       </div>
