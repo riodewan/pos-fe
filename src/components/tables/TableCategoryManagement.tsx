@@ -65,8 +65,8 @@ export function TableCategoryManagement({
           }
         }
       })
-      .catch((err) => {
-        console.warn('Backend categories setting warning:', err);
+      .catch(() => {
+        setCategories([]);
       })
       .finally(() => {
         setIsLoading(false);

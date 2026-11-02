@@ -65,8 +65,8 @@ export function TableAreaManagement({
           }
         }
       })
-      .catch((err) => {
-        console.warn('Backend areas setting warning:', err);
+      .catch(() => {
+        setAreas([]);
       })
       .finally(() => {
         setIsLoading(false);

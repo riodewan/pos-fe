@@ -142,13 +142,13 @@ export default function QrOrderPage() {
             if (Array.isArray(parsed) && parsed.length > 0) {
               setDisposableQrs(parsed);
             }
-          } catch (e) {
-            console.error('Failed to parse disposable QRs setting:', e);
+          } catch {
+            // Ignore malformed JSON
           }
         }
       })
-      .catch((err) => {
-        console.warn('Backend disposable QRs warning, using defaults:', err);
+      .catch(() => {
+        setDisposableQrs([]);
       });
   }, [loadTables]);
 
