@@ -105,7 +105,7 @@ export function ProfileAccountView() {
 
           const prefs = d.user_preferences;
           const safePrefs = {
-            language: prefs?.language || 'Bahasa Indonesia',
+            language: 'Bahasa Indonesia',
             dateFormat: prefs?.dateFormat || 'DD/MM/YYYY',
             timezone: prefs?.timezone || 'WIB (UTC+7)',
           };
@@ -717,10 +717,12 @@ export function ProfileAccountView() {
                     className="w-full appearance-none px-3.5 py-2 rounded-xl border border-neutral-200 text-xs font-medium text-neutral-900 bg-white focus:outline-none focus:border-[#FF5C38] focus:ring-1 focus:ring-[#FF5C38] cursor-pointer"
                   >
                     <option value="Bahasa Indonesia">Bahasa Indonesia</option>
-                    <option value="English (US)">English (US)</option>
                   </select>
                   <ChevronDown className="size-4 text-neutral-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
+                <p className="text-[10px] text-neutral-400 mt-1">
+                  Bahasa default sistem operasional
+                </p>
               </div>
 
               <div>
@@ -733,12 +735,15 @@ export function ProfileAccountView() {
                     onChange={(e) => handlePreferenceChange('dateFormat', e.target.value)}
                     className="w-full appearance-none px-3.5 py-2 rounded-xl border border-neutral-200 text-xs font-medium text-neutral-900 bg-white focus:outline-none focus:border-[#FF5C38] focus:ring-1 focus:ring-[#FF5C38] cursor-pointer"
                   >
-                    <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                    <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                    <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                    <option value="DD/MM/YYYY">DD/MM/YYYY (Contoh: 02/11/2026)</option>
+                    <option value="DD MMMM YYYY">DD MMMM YYYY (Contoh: 2 November 2026)</option>
+                    <option value="YYYY-MM-DD">YYYY-MM-DD (Contoh: 2026-11-02)</option>
                   </select>
                   <ChevronDown className="size-4 text-neutral-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
+                <p className="text-[10px] text-neutral-400 mt-1">
+                  Format tampilan tanggal di aplikasi
+                </p>
               </div>
 
               <div>
@@ -751,12 +756,15 @@ export function ProfileAccountView() {
                     onChange={(e) => handlePreferenceChange('timezone', e.target.value)}
                     className="w-full appearance-none px-3.5 py-2 rounded-xl border border-neutral-200 text-xs font-medium text-neutral-900 bg-white focus:outline-none focus:border-[#FF5C38] focus:ring-1 focus:ring-[#FF5C38] cursor-pointer"
                   >
-                    <option value="WIB (UTC+7)">WIB (UTC+7)</option>
-                    <option value="WITA (UTC+8)">WITA (UTC+8)</option>
-                    <option value="WIT (UTC+9)">WIT (UTC+9)</option>
+                    <option value="WIB (UTC+7)">WIB (UTC+7) - Waktu Indonesia Barat</option>
+                    <option value="WITA (UTC+8)">WITA (UTC+8) - Waktu Indonesia Tengah</option>
+                    <option value="WIT (UTC+9)">WIT (UTC+9) - Waktu Indonesia Timur</option>
                   </select>
                   <ChevronDown className="size-4 text-neutral-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
+                <p className="text-[10px] text-neutral-400 mt-1">
+                  Standar waktu operasional transaksi
+                </p>
               </div>
             </div>
           </div>
