@@ -481,7 +481,7 @@ export default function AdminTenantsPage() {
                     <input
                       type="text"
                       required
-                      placeholder="Contoh: Kopi Senja"
+                      placeholder="Contoh: Nama Bisnis Anda"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
@@ -494,7 +494,7 @@ export default function AdminTenantsPage() {
                     <input
                       type="email"
                       required
-                      placeholder="halo@kopisenja.com"
+                      placeholder="email@bisnis.com"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
@@ -556,7 +556,7 @@ export default function AdminTenantsPage() {
                     <input
                       type="email"
                       required
-                      placeholder="budi@kopisenja.com"
+                      placeholder="email@bisnis.com"
                       value={formData.owner_email}
                       onChange={(e) => setFormData({ ...formData, owner_email: e.target.value })}
                       className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#FF5C38]"

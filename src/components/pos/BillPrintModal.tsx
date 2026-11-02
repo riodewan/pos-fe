@@ -44,7 +44,7 @@ export function BillPrintModal({
   taxRate = 10,
   platformFeeRate = 0,
   cashierName = 'Kasir',
-  storeName = 'NemuPOS Outlet',
+  storeName = '',
   storeAddress,
   storePhone,
   onClose,
@@ -184,7 +184,6 @@ export function BillPrintModal({
         {/* Receipt Footer */}
         <div className="text-center text-[10px] text-neutral-400 pt-1">
           <p>Terima kasih atas kunjungan Anda!</p>
-          <p>WiFi: KopiMantap_Guest / Sandi: ngopidulu</p>
         </div>
       </div>
     </Modal>

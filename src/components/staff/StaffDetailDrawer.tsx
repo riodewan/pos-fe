@@ -261,7 +261,7 @@ export function StaffDetailDrawer({
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Contoh: nama@kopimantap.id"
+                  placeholder="Contoh: nama@emailanda.com"
                 />
               </div>
 

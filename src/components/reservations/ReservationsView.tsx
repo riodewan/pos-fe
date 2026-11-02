@@ -36,7 +36,7 @@ export function ReservationsView() {
   const [activeTab, setActiveTab] = useState<'list' | 'calendar' | 'map'>('list');
 
   // Filter Bar state matching Image 1 & 2
-  const [selectedDate, setSelectedDate] = useState('7 Okt 2026');
+  const [selectedDate, setSelectedDate] = useState('today');
   const [selectedStatus, setSelectedStatus] = useState('Semua Status');
   const [selectedArea, setSelectedArea] = useState('Semua Area');
   const [searchQuery, setSearchQuery] = useState('');
@@ -288,10 +288,10 @@ export function ReservationsView() {
               onChange={(e) => setSelectedDate(e.target.value)}
               className="text-xs font-semibold bg-white"
             >
-              <option value="7 Okt 2026">7 Okt 2026</option>
-              <option value="Hari ini (14/10/2026)">Hari ini (14/10/2026)</option>
-              <option value="Besok">Besok</option>
-              <option value="Minggu Ini">Minggu Ini</option>
+              <option value="today">Hari Ini</option>
+              <option value="tomorrow">Besok</option>
+              <option value="week">Minggu Ini</option>
+              <option value="month">Bulan Ini</option>
             </Select>
           </div>
 

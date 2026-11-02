@@ -21,7 +21,7 @@ interface PersonalizationTabProps {
 
 export function PersonalizationTab({ onSaveSuccess }: PersonalizationTabProps) {
   const [scope, setScope] = useState<'single' | 'all'>('single');
-  const [selectedOutlet, setSelectedOutlet] = useState('Kopi Mantap - Menteng');
+  const [selectedOutlet, setSelectedOutlet] = useState('outlet-aktif');
   const [activeTheme, setActiveTheme] = useState<ThemePreset>('Default');
   const [previewScreen, setPreviewScreen] = useState<'pos' | 'kds'>('pos');
   const [isSaved, setIsSaved] = useState(false);
@@ -94,9 +94,7 @@ export function PersonalizationTab({ onSaveSuccess }: PersonalizationTabProps) {
                     disabled={scope !== 'single'}
                     className="w-full appearance-none px-3 py-2 rounded-lg border border-neutral-200 text-xs font-medium text-neutral-900 bg-white focus:outline-none focus:border-[#FF5C38] cursor-pointer disabled:opacity-50"
                   >
-                    <option value="Kopi Mantap - Menteng">Kopi Mantap - Menteng</option>
-                    <option value="Kopi Mantap - Senopati">Kopi Mantap - Senopati</option>
-                    <option value="Kopi Mantap - Kemang">Kopi Mantap - Kemang</option>
+                    <option value="outlet-aktif">Outlet Aktif Anda</option>
                   </select>
                   <ChevronDown className="size-3.5 text-neutral-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
@@ -134,13 +132,7 @@ export function PersonalizationTab({ onSaveSuccess }: PersonalizationTabProps) {
 
               <div className="mt-4 pt-3 border-t border-neutral-100 space-y-1 text-[11px] text-neutral-600">
                 <p className="flex items-center gap-1.5 font-medium">
-                  <span className="size-1.5 rounded-full bg-[#FF5C38]" /> Kopi Mantap - Menteng
-                </p>
-                <p className="flex items-center gap-1.5 font-medium">
-                  <span className="size-1.5 rounded-full bg-[#FF5C38]" /> Kopi Mantap - Cikini
-                </p>
-                <p className="flex items-center gap-1.5 font-medium text-neutral-400 italic">
-                  <span className="size-1.5 rounded-full bg-neutral-300" /> etc.
+                  <span className="size-1.5 rounded-full bg-[#FF5C38]" /> Semua outlet dalam akun Anda akan diterapkan tema ini
                 </p>
               </div>
             </div>
@@ -216,7 +208,7 @@ export function PersonalizationTab({ onSaveSuccess }: PersonalizationTabProps) {
               {/* Product catalog side */}
               <div className="col-span-8 space-y-2">
                 <div className="flex items-center justify-between bg-white p-1.5 rounded-lg border border-neutral-200">
-                  <span className="font-semibold text-neutral-500">Kopi Mantap (Menteng)</span>
+                  <span className="font-semibold text-neutral-500">Nama Outlet Anda</span>
                   <div className="flex gap-1">
                     <span
                       className="px-2 py-0.5 rounded text-[9px] font-bold text-white"

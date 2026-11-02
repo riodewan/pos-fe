@@ -139,7 +139,7 @@ export function AddStaffDrawer({
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Contoh: siti@kopimantap.id"
+              placeholder="Contoh: nama@emailanda.com"
             />
 
             {/* Password Login Field */}

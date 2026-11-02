@@ -925,11 +925,11 @@ export function ProfileOutletView() {
                 Status Outlet
               </h2>
 
-              {/* Status Operasional (NemuPOS) */}
+              {/* Status Operasional (NemuHUB) */}
               <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-neutral-50/50 border border-neutral-100">
                 <div>
                   <p className="text-xs font-bold text-neutral-900">
-                    Status Operasional (NemuPOS)
+                    Status Operasional (NemuHUB)
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <span

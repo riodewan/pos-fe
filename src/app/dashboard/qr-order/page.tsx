@@ -547,7 +547,7 @@ export default function QrOrderPage() {
                               <div className="p-1 rounded-md bg-white border border-neutral-200 shadow-2xs inline-flex items-center justify-center relative">
                                 <QRCodeSVG
                                   id={`qr-table-svg-${row.id}`}
-                                  value={row.url || `${windowOrigin}/q/demo`}
+                                  value={row.url || ""}
                                   size={34}
                                   level="M"
                                 />

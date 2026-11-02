@@ -468,11 +468,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="flex items-center justify-between p-2 rounded-xl bg-neutral-900 border border-neutral-800">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="size-8 rounded-full bg-[#2E2E2E] text-white flex items-center justify-center text-[11px] font-bold shrink-0">
-                  {getInitials(activeTenant?.name) || 'KM'}
+                  {getInitials(activeTenant?.name) || 'OT'}
                 </div>
                 <div className="min-w-0">
                   <p className="text-[12.5px] font-semibold text-white truncate leading-tight">
-                    {activeTenant?.name || 'Kopi Mantap'}
+                    {activeTenant?.name || 'Outlet'}
                   </p>
                   <div className="flex items-center gap-2 text-[10.5px] text-neutral-400 mt-0.5">
                     <Link

@@ -1032,7 +1032,7 @@ export default function FinancePage() {
             <p className="text-2xl font-bold text-neutral-900 font-mono">
               {available !== null ? formatRupiah(available) : formatRupiah(0)}
             </p>
-            <p className="text-[11px] text-neutral-400">Batas penarikan harian: Rp50.000.000</p>
+            <p className="text-[11px] text-neutral-400">Batas penarikan sesuai ketentuan rekening terdaftar</p>
           </div>
 
           <Input

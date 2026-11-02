@@ -265,7 +265,7 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       {modalMode === 'welcome' ? (
         /* ============================================================ */
-        /* MODAL 0: SELAMAT DATANG DI NEMUPOS                           */
+        /* MODAL 0: SELAMAT DATANG DI NemuHUB                           */
         /* ============================================================ */
         <div className="relative w-full max-w-[500px] bg-white rounded-2xl shadow-2xl p-7 flex flex-col items-center animate-in zoom-in-95 duration-200">
           {/* Party Popper Illustration */}
@@ -309,11 +309,11 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
           </div>
 
           <h2 className="text-[20px] font-bold text-neutral-900 tracking-tight text-center mb-1.5">
-            Selamat datang di NemuPOS!
+            Selamat datang di NemuHUB!
           </h2>
           <p className="text-[12.5px] text-neutral-500 text-center leading-relaxed max-w-[380px] mb-6">
             Akun kamu sudah disetujui. Yuk, lengkapi profil toko agar siap
-            menggunakan NemuPOS dan tampil di{' '}
+            menggunakan NemuHUB dan tampil di{' '}
             <span className="text-[#FF5C38] font-medium">NemuSosial</span>.
           </p>
 
@@ -476,7 +476,7 @@ export function FirstLoginModal({ isOpen, onClose, onComplete }: FirstLoginModal
               Profile Outlet
             </h2>
             <p className="text-[12px] text-neutral-500 mt-1">
-              Lengkapi profil outlet untuk mulai menggunakan NemuPOS dan tampil
+              Lengkapi profil outlet untuk mulai menggunakan NemuHUB dan tampil
               di NemuSosial.
             </p>
           </div>
