@@ -23,6 +23,7 @@ import {
   ChevronDown,
   Calendar,
   Lock,
+  ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
@@ -51,7 +52,7 @@ interface NavigationGroupDef {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, activeTenant, logout, canAccess } = useAuth();
+  const { user, activeTenant, logout, canAccess, isInternalAdmin } = useAuth();
   const { isLoading, isAuthenticated } = useRequireAuth();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -413,6 +414,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </nav>
           </div>
 
+          {/* Admin Internal Portal Shortcut */}
+          {(isInternalAdmin || user?.is_internal) && (
+            <div className="p-3 pb-0">
+              <Link
+                href="/admin"
+                className="flex items-center justify-between p-2.5 rounded-xl bg-orange-950/40 hover:bg-orange-900/50 border border-orange-500/40 text-xs text-orange-200 transition-all group"
+              >
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="size-4 text-[#FF5C38]" />
+                  <div>
+                    <p className="font-bold text-[11.5px] text-white leading-tight">Portal Admin Internal</p>
+                    <p className="text-[10px] text-orange-300/80 leading-tight">Kelola Tenant & Master</p>
+                  </div>
+                </div>
+                <ChevronRight className="size-3.5 text-orange-400 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
+          )}
+
           {/* Bottom Outlet & User Footer */}
           <div className="p-3 border-t border-neutral-800/80 bg-[#171717]">
             <div className="flex items-center justify-between p-2 rounded-xl bg-neutral-900 border border-neutral-800">
@@ -570,6 +590,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               <Mail className="size-4" />
             </Link>
+
+            {(isInternalAdmin || user?.is_internal) && (
+              <Link
+                href="/admin"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-orange-500/40 bg-orange-950/30 hover:bg-orange-900/40 text-xs font-bold text-orange-300 hover:text-white transition-all shadow-2xs"
+                title="Buka Portal Admin Internal"
+              >
+                <ShieldCheck className="size-3.5 text-[#FF5C38]" />
+                <span>Portal Admin</span>
+              </Link>
+            )}
 
             <div className="relative">
               <button

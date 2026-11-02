@@ -30,9 +30,10 @@ export const NAV_GROUP_ORDER: NavGroup[] = ['Operasional', 'Produk & Stok', 'Bis
  * Determine the primary default landing page for each role upon login
  */
 export function getLandingPageForRole(roleName?: string | null, isInternalAdmin: boolean = false): string {
-  if (isInternalAdmin) return ROUTES.DASHBOARD.OVERVIEW;
-
   const norm = (roleName || '').toUpperCase().trim();
+  if (isInternalAdmin || norm === 'ADMIN INTERNAL' || norm === 'ADMIN_INTERNAL') {
+    return '/admin';
+  }
 
   switch (norm) {
     case 'CASHIER':

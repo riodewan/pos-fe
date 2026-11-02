@@ -6,4 +6,5 @@ export * from './inventory.service';
 export * from './reports.service';
 export * from './public.service';
 export * from './system.service';
+export * from './admin.service';
 
