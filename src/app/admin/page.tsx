@@ -71,7 +71,7 @@ export default function AdminOverviewPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <Link href="/admin/master-data">
             <Button
               variant="secondary"
@@ -80,6 +80,16 @@ export default function AdminOverviewPage() {
             >
               <Database className="size-3.5 text-neutral-500" />
               <span>Data Master</span>
+            </Button>
+          </Link>
+          <Link href="/admin/users">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-200 font-bold px-3.5 py-2 text-xs flex items-center gap-1.5 rounded-xl shadow-2xs"
+            >
+              <Users className="size-3.5 text-[#FF5C38]" />
+              <span>Buat Akun Mitra</span>
             </Button>
           </Link>
           <Link href="/admin/tenants">

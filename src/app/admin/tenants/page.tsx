@@ -35,6 +35,18 @@ export default function AdminTenantsPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Inline Add User inside Tenant Detail Modal
+  const [showAddUserForm, setShowAddUserForm] = useState(false);
+  const [newUserForm, setNewUserForm] = useState({
+    name: '',
+    email: '',
+    password: 'Password123!',
+    phone: '',
+    role_name: 'Owner',
+    store_id: '',
+  });
+  const [isAddingUser, setIsAddingUser] = useState(false);
+
   // Create Form State
   const [formData, setFormData] = useState({
     name: '',
@@ -80,6 +92,7 @@ export default function AdminTenantsPage() {
     try {
       setDetailLoading(true);
       setIsDetailModalOpen(true);
+      setShowAddUserForm(false);
       const res = await adminService.getTenant(tenantId);
       if (res?.data) {
         setSelectedTenant(res.data);
@@ -88,6 +101,49 @@ export default function AdminTenantsPage() {
       toast.error('Gagal memuat detail tenant.');
     } finally {
       setDetailLoading(false);
+    }
+  };
+
+  const handleAddUserToTenant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTenant) return;
+    if (!newUserForm.name.trim() || !newUserForm.email.trim() || !newUserForm.password.trim()) {
+      toast.error('Nama, email, dan kata sandi wajib diisi.');
+      return;
+    }
+
+    try {
+      setIsAddingUser(true);
+      await adminService.createUser({
+        account_mode: 'EXISTING_TENANT',
+        tenant_id: selectedTenant.id,
+        name: newUserForm.name.trim(),
+        email: newUserForm.email.trim(),
+        password: newUserForm.password.trim(),
+        phone: newUserForm.phone.trim() || undefined,
+        role_name: newUserForm.role_name,
+        store_id: newUserForm.store_id || undefined,
+      });
+      toast.success(`Akun "${newUserForm.name}" berhasil ditambahkan ke ${selectedTenant.name}!`);
+      setNewUserForm({
+        name: '',
+        email: '',
+        password: 'Password123!',
+        phone: '',
+        role_name: 'Owner',
+        store_id: '',
+      });
+      setShowAddUserForm(false);
+      // Reload tenant detail & table
+      const res = await adminService.getTenant(selectedTenant.id);
+      if (res?.data) {
+        setSelectedTenant(res.data);
+      }
+      fetchTenants();
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal menambahkan akun ke tenant.');
+    } finally {
+      setIsAddingUser(false);
     }
   };
 
@@ -633,13 +689,143 @@ export default function AdminTenantsPage() {
                 </div>
 
                 {/* Tenant Users */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-neutral-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <Users className="size-4 text-blue-600" />
-                    <span>
-                      Staf & Akses Terdaftar ({selectedTenant.tenant_users?.length || 0})
-                    </span>
-                  </h4>
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-neutral-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <Users className="size-4 text-blue-600" />
+                      <span>
+                        Staf & Akses Terdaftar ({selectedTenant.tenant_users?.length || 0})
+                      </span>
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddUserForm(!showAddUserForm)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#FF5C38] hover:bg-[#E04B28] text-white text-[11px] font-bold transition-colors cursor-pointer"
+                    >
+                      <Plus className="size-3 stroke-[3]" />
+                      <span>{showAddUserForm ? 'Tutup Form' : 'Tambah Akun User'}</span>
+                    </button>
+                  </div>
+
+                  {showAddUserForm && (
+                    <form
+                      onSubmit={handleAddUserToTenant}
+                      className="p-3.5 rounded-xl bg-orange-50/60 border border-orange-200 space-y-3 animate-in fade-in"
+                    >
+                      <p className="text-[11px] font-bold text-neutral-800">
+                        Tambahkan Akun Login Baru ke Mitra &ldquo;{selectedTenant.name}&rdquo;
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-neutral-700 mb-1">
+                            Nama Lengkap *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Nama Owner / Staf"
+                            value={newUserForm.name}
+                            onChange={(e) =>
+                              setNewUserForm({ ...newUserForm, name: e.target.value })
+                            }
+                            className="w-full bg-white border border-neutral-200 rounded-lg px-2.5 py-1.5 text-xs text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-neutral-700 mb-1">
+                            Email Login *
+                          </label>
+                          <input
+                            type="email"
+                            required
+                            placeholder="user@mitra.com"
+                            value={newUserForm.email}
+                            onChange={(e) =>
+                              setNewUserForm({ ...newUserForm, email: e.target.value })
+                            }
+                            className="w-full bg-white border border-neutral-200 rounded-lg px-2.5 py-1.5 text-xs text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-neutral-700 mb-1">
+                            Kata Sandi *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            minLength={6}
+                            value={newUserForm.password}
+                            onChange={(e) =>
+                              setNewUserForm({ ...newUserForm, password: e.target.value })
+                            }
+                            className="w-full bg-white border border-neutral-200 rounded-lg px-2.5 py-1.5 text-xs font-mono text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-neutral-700 mb-1">
+                            Peran / Role *
+                          </label>
+                          <select
+                            value={newUserForm.role_name}
+                            onChange={(e) =>
+                              setNewUserForm({ ...newUserForm, role_name: e.target.value })
+                            }
+                            className="w-full bg-white border border-neutral-200 rounded-lg px-2.5 py-1.5 text-xs text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
+                          >
+                            <option value="Owner">Owner</option>
+                            <option value="Manager">Manager</option>
+                            <option value="Kasir">Kasir</option>
+                            <option value="Inventory">Inventory / Gudang</option>
+                            <option value="Dapur">Dapur / Kitchen</option>
+                            <option value="Barista">Barista</option>
+                            <option value="Server">Server</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-neutral-700 mb-1">
+                            Penempatan Outlet
+                          </label>
+                          <select
+                            value={newUserForm.store_id}
+                            onChange={(e) =>
+                              setNewUserForm({ ...newUserForm, store_id: e.target.value })
+                            }
+                            className="w-full bg-white border border-neutral-200 rounded-lg px-2.5 py-1.5 text-xs text-neutral-900 focus:outline-none focus:border-[#FF5C38]"
+                          >
+                            <option value="">Semua Outlet</option>
+                            {(selectedTenant.stores || []).map((s: any) => (
+                              <option key={s.id} value={s.id}>
+                                {s.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowAddUserForm(false)}
+                          className="text-xs border-neutral-200 text-neutral-700 bg-white"
+                        >
+                          Batal
+                        </Button>
+                        <Button
+                          type="submit"
+                          variant="primary"
+                          size="sm"
+                          disabled={isAddingUser}
+                          className="bg-[#FF5C38] hover:bg-[#E04B28] text-white text-xs font-bold px-4"
+                        >
+                          {isAddingUser ? 'Menyimpan...' : 'Simpan Akun'}
+                        </Button>
+                      </div>
+                    </form>
+                  )}
+
                   <div className="rounded-xl border border-neutral-200 overflow-hidden divide-y divide-neutral-100">
                     {selectedTenant.tenant_users && selectedTenant.tenant_users.length > 0 ? (
                       selectedTenant.tenant_users.map((tu: any) => (
@@ -655,9 +841,16 @@ export default function AdminTenantsPage() {
                               {tu.user?.email}
                             </p>
                           </div>
-                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
-                            {tu.role || 'Staf'}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            {tu.store_name && (
+                              <span className="text-[10px] text-neutral-500 px-2 py-0.5 rounded bg-neutral-100">
+                                {tu.store_name}
+                              </span>
+                            )}
+                            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
+                              {tu.role || 'Owner'}
+                            </span>
+                          </div>
                         </div>
                       ))
                     ) : (

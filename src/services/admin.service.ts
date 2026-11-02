@@ -105,6 +105,59 @@ export interface SubscriptionPlanItem {
   is_active: boolean;
 }
 
+export interface PlatformUserTenantMembership {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  role: string;
+  store_id?: string | null;
+  store_name?: string;
+}
+
+export interface PlatformUserItem {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  job_title?: string | null;
+  is_internal: boolean;
+  is_active: boolean;
+  created_at: string;
+  tenants: PlatformUserTenantMembership[];
+}
+
+export interface CreatePlatformUserPayload {
+  account_mode: 'EXISTING_TENANT' | 'NEW_TENANT' | 'UNASSIGNED_MITRA' | 'INTERNAL_ADMIN';
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  job_title?: string;
+  // EXISTING_TENANT
+  tenant_id?: string;
+  role_name?: string;
+  store_id?: string;
+  // NEW_TENANT
+  tenant_name?: string;
+  tenant_address?: string;
+  store_name?: string;
+  store_code?: string;
+}
+
+export interface UpdatePlatformUserPayload {
+  name?: string;
+  email?: string;
+  phone?: string;
+  job_title?: string;
+  password?: string;
+  is_active?: boolean;
+  is_internal?: boolean;
+  tenant_id?: string;
+  role_name?: string;
+  store_id?: string;
+}
+
 export const adminService = {
   // Overview
   getOverview: () =>
@@ -208,6 +261,31 @@ export const adminService = {
 
   updateSubscriptionPlan: (id: string, data: Partial<SubscriptionPlanItem>) =>
     api.put<ApiResponse<SubscriptionPlanItem>>(`/internal/master/plans/${id}`, data, { skipStore: true }),
+
+  // Platform Users & Mitra Accounts Management
+  getUsers: (params?: {
+    search?: string;
+    filter_type?: 'ALL' | 'MITRA' | 'UNASSIGNED' | 'INTERNAL' | string;
+    tenant_id?: string;
+    page?: number;
+    per_page?: number;
+  }) =>
+    api.get<ApiResponse<PaginatedResponse<PlatformUserItem>>>('/internal/users', {
+      params,
+      skipStore: true,
+    }),
+
+  createUser: (data: CreatePlatformUserPayload) =>
+    api.post<ApiResponse<PlatformUserItem>>('/internal/users', data, { skipStore: true }),
+
+  updateUser: (id: string, data: UpdatePlatformUserPayload) =>
+    api.put<ApiResponse<PlatformUserItem>>(`/internal/users/${id}`, data, { skipStore: true }),
+
+  toggleUserStatus: (id: string) =>
+    api.patch<ApiResponse<PlatformUserItem>>(`/internal/users/${id}/toggle`, {}, { skipStore: true }),
+
+  deleteUser: (id: string) =>
+    api.delete<ApiResponse<null>>(`/internal/users/${id}`, { skipStore: true }),
 
   // Platform Audit Logs
   getAuditLogs: (params?: { search?: string; action?: string; module?: string; page?: number; per_page?: number }) =>

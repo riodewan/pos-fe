@@ -17,6 +17,7 @@ import {
   Lock,
   ArrowLeft,
   ChevronRight,
+  Users,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -50,6 +51,11 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
         href: '/admin/tenants',
         label: 'Mitra Bisnis & Toko',
         icon: Building2,
+      },
+      {
+        href: '/admin/users',
+        label: 'Akun & Pengguna Mitra',
+        icon: Users,
       },
       {
         href: '/admin/approvals',
@@ -318,6 +324,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   )}
                 />
                 <span>Platform</span>
+              </Link>
+
+              <Link
+                href="/admin/users"
+                className={cn(
+                  'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all',
+                  pathname?.startsWith('/admin/users')
+                    ? 'bg-[#FF5C38] text-white shadow-xs'
+                    : 'text-neutral-300 hover:text-white hover:bg-white/10'
+                )}
+              >
+                <Users
+                  className={cn(
+                    'size-3.5',
+                    pathname?.startsWith('/admin/users') ? 'text-white' : 'text-[#FF5C38]'
+                  )}
+                />
+                <span>Akun Mitra</span>
               </Link>
 
               <Link
