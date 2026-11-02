@@ -96,7 +96,7 @@ export default function AdminOverviewPage() {
                 Ada {kpis?.pending_approvals} Pengajuan Menunggu Tindakan Anda
               </p>
               <p className="text-[11px] text-orange-300/80 mt-0.5">
-                Pengajuan cabang baru dan upgrade paket langganan membutuhkan review & approval.
+                Pengajuan pendaftaran merchant (KYB) dan pembukaan cabang baru membutuhkan review & approval.
               </p>
             </div>
           </div>

@@ -101,12 +101,12 @@ export default function AdminApprovalsPage() {
 
   const getTypeIcon = (type: string) => {
     switch (type) {
+      case 'KYB_VERIFICATION':
       case 'TENANT_REGISTRATION':
         return <Building2 className="size-4 text-blue-400" />;
+      case 'STORE_CREATION':
       case 'OUTLET_ADDITION':
         return <Store className="size-4 text-[#FF5C38]" />;
-      case 'PLAN_UPGRADE':
-        return <CreditCard className="size-4 text-purple-400" />;
       default:
         return <FileText className="size-4 text-neutral-400" />;
     }
@@ -121,7 +121,7 @@ export default function AdminApprovalsPage() {
           <span>Pusat Persetujuan & Approval</span>
         </h1>
         <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-          Tinjau pengajuan cabang baru, verifikasi merchant, upgrade paket, dan otorisasi khusus.
+          Tinjau pengajuan registrasi merchant (KYB) dan pembukaan cabang baru dari mitra toko.
         </p>
       </div>
 
@@ -137,18 +137,43 @@ export default function AdminApprovalsPage() {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
-            placeholder="Cari judul atau isi pengajuan..."
+            placeholder="Cari nama toko, cabang, atau PIC..."
             className="w-full bg-[#1A1A1A] border border-neutral-800 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#FF5C38]"
           />
         </div>
 
-        {/* Status Filter */}
+        {/* Type Filter */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
           {[
-            { value: 'PENDING', label: 'Menunggu Review' },
+            { value: '', label: 'Semua Tipe' },
+            { value: 'KYB_VERIFICATION', label: 'KYB Merchant' },
+            { value: 'STORE_CREATION', label: 'Cabang Baru' },
+          ].map((t) => (
+            <button
+              key={t.value}
+              type="button"
+              onClick={() => {
+                setTypeFilter(t.value);
+                setCurrentPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                typeFilter === t.value
+                  ? 'bg-neutral-700 text-white border border-neutral-600'
+                  : 'bg-neutral-900 text-neutral-400 hover:text-white hover:bg-neutral-800 border border-neutral-800'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Status Filter */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 border-l border-neutral-800 pl-3">
+          {[
+            { value: 'PENDING', label: 'Menunggu' },
             { value: 'APPROVED', label: 'Disetujui' },
             { value: 'REJECTED', label: 'Ditolak' },
-            { value: '', label: 'Semua Riwayat' },
+            { value: '', label: 'Semua' },
           ].map((tab) => (
             <button
               key={tab.value}

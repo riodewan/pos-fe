@@ -63,7 +63,7 @@ export function AddOutletModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Tambah Outlet Baru"
+      title="Tambah Cabang / Outlet Baru"
       size="md"
       footer={
         <div className="flex items-center justify-end gap-2.5 w-full">
@@ -77,12 +77,18 @@ export function AddOutletModal({
             disabled={!name.trim() || !branchName.trim()}
             className="bg-[#FF5C38] hover:bg-[#E04B28] text-white font-semibold disabled:opacity-50"
           >
-            Simpan Outlet Baru
+            Ajukan Cabang Baru
           </Button>
         </div>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4 py-1">
+        <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-xs text-amber-800 flex items-start gap-2">
+          <Building className="size-4 shrink-0 text-amber-600 mt-0.5" />
+          <span>
+            Setiap pembukaan cabang baru memerlukan verifikasi dan persetujuan (approval) dari tim Super Admin internal sebelum dapat aktif memproses transaksi kasir POS.
+          </span>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <div>
             <label className="block text-xs font-bold text-neutral-700 mb-1">

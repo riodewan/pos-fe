@@ -40,7 +40,7 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
   },
   {
     href: '/admin/tenants',
-    label: 'Kelola Tenant',
+    label: 'Mitra Bisnis & Toko',
     icon: Building2,
   },
   {
@@ -50,7 +50,7 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
   },
   {
     href: '/admin/master-data',
-    label: 'Data Master',
+    label: 'Data Master & Fee Jasa',
     icon: Database,
   },
   {

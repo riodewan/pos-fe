@@ -22,6 +22,7 @@ import {
   Pizza,
   Wine,
   ShoppingBag,
+  QrCode,
 } from 'lucide-react';
 import {
   adminService,
@@ -181,7 +182,7 @@ export default function AdminMasterDataPage() {
             <span>Data Master Platform</span>
           </h1>
           <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-            Kelola data referensi global: kategori bisnis, paket langganan merchant, dan template sistem.
+            Kelola data referensi global: kategori bisnis, skema bagi hasil/fee transaksi kerjasama, dan template sistem.
           </p>
         </div>
 
@@ -207,7 +208,7 @@ export default function AdminMasterDataPage() {
                 : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
             }`}
           >
-            Paket Langganan
+            Fee Transaksi & Kerjasama
           </button>
           <button
             type="button"
@@ -293,72 +294,89 @@ export default function AdminMasterDataPage() {
         </div>
       )}
 
-      {/* Tab 2: Paket Langganan */}
+      {/* Tab 2: Skema Fee Transaksi & Model Kerjasama */}
       {activeTab === 'plans' && (
         <div className="space-y-4 animate-in fade-in duration-150">
-          <p className="text-xs text-neutral-400">
-            Konfigurasi tier langganan SaaS, kuota outlet, kuota staff, dan harga per bulan.
-          </p>
+          <div className="p-4 rounded-2xl bg-neutral-900 border border-neutral-800 text-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+              <p className="font-bold text-white text-sm flex items-center gap-2">
+                <Percent className="size-4 text-[#FF5C38]" />
+                Model Bisnis: Kemitraan Bagi Hasil & Fee Jasa Transaksi
+              </p>
+              <p className="text-neutral-400 mt-1 max-w-2xl leading-relaxed">
+                NemuPOS tidak memungut biaya langganan bulanan dari mitra tenant. Pendapatan diperoleh dari biaya jasa transaksi yang dibayarkan oleh customer per transaksi berhasil.
+              </p>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-xs shrink-0 self-start md:self-center">
+              Kemitraan 0 Biaya Langganan
+            </span>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {plans.map((p) => (
+            {[
+              {
+                id: 'fee-1',
+                title: 'Biaya Jasa Layanan Customer',
+                chargeTo: 'Customer Checkout',
+                rate: 'Rp 1.000',
+                unit: '/ transaksi',
+                description: 'Biaya jasa pemeliharaan aplikasi yang ditambahkan langsung ke total pembayaran customer pada struk checkout.',
+                type: 'Nominal Tetap',
+                icon: CreditCard,
+              },
+              {
+                id: 'fee-2',
+                title: 'MDR Transaksi QRIS & E-Wallet',
+                chargeTo: 'Customer / MDR Standar',
+                rate: '0.7%',
+                unit: 'per transaksi QRIS',
+                description: 'Biaya Merchant Discount Rate (MDR) transaksi kode QRIS nasional sesuai regulasi Bank Indonesia.',
+                type: 'Persentase Nilai',
+                icon: QrCode,
+              },
+              {
+                id: 'fee-3',
+                title: 'Bagi Hasil Transaksi Platform',
+                chargeTo: 'Kerjasama Merchant',
+                rate: '1.5%',
+                unit: 'dari GMV berhasil',
+                description: 'Bagi hasil kemitraan atas seluruh transaksi penjualan yang diproses secara sukses melalui sistem kasir.',
+                type: 'Revenue Sharing',
+                icon: Percent,
+              },
+            ].map((fee) => (
               <div
-                key={p.id}
-                className="p-6 rounded-2xl bg-[#141414] border border-neutral-800/90 shadow-2xs space-y-5 flex flex-col justify-between"
+                key={fee.id}
+                className="p-6 rounded-2xl bg-[#141414] border border-neutral-800/90 shadow-2xs space-y-4 flex flex-col justify-between"
               >
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-white">{p.name}</h3>
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-orange-500/10 text-[#FF5C38] border border-orange-500/20">
-                      {p.code}
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-500/10 text-[#FF5C38] border border-orange-500/20">
+                      {fee.type}
+                    </span>
+                    <span className="text-[10px] text-neutral-400 font-medium">
+                      {fee.chargeTo}
                     </span>
                   </div>
+
+                  <h3 className="text-sm font-bold text-white">{fee.title}</h3>
 
                   <div>
-                    <span className="text-2xl font-black text-white">
-                      {formatRupiah(p.price)}
-                    </span>
-                    <span className="text-xs text-neutral-400 font-medium"> / bulan</span>
+                    <span className="text-2xl font-black text-white">{fee.rate}</span>
+                    <span className="text-xs text-neutral-400 font-medium"> {fee.unit}</span>
                   </div>
 
-                  <div className="space-y-1.5 p-3 rounded-xl bg-neutral-900/60 border border-neutral-800 text-xs">
-                    <div className="flex justify-between text-neutral-300">
-                      <span className="text-neutral-400">Batas Outlet:</span>
-                      <span className="font-bold text-white">{p.max_outlets} Outlet</span>
-                    </div>
-                    <div className="flex justify-between text-neutral-300">
-                      <span className="text-neutral-400">Batas Staff:</span>
-                      <span className="font-bold text-white">{p.max_staff} Pengguna</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 pt-2">
-                    <p className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">
-                      Fitur Unggulan:
-                    </p>
-                    <ul className="space-y-1.5 text-xs text-neutral-300">
-                      {Array.isArray(p.features) &&
-                        p.features.map((feat, idx) => (
-                          <li key={idx} className="flex items-center gap-2">
-                            <Check className="size-3.5 text-emerald-400 shrink-0" />
-                            <span className="text-[11.5px] leading-tight">{feat}</span>
-                          </li>
-                        ))}
-                    </ul>
-                  </div>
+                  <p className="text-xs text-neutral-400 leading-relaxed">
+                    {fee.description}
+                  </p>
                 </div>
 
-                <div className="pt-4 border-t border-neutral-800">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleOpenPlanModal(p)}
-                    className="w-full border-neutral-700 text-neutral-200 hover:text-white hover:bg-neutral-800 text-xs font-bold"
-                  >
-                    <Edit2 className="size-3.5 mr-1.5" />
-                    Ubah Tarif & Kuota
-                  </Button>
+                <div className="pt-3 border-t border-neutral-800 text-xs flex items-center justify-between text-neutral-400">
+                  <span className="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px]">
+                    <span className="size-1.5 rounded-full bg-emerald-400" />
+                    Berlaku Otomatis
+                  </span>
+                  <span className="text-[10px] text-neutral-500 font-mono">Platform Global</span>
                 </div>
               </div>
             ))}

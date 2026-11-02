@@ -17,6 +17,7 @@ import {
   Loader2,
   X,
   RefreshCw,
+  Clock,
 } from 'lucide-react';
 import { OutletProfile, OperatingHourItem, OutletPhotoItem } from '@/types/profile-outlet';
 import { ReceiptPreview } from './ReceiptPreview';
@@ -70,6 +71,7 @@ interface StoreOption {
   id: string;
   name: string;
   code?: string;
+  status?: string;
 }
 
 export function ProfileOutletView() {
@@ -310,7 +312,7 @@ export function ProfileOutletView() {
         phone: newOutlet.phone,
         address: newOutlet.address,
       });
-      toast.success('Outlet baru berhasil dibuat!');
+      toast.success('Pengajuan cabang baru berhasil dikirim dan sedang menunggu approval Super Admin!');
       setIsAddModalOpen(false);
 
       const refreshed = await refreshStores();
@@ -323,7 +325,7 @@ export function ProfileOutletView() {
       }
     } catch (err: any) {
       console.error('Failed to create store:', err);
-      toast.error(err.response?.data?.message || 'Gagal membuat outlet baru.');
+      toast.error(err.response?.data?.message || 'Gagal mengajukan cabang baru.');
     }
   };
 
@@ -416,7 +418,7 @@ export function ProfileOutletView() {
             {stores.length > 0 ? (
               stores.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name} {s.code ? `(${s.code})` : ''}
+                  {s.name} {s.code ? `(${s.code})` : ''} {s.status === 'PENDING' ? '⏳ [Menunggu Approval]' : s.status === 'REJECTED' ? '❌ [Ditolak]' : ''}
                 </option>
               ))
             ) : (
@@ -468,6 +470,19 @@ export function ProfileOutletView() {
           </button>
         </div>
       </div>
+
+      {/* Notice if selected outlet is pending approval */}
+      {stores.find((s) => s.id === selectedOutletId)?.status === 'PENDING' && (
+        <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-start gap-2.5 animate-in fade-in">
+          <Clock className="size-4 shrink-0 text-amber-600 mt-0.5" />
+          <div>
+            <span className="font-bold">Cabang Ini Menunggu Persetujuan Super Admin:</span>
+            <p className="mt-0.5 text-amber-700 leading-relaxed">
+              Pengajuan cabang ini sedang ditinjau oleh Admin Internal. Anda tetap dapat melengkapi data profil, fasilitas, dan foto di bawah ini. Fitur transaksi kasir POS akan aktif segera setelah disetujui.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Tab 1: Informasi Outlet */}
       {activeTab === 'info' && (
