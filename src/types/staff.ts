@@ -29,6 +29,8 @@ export interface StaffMember {
   email: string;
   phone: string;
   role: StaffRole;
+  roleId?: string;
+  password?: string;
   status: StaffStatus;
   lastLogin: string;
   avatarUrl?: string;

@@ -177,9 +177,11 @@ export default function StaffPage() {
       );
       await tenantService.updateTeamUser(updated.id, {
         name: updated.name,
-        email: updated.email,
+        email: updated.email.trim().toLowerCase(),
         phone: updated.phone === '-' ? undefined : updated.phone,
-        role_id: matchedRole?.id,
+        role_id: updated.roleId || matchedRole?.id,
+        role_name: updated.role,
+        password: updated.password || undefined,
         is_active: updated.status === 'Aktif',
       });
       setStaffList((prev) =>
@@ -190,7 +192,7 @@ export default function StaffPage() {
       fetchStaffAndRoles();
     } catch (err: any) {
       console.error('Error saving staff:', err);
-      toast.error(err?.response?.data?.message || 'Gagal memperbarui data staf.');
+      toast.error(err?.message || err?.response?.data?.message || 'Gagal memperbarui data staf.');
     }
   };
 
@@ -204,7 +206,7 @@ export default function StaffPage() {
       fetchStaffAndRoles();
     } catch (err: any) {
       console.error('Error deleting staff:', err);
-      toast.error(err?.response?.data?.message || 'Gagal menghapus staf dari sistem.');
+      toast.error(err?.message || err?.response?.data?.message || 'Gagal menghapus staf dari sistem.');
     }
   };
 
@@ -213,26 +215,22 @@ export default function StaffPage() {
       const matchedRole = availableRoles.find(
         (r) => r.name.toLowerCase() === newStaff.role.toLowerCase()
       );
-      const roleId = matchedRole?.id || availableRoles[0]?.id;
-
-      if (!roleId) {
-        toast.error('Peran tidak valid atau belum tersedia.');
-        return;
-      }
 
       await tenantService.addTeamUser({
         name: newStaff.name,
-        email: newStaff.email,
+        email: newStaff.email.trim().toLowerCase(),
         phone: newStaff.phone === '-' ? undefined : newStaff.phone,
-        role_id: roleId,
-        password: 'password123',
+        role_id: newStaff.roleId || matchedRole?.id,
+        role_name: newStaff.role,
+        password: newStaff.password || 'password123',
+        is_active: newStaff.status === 'Aktif',
       });
-      toast.success(`Staf "${newStaff.name}" berhasil ditambahkan!`);
+      toast.success(`Staf "${newStaff.name}" berhasil ditambahkan dan siap digunakan untuk login!`);
       setIsAddOpen(false);
       fetchStaffAndRoles();
     } catch (err: any) {
       console.error('Error adding staff:', err);
-      toast.error(err?.response?.data?.message || 'Gagal menambahkan staf.');
+      toast.error(err?.message || err?.response?.data?.message || 'Gagal menambahkan staf.');
     }
   };
 
@@ -606,6 +604,7 @@ export default function StaffPage() {
       {/* Staff Detail Drawer matching Screenshot 2 */}
       <StaffDetailDrawer
         staff={selectedStaff}
+        availableRoles={availableRoles}
         isOpen={isDetailOpen}
         onClose={() => {
           setIsDetailOpen(false);
@@ -619,6 +618,7 @@ export default function StaffPage() {
       <AddStaffDrawer
         isOpen={isAddOpen}
         mode={addMode}
+        availableRoles={availableRoles}
         onClose={() => setIsAddOpen(false)}
         onAdd={handleAddStaff}
       />

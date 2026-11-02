@@ -11,8 +11,12 @@ import {
   ChevronDown,
   ChevronRight,
   AlertTriangle,
+  Eye,
+  EyeOff,
+  KeyRound,
 } from 'lucide-react';
 import { StaffMember, StaffRole, StaffStatus } from '@/types/staff';
+import { Role } from '@/types';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { Select } from '@/components/common/Select';
@@ -20,6 +24,7 @@ import { Modal } from '@/components/common/Modal';
 
 interface StaffDetailDrawerProps {
   staff: StaffMember | null;
+  availableRoles?: Role[];
   isOpen: boolean;
   onClose: () => void;
   onSave: (updatedStaff: StaffMember) => void;
@@ -61,6 +66,7 @@ const DEFAULT_PERMISSION_MODULES = [
 
 export function StaffDetailDrawer({
   staff,
+  availableRoles = [],
   isOpen,
   onClose,
   onSave,
@@ -72,6 +78,8 @@ export function StaffDetailDrawer({
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<StaffRole>('Owner');
   const [status, setStatus] = useState<StaffStatus>('Aktif');
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -88,6 +96,7 @@ export function StaffDetailDrawer({
       setName(staff.name || '');
       setPhone(staff.phone || '');
       setEmail(staff.email || '');
+      setPassword('');
       setRole(staff.role || 'Kasir');
       setStatus(staff.status || 'Aktif');
       setPhotoPreview(staff.avatarUrl || null);
@@ -145,13 +154,23 @@ export function StaffDetailDrawer({
     }
   };
 
+  const roleOptions =
+    availableRoles.length > 0
+      ? availableRoles.map((r) => r.name)
+      : ['Owner', 'Manager', 'Kasir', 'Inventory', 'Dapur', 'Barista', 'Server'];
+
   const handleSave = () => {
+    const matchedRole = availableRoles.find(
+      (r) => r.name.toLowerCase() === role.toLowerCase()
+    );
     const updated: StaffMember = {
       ...staff,
       name,
       phone,
-      email,
+      email: email.trim().toLowerCase(),
       role,
+      roleId: matchedRole?.id,
+      password: password.trim() || undefined,
       status,
       permissions: allAccess
         ? DEFAULT_PERMISSION_MODULES.map((m) => m.id)
@@ -238,12 +257,36 @@ export function StaffDetailDrawer({
                   placeholder="Contoh: 081234567890"
                 />
                 <Input
-                  label="Email"
+                  label="Email Login"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Contoh: nama@kopimantap.id"
                 />
+              </div>
+
+              {/* Ubah Password Login Staff (Opsional) */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-neutral-800 flex items-center gap-1.5">
+                  <KeyRound className="size-3.5 text-[#FF5C38]" />
+                  <span>Ubah Password Login Staff (Opsional)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Kosongkan jika tidak ingin mengubah password"
+                    className="w-full h-10 pl-3.5 pr-10 rounded-xl border border-neutral-200 bg-white text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-[#FF5C38] focus:ring-1 focus:ring-[#FF5C38] transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 p-1 cursor-pointer"
+                  >
+                    {showPassword ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+                  </button>
+                </div>
               </div>
 
               {/* Foto Staff Card matching Screenshot 2 */}
@@ -298,12 +341,11 @@ export function StaffDetailDrawer({
                     value={role}
                     onChange={(e) => handleRoleChange(e.target.value as StaffRole)}
                   >
-                    <option value="Owner">Owner</option>
-                    <option value="Manager">Manager</option>
-                    <option value="Kasir">Kasir</option>
-                    <option value="Dapur">Dapur</option>
-                    <option value="Barista">Barista</option>
-                    <option value="Server">Server</option>
+                    {roleOptions.map((roleName) => (
+                      <option key={roleName} value={roleName}>
+                        {roleName}
+                      </option>
+                    ))}
                   </Select>
 
                   <Select

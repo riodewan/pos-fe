@@ -46,10 +46,10 @@ export const tenantService = {
   getTeamUsers: () =>
     api.get<ApiResponse<any[]>>('/tenant/users', { skipStore: true }),
 
-  addTeamUser: (data: { email: string; name?: string; phone?: string; job_title?: string; password?: string; role_id: string; store_id?: string }) =>
+  addTeamUser: (data: { email: string; name?: string; phone?: string; job_title?: string; password?: string; role_id?: string; role_name?: string; store_id?: string; is_active?: boolean }) =>
     api.post<ApiResponse<any>>('/tenant/users', data, { skipStore: true }),
 
-  updateTeamUser: (userId: string, data: { name?: string; email?: string; phone?: string; job_title?: string; role_id?: string; store_id?: string; is_active?: boolean; password?: string }) =>
+  updateTeamUser: (userId: string, data: { name?: string; email?: string; phone?: string; job_title?: string; role_id?: string; role_name?: string; store_id?: string; is_active?: boolean; password?: string }) =>
     api.put<ApiResponse<any>>(`/tenant/users/${userId}`, data, { skipStore: true }),
 
   toggleTeamUserStatus: (userId: string) =>
