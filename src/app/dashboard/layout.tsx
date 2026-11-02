@@ -655,7 +655,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <div className="border-t border-neutral-800/80 my-1" />
                   <button
                     type="button"
-                    onClick={() => logout?.()}
+                    onClick={async () => {
+                      await logout?.();
+                      router.replace('/login');
+                    }}
                     className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
                   >
                     <span>Keluar</span>

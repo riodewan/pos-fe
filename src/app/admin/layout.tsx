@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   ShieldCheck,
   Building2,
@@ -16,10 +16,10 @@ import {
   Menu as MenuIcon,
   Lock,
   ArrowLeft,
-  ChevronsUpDown,
   ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { PageLoader } from '@/components/common/PageLoader';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { NemuLogo } from '@/components/common/NemuLogo';
@@ -77,21 +77,41 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, isInternalAdmin, isLoading, logout } = useAuth();
+  const router = useRouter();
+  const { user, isInternalAdmin, logout } = useAuth();
+  const { isLoading, isAuthenticated } = useRequireAuth();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Close mobile sidebar on route change
+  // Close mobile sidebar & user dropdown on route change
   useEffect(() => {
     setMobileMenuOpen(false);
+    setUserDropdownOpen(false);
   }, [pathname]);
 
-  if (isLoading) {
+  const handleLogout = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setUserDropdownOpen(false);
+    setMobileMenuOpen(false);
+    setIsLoggingOut(true);
+    try {
+      await logout?.();
+    } finally {
+      router.replace('/login');
+    }
+  };
+
+  if (isLoggingOut) {
+    return <PageLoader text="Keluar dari sesi Admin Platform..." />;
+  }
+
+  if (isLoading || !isAuthenticated) {
     return <PageLoader text="Memverifikasi hak akses platform..." />;
   }
 
-  // Access check: only internal admin allowed
+  // Access check: only internal admin allowed (when logged in as a non-internal user)
   if (!isInternalAdmin && !user?.is_internal) {
     return (
       <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center p-6 text-neutral-900 text-center">
@@ -103,13 +123,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           Halaman ini khusus untuk Administrator Platform NemuPOS. Akun Anda saat ini (
           {user?.email || 'Guest'}) tidak memiliki otorisasi Admin Internal.
         </p>
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF5C38] hover:bg-[#E04B28] text-white text-xs font-bold transition-all shadow-xs"
-        >
-          <ArrowLeft className="size-4" />
-          <span>Kembali ke Dashboard Toko</span>
-        </Link>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF5C38] hover:bg-[#E04B28] text-white text-xs font-bold transition-all shadow-xs"
+          >
+            <ArrowLeft className="size-4" />
+            <span>Kembali ke Dashboard Toko</span>
+          </Link>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-neutral-50 text-neutral-700 border border-neutral-200 text-xs font-bold transition-all shadow-2xs cursor-pointer"
+          >
+            <LogOut className="size-4 text-red-500" />
+            <span>Keluar / Ganti Akun</span>
+          </button>
+        </div>
       </div>
     );
   }
@@ -196,26 +226,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
 
           <div>
-            {/* Shortcut to Dashboard Outlet */}
-            <div className="p-3 pb-0">
-              <Link
-                href="/dashboard"
-                className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800/80 border border-neutral-800 text-xs text-neutral-300 hover:text-white transition-all group"
-              >
-                <div className="flex items-center gap-2">
-                  <Store className="size-4 text-[#FF5C38]" />
-                  <div>
-                    <p className="font-bold text-[11.5px] text-white leading-tight">
-                      Dashboard Outlet
-                    </p>
-                    <p className="text-[10px] text-neutral-400 leading-tight">
-                      Buka Mode POS Toko
-                    </p>
+            {/* Shortcut to Dashboard Outlet (if user also has a tenant) */}
+            {user?.tenants && user.tenants.length > 0 && (
+              <div className="p-3 pb-0">
+                <Link
+                  href="/dashboard"
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800/80 border border-neutral-800 text-xs text-neutral-300 hover:text-white transition-all group"
+                >
+                  <div className="flex items-center gap-2">
+                    <Store className="size-4 text-[#FF5C38]" />
+                    <div>
+                      <p className="font-bold text-[11.5px] text-white leading-tight">
+                        Dashboard Outlet
+                      </p>
+                      <p className="text-[10px] text-neutral-400 leading-tight">
+                        Buka Mode POS Toko
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <ChevronRight className="size-3.5 text-neutral-400 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-            </div>
+                  <ChevronRight className="size-3.5 text-neutral-400 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
+              </div>
+            )}
 
             {/* Bottom Admin Profile Footer */}
             <div className="p-3 border-t border-neutral-800/80 bg-[#171717] mt-3">
@@ -226,15 +258,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   </div>
                   <div className="min-w-0">
                     <p className="text-[12.5px] font-semibold text-white truncate leading-tight">
-                      NemuPOS Hub
+                      {user?.name || 'NemuPOS Hub'}
                     </p>
-                    <div className="flex items-center gap-1.5 text-[10.5px] text-neutral-400 mt-0.5">
-                      <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span>Internal Platform</span>
+                    <div className="flex items-center gap-2 text-[10.5px] text-neutral-400 mt-0.5">
+                      <span className="text-emerald-400 font-medium">Admin Internal</span>
+                      <span>&bull;</span>
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="text-red-400 hover:text-red-300 font-semibold transition-colors cursor-pointer"
+                      >
+                        Keluar
+                      </button>
                     </div>
                   </div>
                 </div>
-                <ChevronsUpDown className="size-3.5 text-neutral-400 shrink-0" />
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  title="Keluar dari akun Admin"
+                  className="p-1.5 rounded-lg text-neutral-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0 cursor-pointer"
+                >
+                  <LogOut className="size-3.5" />
+                </button>
               </div>
             </div>
           </div>
@@ -314,14 +360,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           {/* Right Header */}
           <div className="flex items-center gap-3">
-            <Link
-              href="/dashboard"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-neutral-800 bg-[#1E1E1E] hover:bg-neutral-800 text-xs font-bold text-neutral-200 hover:text-white transition-all shadow-2xs"
-              title="Buka Dashboard POS Outlet"
-            >
-              <Store className="size-3.5 text-[#FF5C38]" />
-              <span>Buka POS Outlet</span>
-            </Link>
+            {user?.tenants && user.tenants.length > 0 && (
+              <Link
+                href="/dashboard"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-neutral-800 bg-[#1E1E1E] hover:bg-neutral-800 text-xs font-bold text-neutral-200 hover:text-white transition-all shadow-2xs"
+                title="Buka Dashboard POS Outlet"
+              >
+                <Store className="size-3.5 text-[#FF5C38]" />
+                <span>Buka POS Outlet</span>
+              </Link>
+            )}
 
             <div className="relative">
               <button
@@ -344,35 +392,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </button>
 
               {userDropdownOpen && (
-                <div
-                  className="absolute right-0 mt-2 w-48 rounded-xl bg-[#1C1C1C] border border-neutral-800 shadow-xl py-1.5 z-50 text-xs text-neutral-200 animate-in fade-in duration-100"
-                  onClick={() => setUserDropdownOpen(false)}
-                >
-                  <div className="px-3 py-2 border-b border-neutral-800/80">
-                    <p className="font-semibold text-white truncate">{user?.name || 'Admin'}</p>
-                    <p className="text-[10px] text-neutral-400 truncate">{user?.email || ''}</p>
-                    <span className="inline-block mt-1 text-[10px] font-bold text-[#FF5C38] bg-[#FF5C38]/10 px-1.5 py-0.2 rounded">
-                      SUPER ADMIN
-                    </span>
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setUserDropdownOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-52 rounded-xl bg-[#1C1C1C] border border-neutral-800 shadow-xl py-1.5 z-50 text-xs text-neutral-200 animate-in fade-in duration-100">
+                    <div className="px-3.5 py-2.5 border-b border-neutral-800/80">
+                      <p className="font-semibold text-white truncate">{user?.name || 'Admin'}</p>
+                      <p className="text-[10.5px] text-neutral-400 truncate mt-0.5">
+                        {user?.email || ''}
+                      </p>
+                      <span className="inline-block mt-1.5 text-[10px] font-bold text-[#FF5C38] bg-[#FF5C38]/10 px-1.5 py-0.5 rounded">
+                        SUPER ADMIN
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="w-full text-left flex items-center gap-2 px-3.5 py-2.5 hover:bg-red-500/10 text-red-400 hover:text-red-300 font-semibold transition-colors cursor-pointer"
+                    >
+                      <LogOut className="size-3.5" />
+                      <span>Keluar dari Akun</span>
+                    </button>
                   </div>
-
-                  <Link
-                    href="/dashboard/settings/account"
-                    className="flex items-center gap-2 px-3 py-2 hover:bg-white/5 text-neutral-200 hover:text-white transition-colors"
-                  >
-                    <span>Profile Akun</span>
-                  </Link>
-
-                  <div className="border-t border-neutral-800/80 my-1" />
-                  <button
-                    type="button"
-                    onClick={() => logout?.()}
-                    className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
-                  >
-                    <LogOut className="size-3.5" />
-                    <span>Keluar</span>
-                  </button>
-                </div>
+                </>
               )}
             </div>
           </div>
