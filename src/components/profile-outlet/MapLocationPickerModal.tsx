@@ -17,7 +17,6 @@ import {
   ChevronDown,
   Store,
   MapPinned,
-  Sparkles,
 } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
 
@@ -45,18 +44,6 @@ export interface LocationOption {
   type?: string;
   category: 'place' | 'road' | 'building' | 'city';
 }
-
-// Popular quick Indonesian city / area chips like Google Maps quick exploration
-const POPULAR_AREAS = [
-  'Jakarta Selatan',
-  'Jakarta Pusat',
-  'Bandung',
-  'Surabaya',
-  'Tangerang',
-  'Bekasi',
-  'Semarang',
-  'Bali',
-];
 
 // Default fallback coordinate: Jakarta Pusat / Senopati area
 const DEFAULT_LAT = -6.2297;
@@ -533,29 +520,6 @@ export function MapLocationPickerModal({
               <span>Cari</span>
             </button>
           </form>
-
-          {/* Quick Popular City Chips (Shown when search is empty) */}
-          {!searchQuery && options.length === 0 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 scrollbar-none text-neutral-500">
-              <span className="text-[11px] font-semibold text-neutral-400 flex items-center gap-1 shrink-0">
-                <Sparkles className="size-3 text-[#FF5C38]" />
-                Area Populer:
-              </span>
-              {POPULAR_AREAS.map((city) => (
-                <button
-                  key={city}
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery(city);
-                    handleSearchSubmit(undefined, city);
-                  }}
-                  className="px-2.5 py-1 rounded-full bg-neutral-100 hover:bg-orange-50 hover:text-[#FF5C38] text-[11px] font-medium text-neutral-700 transition-colors shrink-0 cursor-pointer border border-neutral-200/60"
-                >
-                  {city}
-                </button>
-              ))}
-            </div>
-          )}
 
           {/* Google Maps-style Options Tray / Dropdown Card */}
           {showOptionsPanel && options.length > 0 && (
