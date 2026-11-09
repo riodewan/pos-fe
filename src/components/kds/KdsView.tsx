@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
   Clock,
@@ -19,6 +19,7 @@ import {
   Utensils,
   QrCode,
   CheckCircle2,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { Select } from '@/components/common/Select';
@@ -105,61 +106,118 @@ export function KdsView() {
   const [volume, setVolume] = useState<number>(75);
   const [soundType, setSoundType] = useState<string>('Bell');
 
-  // Fetch live KDS orders from backend on mount
-  React.useEffect(() => {
-    const fetchQueue = async () => {
-      try {
-        const res = await posService.getKdsQueue();
-        if (res?.data) {
-          const mapped: KdsOrder[] = res.data.map((o: any) => ({
-            id: o.id,
-            orderNumber: o.order_number || `#ORD-${o.id.slice(-4)}`,
-            channelType: (o.channel === 'DELIVERY'
-              ? 'Delivery'
-              : o.channel === 'TAKEAWAY'
-              ? 'Takeaway'
-              : o.channel === 'QR_ORDER'
-              ? 'QR Order'
-              : 'Dine-in') as any,
-            channelDetail: o.table_name || o.customer_name || 'Kasir',
-            time: o.created_at
-              ? new Date(o.created_at).toLocaleTimeString('id-ID', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })
-              : '10:00',
-            timestamp: o.created_at ? new Date(o.created_at).getTime() : Date.now(),
-            status:
-              o.status === 'READY'
-                ? 'DI_PROSES'
-                : o.status === 'PREPARING'
-                ? 'DI_PROSES'
-                : o.status === 'COMPLETED'
-                ? 'SUDAH_DIANTAR'
-                : 'BARU',
-            items: (o.items || []).map((it: any) => ({
-              id: it.id,
-              name: it.product_name,
-              quantity: it.quantity,
-              notes: it.notes || '',
-              status: (o.status === 'READY'
-                ? 'SIAP_DIANTAR'
-                : o.status === 'PREPARING'
-                ? 'SEDANG_DISIAPKAN'
-                : o.status === 'COMPLETED'
-                ? 'SUDAH_DIANTAR'
-                : 'MENUNGGU') as any,
-            })),
-          }));
-          setOrders(mapped);
-        }
-      } catch {
-        // Keep empty queue when the API is unreachable
-      }
-    };
+  // Auto-refresh & live polling state
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [refreshInterval, setRefreshInterval] = useState(10); // in seconds
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
 
-    fetchQueue();
+  // Sound ref to keep fetchQueue completely stable across volume/soundType changes
+  const soundSettingsRef = useRef({ soundType, volume });
+  useEffect(() => {
+    soundSettingsRef.current = { soundType, volume };
+  }, [soundType, volume]);
+
+  const knownOrderIdsRef = useRef<Set<string>>(new Set());
+  const isFirstLoadRef = useRef(true);
+
+  // Fetch live KDS orders from backend
+  const fetchQueue = useCallback(async (isManual = false) => {
+    if (isManual) setIsRefreshing(true);
+    try {
+      const res = await posService.getKdsQueue();
+      if (res?.data && Array.isArray(res.data)) {
+        const incoming = res.data;
+
+        // Trigger alert bell if a brand new order arrived (subsequent polls only)
+        if (!isFirstLoadRef.current) {
+          const hasNewOrder = incoming.some((o: any) => !knownOrderIdsRef.current.has(o.id));
+          if (hasNewOrder) {
+            playKitchenChime(soundSettingsRef.current.soundType, soundSettingsRef.current.volume);
+          }
+        }
+        knownOrderIdsRef.current = new Set(incoming.map((o: any) => o.id));
+        isFirstLoadRef.current = false;
+
+        setOrders((prevOrders) => {
+          const prevOrderMap = new Map(prevOrders.map((o) => [o.id, o]));
+
+          return incoming.map((o: any) => {
+            const prev = prevOrderMap.get(o.id);
+            const prevItemStatusMap = prev
+              ? new Map(prev.items.map((it) => [it.id, it.status]))
+              : null;
+
+            return {
+              id: o.id,
+              orderNumber: o.order_number || `#ORD-${o.id.slice(-4)}`,
+              channelType: (o.channel === 'DELIVERY'
+                ? 'Delivery'
+                : o.channel === 'TAKEAWAY'
+                ? 'Takeaway'
+                : o.channel === 'QR_ORDER'
+                ? 'QR Order'
+                : 'Dine-in') as any,
+              channelDetail: o.table_name || o.customer_name || 'Kasir',
+              time: o.created_at
+                ? new Date(o.created_at).toLocaleTimeString('id-ID', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : '10:00',
+              timestamp: o.created_at ? new Date(o.created_at).getTime() : Date.now(),
+              status:
+                prev?.status ??
+                (o.status === 'READY'
+                  ? 'DI_PROSES'
+                  : o.status === 'PREPARING'
+                  ? 'DI_PROSES'
+                  : o.status === 'COMPLETED'
+                  ? 'SUDAH_DIANTAR'
+                  : 'BARU'),
+              items: (o.items || []).map((it: any) => {
+                const preservedStatus = prevItemStatusMap?.get(it.id);
+                return {
+                  id: it.id,
+                  name: it.product_name,
+                  quantity: it.quantity,
+                  notes: it.notes || '',
+                  status:
+                    preservedStatus ??
+                    ((o.status === 'READY'
+                      ? 'SIAP_DIANTAR'
+                      : o.status === 'PREPARING'
+                      ? 'SEDANG_DISIAPKAN'
+                      : o.status === 'COMPLETED'
+                      ? 'SUDAH_DIANTAR'
+                      : 'MENUNGGU') as any),
+                };
+              }),
+            };
+          });
+        });
+        setLastRefreshed(new Date());
+      }
+    } catch {
+      // Keep empty/existing queue when the API is temporarily unreachable
+    } finally {
+      if (isManual) setIsRefreshing(false);
+    }
   }, []);
+
+  // Initial fetch on mount
+  useEffect(() => {
+    fetchQueue(true);
+  }, [fetchQueue]);
+
+  // Periodic polling interval
+  useEffect(() => {
+    if (!autoRefresh || refreshInterval <= 0) return;
+    const intervalId = setInterval(() => {
+      fetchQueue(false);
+    }, refreshInterval * 1000);
+    return () => clearInterval(intervalId);
+  }, [autoRefresh, refreshInterval, fetchQueue]);
 
   // Interactive item status transition
   const handleItemAction = async (orderId: string, itemId: string) => {
@@ -263,7 +321,60 @@ export function KdsView() {
 
         {/* Top Right Actions */}
         <div className="flex items-center gap-2.5">
+          {/* Live indicator & last refreshed */}
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-neutral-200/90 text-xs shadow-2xs">
+            <span className="relative flex size-2">
+              {autoRefresh && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              )}
+              <span
+                className={`relative inline-flex rounded-full size-2 ${
+                  autoRefresh ? 'bg-emerald-500' : 'bg-neutral-400'
+                }`}
+              ></span>
+            </span>
+            <span className="text-neutral-600 font-medium text-[11px]">
+              {autoRefresh
+                ? lastRefreshed
+                  ? `Live (${lastRefreshed.toLocaleTimeString('id-ID', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                    })})`
+                  : 'Live'
+                : 'Auto-refresh Mati'}
+            </span>
+          </div>
 
+          {/* Auto Refresh Toggle */}
+          <button
+            type="button"
+            onClick={() => setAutoRefresh((prev) => !prev)}
+            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer shadow-2xs ${
+              autoRefresh
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+            }`}
+            title={autoRefresh ? 'Matikan auto-refresh' : 'Nyalakan auto-refresh (10 detik)'}
+          >
+            <span>Auto: {autoRefresh ? 'ON' : 'OFF'}</span>
+          </button>
+
+          {/* Manual Refresh Button */}
+          <button
+            type="button"
+            onClick={() => fetchQueue(true)}
+            disabled={isRefreshing}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-neutral-200/90 hover:bg-neutral-50 text-xs font-semibold text-neutral-700 shadow-2xs transition-all cursor-pointer disabled:opacity-50"
+            title="Segarkan antrean sekarang"
+          >
+            <RefreshCw
+              className={`size-3.5 ${
+                isRefreshing ? 'animate-spin text-[#FF5C38]' : 'text-neutral-500'
+              }`}
+            />
+            <span className="hidden md:inline">Segarkan</span>
+          </button>
 
           {/* Button: "Daftar Pesanan" matching Screenshot 1 */}
           <Link
