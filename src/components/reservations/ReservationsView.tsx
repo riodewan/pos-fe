@@ -19,17 +19,20 @@ import {
 import { Reservation, ReservationArea, ReservationStatus } from '@/types/reservation';
 import { ReservationsTableView } from './ReservationsTableView';
 import { ReservationDetailsPanel } from './ReservationDetailsPanel';
-import { AddReservationModal } from './AddReservationModal';
+import { AddReservationModal, TableOption } from './AddReservationModal';
 import { ReservationsCalendarView } from './ReservationsCalendarView';
 import { ReservationsFloorplanView } from './ReservationsFloorplanView';
 import { Button } from '@/components/common/Button';
 import { SearchInput } from '@/components/common/SearchInput';
 import { Select } from '@/components/common/Select';
 import { posService } from '@/services/pos.service';
+import { useToast } from '@/context/ToastContext';
 
 
 export function ReservationsView() {
+  const { toast } = useToast();
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [tables, setTables] = useState<TableOption[]>([]);
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
 
   // Tab: 'list' (Daftar Reservasi), 'calendar' (Tampilan Kalender), 'map' (Peta Meja)
@@ -45,14 +48,29 @@ export function ReservationsView() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [reservationToEdit, setReservationToEdit] = useState<Reservation | null>(null);
 
-  // Fetch live reservations on mount
+  // Fetch live reservations and tables on mount
   React.useEffect(() => {
-    const fetchReservations = async () => {
+    const fetchReservationsAndTables = async () => {
       try {
-        const res = await posService.getReservations();
-        if (res?.data) {
-          const mapped: Reservation[] = res.data.map((r: any) => ({
+        const [resRes, tablesRes] = await Promise.allSettled([
+          posService.getReservations(),
+          posService.getTables(),
+        ]);
+
+        if (tablesRes.status === 'fulfilled' && tablesRes.value?.data) {
+          const mappedTables: TableOption[] = tablesRes.value.data.map((t: any) => ({
+            id: t.id,
+            name: t.name,
+            area: t.area,
+            capacity: t.capacity,
+          }));
+          setTables(mappedTables);
+        }
+
+        if (resRes.status === 'fulfilled' && resRes.value?.data) {
+          const mapped: Reservation[] = resRes.value.data.map((r: any) => ({
             id: r.id,
+            tableId: r.table_id || r.table?.id,
             time: r.reservation_time || '18:00',
             customerName: r.customer_name,
             customerPhone: r.customer_phone || '-',
@@ -60,7 +78,7 @@ export function ReservationsView() {
               'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
             guestCount: Number(r.guest_count) || 2,
             table: r.table?.name || 'Meja Umum',
-            area: 'Indoor',
+            area: (r.table?.area === 'Outdoor' ? 'Outdoor' : r.table?.area === 'VIP' ? 'VIP' : 'Indoor') as ReservationArea,
             status:
               r.status === 'Selesai'
                 ? 'SELESAI'
@@ -83,7 +101,7 @@ export function ReservationsView() {
       }
     };
 
-    fetchReservations();
+    fetchReservationsAndTables();
   }, []);
 
   // KPI Counts matching Image 1
@@ -160,6 +178,29 @@ export function ReservationsView() {
   const handleSaveReservation = async (data: Partial<Reservation>) => {
     if (data.id) {
       // Edit
+      try {
+        await posService.updateReservation(data.id, {
+          table_id: data.tableId || null,
+          customer_name: data.customerName,
+          customer_phone: data.customerPhone,
+          guest_count: data.guestCount,
+          reservation_date: data.date,
+          reservation_time: data.time,
+          notes: data.notes,
+          status:
+            data.status === 'DUDUK'
+              ? 'Dikonfirmasi'
+              : data.status === 'SELESAI'
+              ? 'Selesai'
+              : data.status === 'DIBATALKAN'
+              ? 'Dibatalkan'
+              : 'Menunggu',
+        });
+        toast.success('Reservasi berhasil diperbarui!');
+      } catch (err: any) {
+        toast.error(err.response?.data?.message || 'Gagal memperbarui reservasi.');
+      }
+
       setReservations((prev) =>
         prev.map((r) => (r.id === data.id ? ({ ...r, ...data } as Reservation) : r))
       );
@@ -173,20 +214,25 @@ export function ReservationsView() {
       let createdId = `res-${Date.now()}`;
       try {
         const apiRes = await posService.createReservation({
+          table_id: data.tableId || null,
           customer_name: data.customerName || 'Tamu Baru',
           customer_phone: data.customerPhone || null,
           guest_count: data.guestCount || 2,
-          reservation_date: new Date().toISOString().split('T')[0],
+          reservation_date: data.date || new Date().toISOString().split('T')[0],
           reservation_time: data.time || '18:00',
           notes: data.notes || null,
         });
         if (apiRes?.data?.id) {
           createdId = apiRes.data.id;
         }
-      } catch {}
+        toast.success('Reservasi baru berhasil dibuat!');
+      } catch (err: any) {
+        toast.error(err.response?.data?.message || 'Gagal membuat reservasi.');
+      }
 
       const newRes: Reservation = {
         id: createdId,
+        tableId: data.tableId,
         time: data.time || '18:00',
         customerName: data.customerName || 'Tamu Baru',
         customerPhone: data.customerPhone || '081234567890',
@@ -511,6 +557,7 @@ export function ReservationsView() {
       <AddReservationModal
         isOpen={isAddModalOpen}
         reservationToEdit={reservationToEdit}
+        tables={tables}
         onClose={() => {
           setIsAddModalOpen(false);
           setReservationToEdit(null);

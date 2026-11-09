@@ -109,6 +109,21 @@ export const posService = {
     notes?: string | null;
   }) => api.post<ApiResponse<any>>('/pos/reservations', data),
 
+  updateReservation: (
+    id: string,
+    data: {
+      table_id?: string | null;
+      customer_name?: string;
+      customer_phone?: string | null;
+      customer_email?: string | null;
+      guest_count?: number;
+      reservation_date?: string;
+      reservation_time?: string;
+      status?: string;
+      notes?: string | null;
+    }
+  ) => api.put<ApiResponse<any>>(`/pos/reservations/${id}`, data),
+
   updateReservationStatus: (id: string, status: string) =>
     api.put<ApiResponse<any>>(`/pos/reservations/${id}/status`, { status }),
 

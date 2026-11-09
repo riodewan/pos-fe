@@ -23,6 +23,7 @@ export interface PastCustomerReservation {
 
 export interface Reservation {
   id: string;
+  tableId?: string;
   time: string;
   customerName: string;
   customerPhone: string;

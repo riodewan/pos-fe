@@ -18,9 +18,17 @@ import { Input } from '@/components/common/Input';
 import { Textarea } from '@/components/common/Textarea';
 import { Select } from '@/components/common/Select';
 
+export interface TableOption {
+  id: string;
+  name: string;
+  area?: string;
+  capacity?: number;
+}
+
 interface AddReservationModalProps {
   isOpen: boolean;
   reservationToEdit?: Reservation | null;
+  tables?: TableOption[];
   onClose: () => void;
   onSave: (reservationData: Partial<Reservation>) => void;
 }
@@ -28,15 +36,19 @@ interface AddReservationModalProps {
 export function AddReservationModal({
   isOpen,
   reservationToEdit,
+  tables = [],
   onClose,
   onSave,
 }: AddReservationModalProps) {
+  const getTodayISO = () => new Date().toISOString().split('T')[0];
+
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [date, setDate] = useState('7 Okt 2026');
-  const [time, setTime] = useState('10:00');
+  const [date, setDate] = useState(getTodayISO());
+  const [time, setTime] = useState('18:00');
   const [guestCount, setGuestCount] = useState<number>(2);
-  const [table, setTable] = useState('Meja 3');
+  const [tableId, setTableId] = useState<string>('');
+  const [table, setTable] = useState('');
   const [area, setArea] = useState<ReservationArea>('Indoor');
   const [duration, setDuration] = useState('2 jam');
   const [notes, setNotes] = useState('');
@@ -44,31 +56,48 @@ export function AddReservationModal({
 
   useEffect(() => {
     if (reservationToEdit) {
-      setCustomerName(reservationToEdit.customerName);
-      setCustomerPhone(reservationToEdit.customerPhone);
-      setDate(reservationToEdit.date);
-      setTime(reservationToEdit.time);
-      setGuestCount(reservationToEdit.guestCount);
-      setTable(reservationToEdit.table);
-      setArea(reservationToEdit.area);
+      setCustomerName(reservationToEdit.customerName || '');
+      setCustomerPhone(reservationToEdit.customerPhone || '');
+      setDate(reservationToEdit.date || getTodayISO());
+      setTime(reservationToEdit.time || '18:00');
+      setGuestCount(reservationToEdit.guestCount || 2);
+      setTableId(reservationToEdit.tableId || '');
+      setTable(reservationToEdit.table || '');
+      setArea(reservationToEdit.area || 'Indoor');
       setDuration(reservationToEdit.duration || '2 jam');
-      setNotes(reservationToEdit.notes === '-' ? '' : reservationToEdit.notes);
-      setStatus(reservationToEdit.status);
+      setNotes(reservationToEdit.notes === '-' ? '' : reservationToEdit.notes || '');
+      setStatus(reservationToEdit.status || 'AKAN_DATANG');
     } else {
       setCustomerName('');
       setCustomerPhone('');
-      setDate('7 Okt 2026');
-      setTime('10:00');
+      setDate(getTodayISO());
+      setTime('18:00');
       setGuestCount(2);
-      setTable('Meja 3');
-      setArea('Indoor');
+      const firstTable = tables && tables.length > 0 ? tables[0] : null;
+      setTableId(firstTable ? firstTable.id : '');
+      setTable(firstTable ? firstTable.name : 'Meja 1');
+      setArea((firstTable?.area as ReservationArea) || 'Indoor');
       setDuration('2 jam');
       setNotes('');
       setStatus('AKAN_DATANG');
     }
-  }, [reservationToEdit, isOpen]);
+  }, [reservationToEdit, isOpen, tables]);
 
   if (!isOpen) return null;
+
+  const handleTableChange = (selectedIdOrName: string) => {
+    const found = tables.find((t) => t.id === selectedIdOrName || t.name === selectedIdOrName);
+    if (found) {
+      setTableId(found.id);
+      setTable(found.name);
+      if (found.area) {
+        setArea((found.area === 'Outdoor' ? 'Outdoor' : found.area === 'VIP' ? 'VIP' : 'Indoor') as ReservationArea);
+      }
+    } else {
+      setTableId('');
+      setTable(selectedIdOrName);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,12 +105,13 @@ export function AddReservationModal({
 
     onSave({
       id: reservationToEdit?.id,
-      customerName,
-      customerPhone: customerPhone || '081234567890',
+      tableId: tableId || undefined,
+      customerName: customerName.trim(),
+      customerPhone: customerPhone.trim() || '-',
       date,
       time,
       guestCount,
-      table,
+      table: table || 'Meja Umum',
       area,
       duration,
       notes: notes.trim() || '-',
@@ -144,8 +174,8 @@ export function AddReservationModal({
               Tanggal Reservasi
             </label>
             <Input
+              type="date"
               size="sm"
-              placeholder="7 Okt 2026"
               value={date}
               onChange={(e) => setDate(e.target.value)}
             />
@@ -156,8 +186,8 @@ export function AddReservationModal({
               Waktu / Jam
             </label>
             <Input
+              type="time"
               size="sm"
-              placeholder="10:00"
               value={time}
               onChange={(e) => setTime(e.target.value)}
             />
@@ -199,22 +229,25 @@ export function AddReservationModal({
             </label>
             <Select
               size="sm"
-              value={table}
-              onChange={(e) => setTable(e.target.value)}
+              value={tableId || table}
+              onChange={(e) => handleTableChange(e.target.value)}
             >
-              <option value="Meja 1">Meja 1 (Indoor)</option>
-              <option value="Meja 2">Meja 2 (Indoor)</option>
-              <option value="Meja 3">Meja 3 (Indoor)</option>
-              <option value="Meja 4">Meja 4 (Outdoor)</option>
-              <option value="Meja 5">Meja 5 (Outdoor)</option>
-              <option value="Meja 6, 7">Meja 6, 7 (Indoor - Gabung)</option>
-              <option value="Meja 8">Meja 8 (Indoor)</option>
-              <option value="Meja 9">Meja 9 (Indoor)</option>
-              <option value="Meja 10, 11">Meja 10, 11 (Outdoor - Gabung)</option>
-              <option value="Meja 12">Meja 12 (Indoor)</option>
-              <option value="Meja 13">Meja 13 (Outdoor)</option>
-              <option value="Meja 14">Meja 14 (Outdoor)</option>
-              <option value="VIP Room">VIP Room (Indoor)</option>
+              {tables && tables.length > 0 ? (
+                tables.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({t.area || 'Indoor'}{t.capacity ? ` - ${t.capacity} pax` : ''})
+                  </option>
+                ))
+              ) : (
+                <>
+                  <option value="Meja 1">Meja 1 (Indoor)</option>
+                  <option value="Meja 2">Meja 2 (Indoor)</option>
+                  <option value="Meja 3">Meja 3 (Indoor)</option>
+                  <option value="Meja 4">Meja 4 (Outdoor)</option>
+                  <option value="Meja 5">Meja 5 (Outdoor)</option>
+                  <option value="VIP Room">VIP Room (VIP)</option>
+                </>
+              )}
             </Select>
           </div>
 
