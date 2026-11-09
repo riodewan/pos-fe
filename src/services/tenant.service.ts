@@ -190,4 +190,15 @@ export const tenantService = {
       tenant?: any;
       approval?: any;
     }>>('/tenant/kyb/status', { skipStore: true }),
+
+  // Theme Personalization Settings
+  getThemeSettings: () =>
+    api.get<ApiResponse<{ key: string; value: string }>>('/system/settings/theme_personalization'),
+
+  saveThemeSettings: (data: { activeTheme: string; scope: 'single' | 'all'; storeId?: string }) =>
+    api.post<ApiResponse<any>>('/system/settings', {
+      key: 'theme_personalization',
+      value: JSON.stringify(data),
+      store_id: data.scope === 'single' ? data.storeId : undefined,
+    }),
 };

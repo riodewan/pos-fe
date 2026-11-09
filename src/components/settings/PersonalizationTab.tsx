@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FileText,
   CheckCircle2,
@@ -11,20 +11,29 @@ import {
   ShoppingCart,
   QrCode,
   Check,
+  Loader2,
 } from 'lucide-react';
 import { ThemePreset } from '@/types/outlet-settings';
 import { Button } from '@/components/common/Button';
+import { useStore } from '@/context/StoreContext';
+import { useToast } from '@/context/ToastContext';
+import { tenantService } from '@/services/tenant.service';
 
 interface PersonalizationTabProps {
   onSaveSuccess?: () => void;
 }
 
 export function PersonalizationTab({ onSaveSuccess }: PersonalizationTabProps) {
+  const { stores, activeStore } = useStore();
+  const { toast } = useToast();
+
   const [scope, setScope] = useState<'single' | 'all'>('single');
-  const [selectedOutlet, setSelectedOutlet] = useState('outlet-aktif');
+  const [selectedOutlet, setSelectedOutlet] = useState<string>('');
   const [activeTheme, setActiveTheme] = useState<ThemePreset>('Default');
   const [previewScreen, setPreviewScreen] = useState<'pos' | 'kds'>('pos');
   const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
   const themeColors: Record<ThemePreset, { primary: string; hover: string; light: string; hex: string }> = {
     Default: { primary: 'bg-[#FF5C38]', hover: 'hover:bg-[#E04B28]', light: 'bg-red-50', hex: '#FF5C38' },
@@ -35,10 +44,66 @@ export function PersonalizationTab({ onSaveSuccess }: PersonalizationTabProps) {
     Hitam: { primary: 'bg-[#18181B]', hover: 'hover:bg-[#09090B]', light: 'bg-neutral-100', hex: '#18181B' },
   };
 
-  const handleSave = () => {
-    setIsSaved(true);
-    onSaveSuccess?.();
-    setTimeout(() => setIsSaved(false), 3000);
+  // Load saved theme settings from backend
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoadingSettings(true);
+
+    if (activeStore?.id) {
+      setSelectedOutlet(activeStore.id);
+    }
+
+    tenantService
+      .getThemeSettings()
+      .then((res) => {
+        if (!isMounted) return;
+        if (res?.data?.value) {
+          try {
+            const parsed = JSON.parse(res.data.value);
+            if (parsed.activeTheme) setActiveTheme(parsed.activeTheme);
+            if (parsed.scope) setScope(parsed.scope);
+            if (parsed.storeId) setSelectedOutlet(parsed.storeId);
+          } catch {}
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (isMounted) setIsLoadingSettings(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeStore]);
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      const storeTargetId = scope === 'single' ? (selectedOutlet || activeStore?.id) : undefined;
+
+      await tenantService.saveThemeSettings({
+        activeTheme,
+        scope,
+        storeId: storeTargetId,
+      });
+
+      // Apply theme CSS variable and persist locally
+      const colorHex = themeColors[activeTheme].hex;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('nemu_theme_name', activeTheme);
+        localStorage.setItem('nemu_theme_color', colorHex);
+        document.documentElement.style.setProperty('--nemu-theme-primary', colorHex);
+      }
+
+      setIsSaved(true);
+      toast.success('Tema personalisasi berhasil disimpan ke database!');
+      onSaveSuccess?.();
+      setTimeout(() => setIsSaved(false), 3000);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Gagal menyimpan tema personalisasi.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -94,7 +159,17 @@ export function PersonalizationTab({ onSaveSuccess }: PersonalizationTabProps) {
                     disabled={scope !== 'single'}
                     className="w-full appearance-none px-3 py-2 rounded-lg border border-neutral-200 text-xs font-medium text-neutral-900 bg-white focus:outline-none focus:border-[#FF5C38] cursor-pointer disabled:opacity-50"
                   >
-                    <option value="outlet-aktif">Outlet Aktif Anda</option>
+                    {stores && stores.length > 0 ? (
+                      stores.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} {s.id === activeStore?.id ? '(Aktif)' : ''}
+                        </option>
+                      ))
+                    ) : (
+                      <option value={activeStore?.id || 'outlet-aktif'}>
+                        {activeStore?.name || 'Outlet Aktif Anda'}
+                      </option>
+                    )}
                   </select>
                   <ChevronDown className="size-3.5 text-neutral-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
@@ -352,18 +427,20 @@ export function PersonalizationTab({ onSaveSuccess }: PersonalizationTabProps) {
         {/* Bottom Actions */}
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-neutral-100">
           {isSaved && (
-            <span className="text-xs font-bold text-emerald-600 animate-in fade-in">
-              Tema personalisasi berhasil disimpan!
+            <span className="text-xs font-bold text-emerald-600 animate-in fade-in flex items-center gap-1.5">
+              <Check className="size-3.5 stroke-[3]" />
+              Tema personalisasi tersimpan!
             </span>
           )}
           <Button
             type="button"
             variant="outline"
             size="sm"
+            disabled={isSaving}
             onClick={() => setActiveTheme('Default')}
-            className="text-xs font-semibold"
+            className="text-xs font-semibold cursor-pointer"
           >
-            Batalkan
+            Reset Default
           </Button>
 
           <Button
@@ -371,10 +448,15 @@ export function PersonalizationTab({ onSaveSuccess }: PersonalizationTabProps) {
             variant="primary"
             size="sm"
             onClick={handleSave}
-            className="bg-[#FF5C38] hover:bg-[#E04B28] text-white font-bold px-5 py-2.5 rounded-xl shadow-xs flex items-center gap-2 cursor-pointer transition-all"
+            disabled={isSaving}
+            className="bg-[#FF5C38] hover:bg-[#E04B28] text-white font-bold px-5 py-2.5 rounded-xl shadow-xs flex items-center gap-2 cursor-pointer transition-all disabled:opacity-50"
           >
-            <CheckCircle2 className="size-4" />
-            <span>Simpan Perubahan</span>
+            {isSaving ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="size-4" />
+            )}
+            <span>{isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
           </Button>
         </div>
       </div>
