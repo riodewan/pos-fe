@@ -30,31 +30,74 @@ export function DiscountModal({
   if (!isOpen) return null;
 
   const presets = [
-    { label: 'Diskon 5%', percent: 0.05 },
-    { label: 'Diskon 10%', percent: 0.1 },
-    { label: 'Diskon 15%', percent: 0.15 },
-    { label: 'Potongan Rp10.000', amount: 10000 },
-    { label: 'Potongan Rp20.000', amount: 20000 },
+    { label: '5%', percent: 0.05 },
+    { label: '10%', percent: 0.1 },
+    { label: '15%', percent: 0.15 },
+    { label: '20%', percent: 0.2 },
+    { label: 'Rp 10.000', amount: 10000 },
+    { label: 'Rp 20.000', amount: 20000 },
+    { label: 'Rp 50.000', amount: 50000 },
   ];
 
   const handleApplyPreset = (item: { label: string; percent?: number; amount?: number }) => {
     if (item.percent) {
       setManualAmount(Math.round(subtotal * item.percent));
     } else if (item.amount) {
-      setManualAmount(item.amount);
+      setManualAmount(Math.min(item.amount, subtotal));
     }
   };
 
+  const handleCheckPromoCode = () => {
+    const code = promoCode.trim().toUpperCase();
+    if (!code) {
+      toast.warning('Masukkan kode voucher promo terlebih dahulu.');
+      return;
+    }
+
+    // Dynamic pattern matching for common promo patterns (e.g., DISKON10, DISKON20, HEMAT15, POTONGAN25K)
+    const percentMatch = code.match(/(?:DISKON|HEMAT|PROMO|OFF)(\d{1,2})/);
+    const nominalMatch = code.match(/(?:POTONGAN|VOUCHER|HEMAT)(\d+)(K)?/);
+
+    if (percentMatch) {
+      const pct = parseInt(percentMatch[1], 10);
+      if (pct > 0 && pct <= 100) {
+        const disc = Math.round(subtotal * (pct / 100));
+        setManualAmount(disc);
+        toast.success(`Voucher ${code} berhasil! Diskon ${pct}% (${formatRupiah(disc)}) diterapkan.`);
+        return;
+      }
+    }
+
+    if (nominalMatch) {
+      let nom = parseInt(nominalMatch[1], 10);
+      if (nominalMatch[2] === 'K') nom *= 1000;
+      if (nom > 0) {
+        const disc = Math.min(nom, subtotal);
+        setManualAmount(disc);
+        toast.success(`Voucher ${code} berhasil! Potongan ${formatRupiah(disc)} diterapkan.`);
+        return;
+      }
+    }
+
+    toast.error('Kode voucher promo tidak ditemukan atau telah kedaluwarsa.');
+  };
+
   const handleSave = () => {
-    onApplyDiscount(manualAmount);
+    if (manualAmount > subtotal) {
+      toast.warning('Diskon tidak boleh melebihi subtotal pesanan.');
+      return;
+    }
+    onApplyDiscount(Math.max(0, manualAmount));
     onClose();
   };
+
+  const finalTotal = Math.max(0, subtotal - manualAmount);
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Diskon & Voucher"
+      title="Diskon & Voucher Pesanan"
       size="sm"
       footer={
         <div className="flex items-center justify-between w-full">
@@ -82,6 +125,18 @@ export function DiscountModal({
       }
     >
       <div className="space-y-4 py-1">
+        {/* Ringkasan Subtotal */}
+        <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200/90 flex items-center justify-between text-xs">
+          <div>
+            <p className="text-neutral-500">Subtotal Pesanan</p>
+            <p className="font-bold text-neutral-900 mt-0.5">{formatRupiah(subtotal)}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-neutral-500">Total Setelah Diskon</p>
+            <p className="font-bold text-[#FF5C38] mt-0.5">{formatRupiah(finalTotal)}</p>
+          </div>
+        </div>
+
         {/* Nominal Diskon Input */}
         <div>
           <label className="text-xs font-semibold text-neutral-800 block mb-1">
@@ -90,14 +145,17 @@ export function DiscountModal({
           <Input
             type="number"
             value={manualAmount || ''}
-            onChange={(e) => setManualAmount(Number(e.target.value) || 0)}
+            onChange={(e) => {
+              const val = Number(e.target.value) || 0;
+              setManualAmount(Math.min(val, subtotal));
+            }}
             placeholder="Contoh: 15000"
           />
         </div>
 
         {/* Presets */}
         <div>
-          <p className="text-xs font-bold text-neutral-800 mb-2">
+          <p className="text-xs font-bold text-neutral-800 mb-1.5">
             Pilihan Cepat Diskon
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -106,7 +164,7 @@ export function DiscountModal({
                 key={idx}
                 type="button"
                 onClick={() => handleApplyPreset(p)}
-                className="px-2.5 py-1 text-xs rounded-lg border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 font-medium transition-colors"
+                className="px-2.5 py-1 text-xs rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 hover:border-neutral-300 text-neutral-700 font-medium transition-colors cursor-pointer"
               >
                 {p.label}
               </button>
@@ -123,21 +181,13 @@ export function DiscountModal({
             <Input
               value={promoCode}
               onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-              placeholder="Contoh: KOPIHEMAT10"
+              placeholder="Contoh: DISKON10 / HEMAT20K"
               containerClassName="flex-1"
             />
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => {
-                if (promoCode === 'KOPIHEMAT10') {
-                  const disc = Math.round(subtotal * 0.1);
-                  setManualAmount(disc);
-                  toast.success(`Kode promo aktif! Diskon 10% (${formatRupiah(disc)}) diterapkan.`);
-                } else {
-                  toast.error('Kode promo tidak valid atau telah kedaluwarsa.');
-                }
-              }}
+              onClick={handleCheckPromoCode}
             >
               Cek
             </Button>

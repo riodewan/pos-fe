@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShoppingBag,
   Clock,
@@ -12,6 +12,7 @@ import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { Select } from '@/components/common/Select';
 import { formatRupiah } from '@/utils';
+import { useToast } from '@/context/ToastContext';
 
 export interface TakeawayDetails {
   queueNumber: string;
@@ -34,37 +35,43 @@ export function TakeawayDetailsModal({
   onClose,
   onConfirm,
 }: TakeawayDetailsModalProps) {
-  const [queueNumber, setQueueNumber] = useState(
-    initialDetails?.queueNumber || 'TA-014'
-  );
-  const [packagingOption, setPackagingOption] = useState(
-    initialDetails?.packagingOption || 'Paper Bag Ramah Lingkungan'
-  );
-  const [packagingFee, setPackagingFee] = useState<number>(
-    initialDetails?.packagingFee || 2000
-  );
-  const [pickupTime, setPickupTime] = useState(
-    initialDetails?.pickupTime || 'Segera (10-15 menit)'
-  );
-  const [customerName, setCustomerName] = useState(
-    initialDetails?.customerName || 'Marshanda'
-  );
+  const { toast } = useToast();
+
+  const [queueNumber, setQueueNumber] = useState<string>('');
+  const [packagingOption, setPackagingOption] = useState<string>('Tanpa Kantong Tambahan');
+  const [packagingFee, setPackagingFee] = useState<number>(0);
+  const [pickupTime, setPickupTime] = useState<string>('Segera (10-15 menit)');
+  const [customerName, setCustomerName] = useState<string>('');
+
+  useEffect(() => {
+    if (isOpen) {
+      const defaultQueue =
+        initialDetails?.queueNumber || `TA-${Math.floor(100 + Math.random() * 900)}`;
+      setQueueNumber(defaultQueue);
+      setPackagingOption(initialDetails?.packagingOption || 'Tanpa Kantong Tambahan');
+      setPackagingFee(initialDetails?.packagingFee ?? 0);
+      setPickupTime(initialDetails?.pickupTime || 'Segera (10-15 menit)');
+      setCustomerName(initialDetails?.customerName || '');
+    }
+  }, [isOpen, initialDetails]);
 
   if (!isOpen) return null;
 
   const packagingList = [
+    { name: 'Tanpa Kantong Tambahan', fee: 0 },
     { name: 'Paper Bag Ramah Lingkungan', fee: 2000 },
-    { name: 'Cup Holder & Plastik Bio', fee: 1000 },
-    { name: 'Bawa Tas Sendiri (Tanpa Kantong)', fee: 0 },
+    { name: 'Cup Holder & Kantong Ramah Lingkungan', fee: 1000 },
   ];
 
   const handleSave = () => {
+    const finalCustomerName = customerName.trim() || 'Pelanggan Takeaway';
+
     onConfirm({
-      queueNumber,
+      queueNumber: queueNumber.trim() || `TA-${Date.now().toString().slice(-4)}`,
       packagingOption,
       packagingFee,
       pickupTime,
-      customerName,
+      customerName: finalCustomerName,
     });
     onClose();
   };

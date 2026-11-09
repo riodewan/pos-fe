@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Bike,
   Truck,
@@ -9,6 +9,7 @@ import {
   User,
   DollarSign,
   Check,
+  AlertCircle,
 } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/common/Button';
@@ -16,6 +17,7 @@ import { Input } from '@/components/common/Input';
 import { Textarea } from '@/components/common/Textarea';
 import { Select } from '@/components/common/Select';
 import { formatRupiah } from '@/utils';
+import { useToast } from '@/context/ToastContext';
 
 export interface DeliveryDetails {
   courier: 'GoSend' | 'GrabExpress' | 'Kurir Toko';
@@ -39,35 +41,57 @@ export function DeliveryDetailsModal({
   onClose,
   onConfirm,
 }: DeliveryDetailsModalProps) {
+  const { toast } = useToast();
   const [courier, setCourier] = useState<'GoSend' | 'GrabExpress' | 'Kurir Toko'>(
     initialDetails?.courier || 'GoSend'
   );
   const [recipientName, setRecipientName] = useState(
-    initialDetails?.recipientName || 'Marshanda'
+    initialDetails?.recipientName || ''
   );
   const [recipientPhone, setRecipientPhone] = useState(
-    initialDetails?.recipientPhone || '081245678909'
+    initialDetails?.recipientPhone || ''
   );
   const [address, setAddress] = useState(
-    initialDetails?.address || 'Jl. Melati No. 25, Menteng, Jakarta Pusat'
+    initialDetails?.address || ''
   );
   const [deliveryFee, setDeliveryFee] = useState<number>(
-    initialDetails?.deliveryFee || 15000
+    initialDetails?.deliveryFee ?? 10000
   );
   const [notes, setNotes] = useState(
-    initialDetails?.notes || 'Titip ke pos satpam atau telepon saat sampai.'
+    initialDetails?.notes || ''
   );
+
+  // Sync state when initialDetails change or modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setCourier(initialDetails?.courier || 'GoSend');
+      setRecipientName(initialDetails?.recipientName || '');
+      setRecipientPhone(initialDetails?.recipientPhone || '');
+      setAddress(initialDetails?.address || '');
+      setDeliveryFee(initialDetails?.deliveryFee ?? 10000);
+      setNotes(initialDetails?.notes || '');
+    }
+  }, [isOpen, initialDetails]);
 
   if (!isOpen) return null;
 
   const handleSave = () => {
+    if (!recipientName.trim()) {
+      toast.warning('Nama penerima wajib diisi.');
+      return;
+    }
+    if (!address.trim()) {
+      toast.warning('Alamat pengantaran wajib diisi.');
+      return;
+    }
+
     onConfirm({
       courier,
-      recipientName,
-      recipientPhone,
-      address,
-      deliveryFee,
-      notes,
+      recipientName: recipientName.trim(),
+      recipientPhone: recipientPhone.trim(),
+      address: address.trim(),
+      deliveryFee: Number(deliveryFee) || 0,
+      notes: notes.trim() || undefined,
     });
     onClose();
   };
