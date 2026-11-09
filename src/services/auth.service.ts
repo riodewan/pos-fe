@@ -52,4 +52,10 @@ export const authService = {
       skipTenant: true,
       skipStore: true,
     }),
+
+  deleteAccount: () =>
+    api.delete<ApiResponse<null>>('/auth/account', {
+      skipTenant: true,
+      skipStore: true,
+    }),
 };

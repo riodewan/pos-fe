@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
@@ -9,7 +9,8 @@ import { Input } from '@/components/common/Input';
 interface DeleteAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  /** Dipanggil saat user mengonfirmasi. Lempar error untuk menampilkan pesan gagal. */
+  onConfirm: () => Promise<void>;
 }
 
 export function DeleteAccountModal({
@@ -19,30 +20,47 @@ export function DeleteAccountModal({
 }: DeleteAccountModalProps) {
   const [confirmText, setConfirmText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Reset state setiap kali modal dibuka
+  useEffect(() => {
+    if (isOpen) {
+      setConfirmText('');
+      setError(null);
+      setLoading(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const isMatching = confirmText.trim().toUpperCase() === 'HAPUS';
 
-  const handleConfirm = () => {
-    if (!isMatching) return;
+  const handleConfirm = async () => {
+    if (!isMatching || loading) return;
     setLoading(true);
-    setTimeout(() => {
+    setError(null);
+    try {
+      await onConfirm();
+    } catch (err: any) {
+      setError(err?.message || 'Gagal menghapus akun. Silakan coba lagi.');
       setLoading(false);
-      onConfirm();
-      onClose();
-    }, 800);
+    }
+  };
+
+  const handleClose = () => {
+    if (loading) return;
+    onClose();
   };
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title="Konfirmasi Hapus Akun"
       size="md"
       footer={
         <div className="flex items-center justify-end gap-2.5 w-full">
-          <Button variant="outline" size="sm" onClick={onClose} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={handleClose} disabled={loading}>
             Batal
           </Button>
           <Button
@@ -52,7 +70,14 @@ export function DeleteAccountModal({
             disabled={!isMatching || loading}
             className="bg-red-600 hover:bg-red-700 text-white font-semibold disabled:opacity-50"
           >
-            {loading ? 'Menghapus Akun...' : 'Ya, Hapus Akun Saya'}
+            {loading ? (
+              <span className="flex items-center gap-1.5">
+                <Loader2 className="size-3.5 animate-spin" />
+                Menghapus Akun...
+              </span>
+            ) : (
+              'Ya, Hapus Akun Saya'
+            )}
           </Button>
         </div>
       }
@@ -78,9 +103,16 @@ export function DeleteAccountModal({
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
             className="font-mono"
+            disabled={loading}
             autoFocus
           />
         </div>
+
+        {error && (
+          <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            {error}
+          </p>
+        )}
       </div>
     </Modal>
   );

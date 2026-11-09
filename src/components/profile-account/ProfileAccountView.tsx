@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   User,
   Mail,
@@ -61,7 +62,20 @@ const INITIAL_ACCOUNT_DATA: UserAccountProfile = {
 
 export function ProfileAccountView() {
   const { toast } = useToast();
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
+  const router = useRouter();
+
+  const handleDeleteAccount = async () => {
+    try {
+      await authService.deleteAccount();
+    } catch (err: any) {
+      throw new Error(err?.message || 'Gagal menghapus akun. Silakan coba lagi.');
+    }
+    setIsDeleteModalOpen(false);
+    toast.success('Akun Anda berhasil dihapus.');
+    await logout();
+    router.replace('/login');
+  };
   const [profile, setProfile] = useState<UserAccountProfile>(INITIAL_ACCOUNT_DATA);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -912,7 +926,7 @@ export function ProfileAccountView() {
       <DeleteAccountModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={() => toast.info('Permintaan hapus akun telah diterima.')}
+        onConfirm={handleDeleteAccount}
       />
     </div>
   );
