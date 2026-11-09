@@ -11,11 +11,12 @@ import {
   MoreVertical,
   QrCode,
   CheckCircle2,
-  Bookmark,
   Info,
   RefreshCw,
   ExternalLink,
   Loader2,
+  Ban,
+  Trash2,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
@@ -39,7 +40,7 @@ import {
 import { formatRupiah } from '@/utils';
 import { posService } from '@/services/pos.service';
 import { useToast } from '@/context/ToastContext';
-import { DiningTable } from '@/types';
+import { DiningTable, DisposableQrCode } from '@/types';
 
 interface TableQrItem {
   id: string;
@@ -55,11 +56,32 @@ interface TableQrItem {
 interface DisposableQrItem {
   id: string;
   name: string;
+  tableName: string;
   url: string;
   createdAt: string;
   expiredAt: string;
+  usage: string;
   status: 'Aktif' | 'Selesai';
+  /** Alasan QR tidak aktif lagi (Kedaluwarsa / Sudah Dipakai / Dinonaktifkan) */
+  statusReason: string;
 }
+
+const formatDateId = (iso?: string | null) => {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '-';
+  return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+/** Tanggal lokal (YYYY-MM-DD) dengan offset hari dari hari ini */
+const getLocalDateString = (offsetDays: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+const getDefaultExpiryDate = () => getLocalDateString(1);
 
 export default function QrOrderPage() {
   const { toast } = useToast();
@@ -79,16 +101,20 @@ export default function QrOrderPage() {
   const [activeMenuTableId, setActiveMenuTableId] = useState<string | null>(null);
 
   // Disposable QR State
-  const [disposableQrs, setDisposableQrs] = useState<DisposableQrItem[]>([]);
+  const [disposableRaw, setDisposableRaw] = useState<DisposableQrCode[]>([]);
   const [dispSearch, setDispSearch] = useState('');
   const [dispStatusFilter, setDispStatusFilter] = useState('all');
   const [selectedDispIds, setSelectedDispIds] = useState<string[]>([]);
+  const [dispActionId, setDispActionId] = useState<string | null>(null);
 
   // Modal / Drawer state for creating Disposable QR
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [formEventName, setFormEventName] = useState('');
-  const [formExpiryDate, setFormExpiryDate] = useState('15/10/2026');
+  const [formTableId, setFormTableId] = useState('');
+  const [formExpiryDate, setFormExpiryDate] = useState(getDefaultExpiryDate);
   const [formUsageLimit, setFormUsageLimit] = useState<'single' | 'unlimited'>('single');
+  const [isCreatingDisp, setIsCreatingDisp] = useState(false);
+  const [createdDispUrl, setCreatedDispUrl] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // Settings State
@@ -131,26 +157,21 @@ export default function QrOrderPage() {
     }
   }, []);
 
+  // Fetch disposable QR codes from backend
+  const loadDisposableQrs = useCallback(async () => {
+    try {
+      const res = await posService.getDisposableQrs();
+      setDisposableRaw(Array.isArray(res?.data) ? res.data : []);
+    } catch (err) {
+      console.error('Failed to load disposable QRs:', err);
+      setDisposableRaw([]);
+    }
+  }, []);
+
   useEffect(() => {
     loadTables();
-    posService
-      .getDisposableQrs()
-      .then((res) => {
-        if (res?.data?.value) {
-          try {
-            const parsed = JSON.parse(res.data.value);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setDisposableQrs(parsed);
-            }
-          } catch {
-            // Ignore malformed JSON
-          }
-        }
-      })
-      .catch(() => {
-        setDisposableQrs([]);
-      });
-  }, [loadTables]);
+    loadDisposableQrs();
+  }, [loadTables, loadDisposableQrs]);
 
   // Rotate QR Token for table
   const handleRotateQr = async (tableId: string, tableLabel: string) => {
@@ -204,6 +225,32 @@ export default function QrOrderPage() {
     });
   }, [tables, windowOrigin]);
 
+  // Format DisposableQrCode (backend) into DisposableQrItem (UI row)
+  const disposableQrs = useMemo<DisposableQrItem[]>(() => {
+    const origin = windowOrigin || 'http://localhost:3000';
+    const reasonMap: Record<string, string> = {
+      EXPIRED: 'Kedaluwarsa',
+      USED_UP: 'Sudah Dipakai',
+      INACTIVE: 'Dinonaktifkan',
+    };
+
+    return disposableRaw.map((q) => {
+      const effective = q.effective_status || q.status || 'ACTIVE';
+      const used = q.used_count ?? 0;
+      return {
+        id: q.id,
+        name: q.label || 'QR Sekali Pakai',
+        tableName: q.table?.name || '-',
+        url: `${origin}/q/${q.token}`,
+        createdAt: formatDateId(q.created_at),
+        expiredAt: q.expires_at ? formatDateId(q.expires_at) : 'Tanpa batas',
+        usage: q.max_uses ? `${used}/${q.max_uses} pesanan` : `${used} pesanan`,
+        status: effective === 'ACTIVE' ? 'Aktif' : 'Selesai',
+        statusReason: reasonMap[effective] || 'Selesai',
+      };
+    });
+  }, [disposableRaw, windowOrigin]);
+
   // Filter Table QRs
   const filteredTableQrs = useMemo(() => {
     return tableQrs.filter((item) => {
@@ -228,7 +275,11 @@ export default function QrOrderPage() {
       if (dispStatusFilter !== 'all' && item.status !== dispStatusFilter) return false;
       if (dispSearch.trim()) {
         const q = dispSearch.toLowerCase();
-        return item.name.toLowerCase().includes(q) || item.url.toLowerCase().includes(q);
+        return (
+          item.name.toLowerCase().includes(q) ||
+          item.tableName.toLowerCase().includes(q) ||
+          item.url.toLowerCase().includes(q)
+        );
       }
       return true;
     });
@@ -280,31 +331,70 @@ export default function QrOrderPage() {
     }
   };
 
-  const handleGenerateDisposable = (isDraft = false) => {
+  const openGenerateDrawer = () => {
+    setFormEventName('');
+    setFormTableId('');
+    setFormExpiryDate(getDefaultExpiryDate());
+    setFormUsageLimit('single');
+    setIsGenerateModalOpen(true);
+  };
+
+  const handleGenerateDisposable = async () => {
     if (!formEventName.trim()) {
       toast.warning('Nama catatan / acara wajib diisi');
       return;
     }
+    if (!formTableId) {
+      toast.warning('Pilih meja untuk QR sekali pakai ini');
+      return;
+    }
 
-    const origin = windowOrigin || 'http://localhost:3000';
-    const slug = formEventName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const newQr: DisposableQrItem = {
-      id: `dqr-${Date.now()}`,
-      name: formEventName,
-      url: `${origin}/q/evt-${slug}`,
-      createdAt: new Date().toLocaleDateString('id-ID'),
-      expiredAt: formExpiryDate || '15/10/2026',
-      status: isDraft ? 'Selesai' : 'Aktif',
-    };
+    setIsCreatingDisp(true);
+    try {
+      const res = await posService.createDisposableQr({
+        label: formEventName.trim(),
+        table_id: formTableId,
+        expires_at: formExpiryDate || null,
+        max_uses: formUsageLimit === 'single' ? 1 : null,
+      });
+      const origin = windowOrigin || 'http://localhost:3000';
+      setCreatedDispUrl(res?.data?.token ? `${origin}/q/${res.data.token}` : '');
+      await loadDisposableQrs();
+      setIsGenerateModalOpen(false);
+      setShowSuccessModal(true);
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal membuat QR sekali pakai.');
+    } finally {
+      setIsCreatingDisp(false);
+    }
+  };
 
-    const nextQrs = [newQr, ...disposableQrs];
-    setDisposableQrs(nextQrs);
-    posService.saveDisposableQrs(nextQrs).catch((err) => {
-      console.warn('Backend saveDisposableQrs warning:', err);
-    });
+  const handleDeactivateDisposable = async (id: string) => {
+    setDispActionId(id);
+    try {
+      await posService.deactivateDisposableQr(id);
+      toast.success('QR sekali pakai dinonaktifkan.');
+      await loadDisposableQrs();
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal menonaktifkan QR.');
+    } finally {
+      setDispActionId(null);
+    }
+  };
 
-    setIsGenerateModalOpen(false);
-    setShowSuccessModal(true);
+  const handleDeleteDisposable = async (id: string) => {
+    if (!window.confirm('Hapus QR sekali pakai ini? Tautan tidak dapat digunakan lagi.')) return;
+    setDispActionId(id);
+    try {
+      await posService.deleteDisposableQr(id);
+      setSelectedDispIds((prev) => prev.filter((i) => i !== id));
+      toast.success('QR sekali pakai dihapus.');
+      await loadDisposableQrs();
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal menghapus QR.');
+    } finally {
+      setDispActionId(null);
+    }
   };
 
   // High-Resolution PNG Card Download
@@ -691,13 +781,13 @@ export default function QrOrderPage() {
           {/* CARD 2: QR SEKALI PAKAI */}
           <Card
             title="QR Sekali Pakai"
-            subtitle="Buat QR untuk pesanan sekali pakai (tidak terikat meja). Cocok untuk event, pop-up, atau takeaway."
+            subtitle="Buat QR dengan batas waktu dan/atau batas 1 kali pesan untuk meja tertentu. Cocok untuk event, pop-up, atau tamu sekali datang."
             action={
               <Button
                 variant="primary"
                 size="sm"
                 leftIcon={<Plus className="size-4" />}
-                onClick={() => setIsGenerateModalOpen(true)}
+                onClick={openGenerateDrawer}
               >
                 Generate QR Sekali Pakai
               </Button>
@@ -711,17 +801,10 @@ export default function QrOrderPage() {
                   value={dispSearch}
                   onChange={(e) => setDispSearch(e.target.value)}
                   onClear={() => setDispSearch('')}
-                  placeholder="Cari nama event / catatan..."
+                  placeholder="Cari nama event / catatan / meja..."
                   size="sm"
                 />
               </div>
-
-              <Select
-                value="all"
-                disabled
-                size="sm"
-                options={[{ value: 'all', label: 'Semua area' }]}
-              />
 
               <Select
                 value={dispStatusFilter}
@@ -733,16 +816,6 @@ export default function QrOrderPage() {
                   { value: 'Selesai', label: 'Selesai' },
                 ]}
               />
-
-              <Button
-                variant="secondary"
-                size="sm"
-                leftIcon={<Download className="size-3.5" />}
-                onClick={() => showToast('Mengunduh QR Sekali Pakai...')}
-                disabled={filteredDisposableQrs.length === 0}
-              >
-                Download Semua
-              </Button>
             </div>
 
             {/* Table or Empty State */}
@@ -764,11 +837,13 @@ export default function QrOrderPage() {
                           />
                         </th>
                         <th className="py-3 px-3 font-semibold text-neutral-700">Nama / Catatan</th>
+                        <th className="py-3 px-3 font-semibold text-neutral-700">Meja</th>
                         <th className="py-3 px-3 font-semibold text-neutral-700">Tautan</th>
                         <th className="py-3 px-3 font-semibold text-neutral-700">Dibuat</th>
                         <th className="py-3 px-3 font-semibold text-neutral-700">Kadaluwarsa</th>
+                        <th className="py-3 px-3 font-semibold text-neutral-700">Pemakaian</th>
                         <th className="py-3 px-3 font-semibold text-neutral-700">Status</th>
-                        <th className="py-3 px-2 w-8"></th>
+                        <th className="py-3 px-2 w-16"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-100 text-neutral-800">
@@ -792,11 +867,17 @@ export default function QrOrderPage() {
                             <td className="py-3 px-3 font-medium text-neutral-900">
                               {row.name}
                             </td>
+                            <td className="py-3 px-3 text-neutral-600">{row.tableName}</td>
                             <td className="py-3 px-3">
                               <div className="flex items-center gap-1.5 text-blue-600 font-mono text-[11px]">
-                                <span className="hover:underline cursor-pointer truncate max-w-[130px]">
+                                <a
+                                  href={row.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="hover:underline truncate max-w-[130px]"
+                                >
                                   {row.url}
-                                </span>
+                                </a>
                                 <button
                                   type="button"
                                   onClick={() => copyToClipboard(row.url)}
@@ -809,6 +890,7 @@ export default function QrOrderPage() {
                             </td>
                             <td className="py-3 px-3 text-neutral-600">{row.createdAt}</td>
                             <td className="py-3 px-3 text-neutral-600">{row.expiredAt}</td>
+                            <td className="py-3 px-3 text-neutral-600">{row.usage}</td>
                             <td className="py-3 px-3">
                               {row.status === 'Aktif' ? (
                                 <StatusBadge variant="success" dot size="sm">
@@ -817,14 +899,37 @@ export default function QrOrderPage() {
                               ) : (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-neutral-600 text-white">
                                   <span className="size-1.5 rounded-full bg-neutral-300" />
-                                  <span>Selesai</span>
+                                  <span>{row.statusReason}</span>
                                 </span>
                               )}
                             </td>
                             <td className="py-3 px-2 text-right">
-                              <button className="text-neutral-400 hover:text-neutral-600 p-1">
-                                <MoreVertical className="size-4" />
-                              </button>
+                              <div className="flex items-center justify-end gap-0.5">
+                                {dispActionId === row.id ? (
+                                  <Loader2 className="size-4 animate-spin text-neutral-400" />
+                                ) : (
+                                  <>
+                                    {row.status === 'Aktif' && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeactivateDisposable(row.id)}
+                                        className="text-neutral-400 hover:text-amber-600 p-1"
+                                        title="Nonaktifkan"
+                                      >
+                                        <Ban className="size-4" />
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteDisposable(row.id)}
+                                      className="text-neutral-400 hover:text-red-600 p-1"
+                                      title="Hapus"
+                                    >
+                                      <Trash2 className="size-4" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -850,7 +955,7 @@ export default function QrOrderPage() {
                   title="BELUM ADA QR SEKALI PAKAI"
                   description="QR untuk pesanan sekali pakai akan muncul di sini setelah kamu membuatnya. Cocok untuk event, pop-up booth, atau pesanan takeaway."
                   actionLabel="Generate QR Sekarang"
-                  onAction={() => setIsGenerateModalOpen(true)}
+                  onAction={openGenerateDrawer}
                 />
               </div>
             )}
@@ -981,28 +1086,35 @@ export default function QrOrderPage() {
       {/* Slide-over Drawer for Generate QR Sekali Pakai using global Drawer */}
       <Drawer
         isOpen={isGenerateModalOpen}
-        onClose={() => setIsGenerateModalOpen(false)}
+        onClose={() => !isCreatingDisp && setIsGenerateModalOpen(false)}
         title="Generate QR Sekali Pakai"
-        subtitle="Buat QR dinamis untuk event, pop-up booth, atau pelanggan takeaway langsung."
+        subtitle="Buat QR dengan batas waktu atau batas 1 kali pesan untuk event, pop-up booth, atau tamu sekali datang."
         size="md"
         footer={
           <div className="flex items-center justify-between w-full">
             <Button
               variant="secondary"
               size="sm"
-              leftIcon={<Bookmark className="size-4" />}
-              onClick={() => handleGenerateDisposable(true)}
+              onClick={() => setIsGenerateModalOpen(false)}
+              disabled={isCreatingDisp}
             >
-              Simpan sebagai Draf
+              Batal
             </Button>
 
             <Button
               variant="primary"
               size="sm"
-              leftIcon={<CheckCircle2 className="size-4" />}
-              onClick={() => handleGenerateDisposable(false)}
+              leftIcon={
+                isCreatingDisp ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="size-4" />
+                )
+              }
+              onClick={handleGenerateDisposable}
+              disabled={isCreatingDisp}
             >
-              Generate QR
+              {isCreatingDisp ? 'Membuat QR...' : 'Generate QR'}
             </Button>
           </div>
         }
@@ -1013,15 +1125,29 @@ export default function QrOrderPage() {
             required
             value={formEventName}
             onChange={(e) => setFormEventName(e.target.value)}
-            placeholder="Contoh: Bazaar Akhir Pekan, Takeaway 12 Okt"
+            placeholder="Contoh: Bazaar Akhir Pekan, Tamu Meja 5"
+          />
+
+          <Select
+            label="Meja"
+            required
+            value={formTableId}
+            onChange={(e) => setFormTableId(e.target.value)}
+            options={[
+              { value: '', label: tables.length ? 'Pilih meja...' : 'Belum ada meja — buat meja terlebih dahulu' },
+              ...tables
+                .filter((t) => t.status === 'ACTIVE')
+                .map((t) => ({ value: t.id, label: t.code ? `${t.name} (${t.code})` : t.name })),
+            ]}
           />
 
           <Input
             label="Tanggal Kadaluwarsa"
+            type="date"
             value={formExpiryDate}
+            min={getLocalDateString(0)}
             onChange={(e) => setFormExpiryDate(e.target.value)}
-            placeholder="Contoh: 15/10/2026"
-            hint="Tanggal batas terakhir QR dapat diakses oleh pelanggan."
+            hint="QR berlaku sampai akhir hari tersebut. Kosongkan jika tanpa batas waktu."
           />
 
           <RadioGroup
@@ -1034,12 +1160,12 @@ export default function QrOrderPage() {
               {
                 value: 'single',
                 label: '1 Kali Pesan',
-                description: 'Single Order',
+                description: 'Otomatis nonaktif setelah 1 pesanan',
               },
               {
                 value: 'unlimited',
                 label: 'Bebas Periode',
-                description: 'Multi Order',
+                description: 'Bisa dipakai berkali-kali sampai kedaluwarsa',
               },
             ]}
           />
@@ -1047,7 +1173,8 @@ export default function QrOrderPage() {
           <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/80 flex items-start gap-2.5 text-xs text-blue-700">
             <Info className="size-4 shrink-0 text-blue-600 mt-0.5" />
             <span>
-              QR yang sudah kadaluwarsa otomatis tidak dapat digunakan untuk melakukan pesanan baru.
+              QR yang sudah kedaluwarsa atau sudah mencapai batas pemakaian otomatis ditolak oleh sistem dan tidak
+              dapat digunakan untuk pesanan baru.
             </span>
           </div>
         </div>
@@ -1069,16 +1196,34 @@ export default function QrOrderPage() {
             QR Sekali Pakai Berhasil Dibuat!
           </h3>
           <p className="text-xs text-neutral-500 mt-2 max-w-[340px] leading-relaxed">
-            QR &quot;{formEventName}&quot; berhasil dibuat dan siap diunduh atau dibagikan ke pelanggan.
+            QR &quot;{formEventName}&quot; berhasil dibuat dan siap dipindai atau dibagikan ke pelanggan.
           </p>
+
+          {createdDispUrl && (
+            <div className="mt-5 flex flex-col items-center gap-3">
+              <div className="p-3 rounded-xl border border-neutral-200 bg-white">
+                <QRCodeSVG value={createdDispUrl} size={160} />
+              </div>
+              <button
+                type="button"
+                onClick={() => copyToClipboard(createdDispUrl)}
+                className="flex items-center gap-1.5 text-[11px] font-mono text-blue-600 hover:underline max-w-[320px]"
+                title="Salin Tautan"
+              >
+                <span className="truncate">{createdDispUrl}</span>
+                <Copy className="size-3 shrink-0" />
+              </button>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3 w-full mt-6">
             <Button
               variant="outline-primary"
               size="md"
-              onClick={() => setShowSuccessModal(false)}
+              onClick={() => copyToClipboard(createdDispUrl)}
+              disabled={!createdDispUrl}
             >
-              Tutup
+              Salin Tautan
             </Button>
             <Button
               variant="primary"

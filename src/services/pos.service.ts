@@ -1,5 +1,5 @@
 import api from '@/lib/api';
-import { DiningTable, QrCode, Order, Payment, ApiResponse, PaymentMethod } from '@/types';
+import { DiningTable, QrCode, Order, Payment, ApiResponse, PaymentMethod, DisposableQrCode } from '@/types';
 
 export const posService = {
   // Tables & QR
@@ -37,11 +37,18 @@ export const posService = {
   saveTableCategories: (categories: any[]) =>
     api.post<ApiResponse<any>>('/system/settings', { key: 'table_categories', value: JSON.stringify(categories) }),
 
+  // Disposable (single-use / event) QR Codes
   getDisposableQrs: () =>
-    api.get<ApiResponse<{ key: string; value: string }>>('/system/settings/disposable_qrs'),
+    api.get<ApiResponse<DisposableQrCode[]>>('/pos/disposable-qrs'),
 
-  saveDisposableQrs: (qrs: any[]) =>
-    api.post<ApiResponse<any>>('/system/settings', { key: 'disposable_qrs', value: JSON.stringify(qrs) }),
+  createDisposableQr: (data: { label: string; table_id: string; expires_at?: string | null; max_uses?: number | null }) =>
+    api.post<ApiResponse<DisposableQrCode>>('/pos/disposable-qrs', data),
+
+  deactivateDisposableQr: (id: string) =>
+    api.patch<ApiResponse<DisposableQrCode>>(`/pos/disposable-qrs/${id}/deactivate`, {}),
+
+  deleteDisposableQr: (id: string) =>
+    api.delete<ApiResponse<null>>(`/pos/disposable-qrs/${id}`),
 
   // Orders
   getOrders: (params?: Record<string, string | number>) =>

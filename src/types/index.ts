@@ -292,10 +292,20 @@ export interface QrCode {
   id: ULID;
   table_id: ULID;
   token: string;
+  type?: 'TABLE' | 'DISPOSABLE';
+  label?: string | null;
   status?: 'ACTIVE' | 'INACTIVE' | 'EXPIRED';
+  effective_status?: 'ACTIVE' | 'INACTIVE' | 'EXPIRED' | 'USED_UP';
   is_active?: boolean;
   expires_at?: string | null;
+  max_uses?: number | null;
+  used_count?: number;
   created_at?: string;
+}
+
+export interface DisposableQrCode extends QrCode {
+  type: 'DISPOSABLE';
+  table?: { id: ULID; name: string; code: string } | null;
 }
 
 export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PREPARING' | 'READY' | 'COMPLETED' | 'CANCELLED';
