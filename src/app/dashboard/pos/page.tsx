@@ -13,6 +13,8 @@ import {
   ArrowLeft,
   Clock,
   Sparkles,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 import {
   PosProduct,
@@ -115,6 +117,28 @@ function PosContent() {
   const [taxFees, setTaxFees] = useState<any[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   const [lastOrderNumber, setLastOrderNumber] = useState('');
+
+  // Online / Offline Network Status Detector
+  const [isOnline, setIsOnline] = useState<boolean>(true);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsOnline(navigator.onLine);
+      const handleOnline = () => {
+        setIsOnline(true);
+        toast.success('Koneksi internet kasir kembali normal.');
+      };
+      const handleOffline = () => {
+        setIsOnline(false);
+        toast.warning('Koneksi internet terputus! Mode kasir offline aktif.');
+      };
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+      return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      };
+    }
+  }, [toast]);
 
   // Customer & Table
   const [customerName, setCustomerName] = useState('');
@@ -421,6 +445,21 @@ function PosContent() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-5">
+      {/* Offline Alert Strip */}
+      {!isOnline && (
+        <div className="flex items-center justify-between p-3.5 rounded-xl bg-amber-500 text-white text-xs font-semibold shadow-sm animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2.5">
+            <WifiOff className="size-4 shrink-0 animate-pulse" />
+            <span>
+              Perangkat kasir sedang offline. Pembayaran online (QRIS / Kartu) memerlukan koneksi internet aktif.
+            </span>
+          </div>
+          <span className="text-[10px] bg-black/25 px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono">
+            Mode Offline
+          </span>
+        </div>
+      )}
+
       {/* Top Header matching Screenshot 1 & 2 */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -440,7 +479,22 @@ function PosContent() {
         </div>
 
         <div className="flex items-center gap-2.5">
-
+          {/* Status Koneksi Online / Offline */}
+          <div
+            className={`hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold border ${
+              isOnline
+                ? 'bg-emerald-50/70 border-emerald-200 text-emerald-700'
+                : 'bg-amber-50 border-amber-300 text-amber-800'
+            }`}
+            title={isOnline ? 'Koneksi kasir online' : 'Koneksi kasir offline'}
+          >
+            <span
+              className={`size-2 rounded-full ${
+                isOnline ? 'bg-emerald-500' : 'bg-amber-500 animate-ping'
+              }`}
+            />
+            <span>{isOnline ? 'Online' : 'Offline'}</span>
+          </div>
 
           {/* Toggle View: Kasir POS vs Daftar Pesanan */}
           {activeView === 'register' ? (

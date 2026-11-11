@@ -106,6 +106,40 @@ export function KdsView() {
   const [volume, setVolume] = useState<number>(75);
   const [soundType, setSoundType] = useState<string>('Bell');
 
+  // Load sound settings from localStorage on client mount
+  useEffect(() => {
+    try {
+      const savedVol = localStorage.getItem('nemu_kds_volume');
+      if (savedVol !== null) {
+        const parsed = Number(savedVol);
+        if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+          setVolume(parsed);
+        }
+      }
+      const savedSound = localStorage.getItem('nemu_kds_sound_type');
+      if (savedSound) {
+        setSoundType(savedSound);
+      }
+    } catch {
+      // localStorage restricted or unavailable
+    }
+  }, []);
+
+  const handleVolumeChange = (newVol: number) => {
+    setVolume(newVol);
+    try {
+      localStorage.setItem('nemu_kds_volume', String(newVol));
+    } catch {}
+  };
+
+  const handleSoundTypeChange = (newSound: string) => {
+    setSoundType(newSound);
+    playKitchenChime(newSound, volume);
+    try {
+      localStorage.setItem('nemu_kds_sound_type', newSound);
+    } catch {}
+  };
+
   // Auto-refresh & live polling state
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState(10); // in seconds
@@ -642,7 +676,7 @@ export function KdsView() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setVolume(volume > 0 ? 0 : 75)}
+              onClick={() => handleVolumeChange(volume > 0 ? 0 : 75)}
               className="text-neutral-500 hover:text-neutral-800 transition-colors cursor-pointer"
               title={volume > 0 ? 'Mute' : 'Unmute'}
             >
@@ -659,7 +693,7 @@ export function KdsView() {
               min="0"
               max="100"
               value={volume}
-              onChange={(e) => setVolume(Number(e.target.value))}
+              onChange={(e) => handleVolumeChange(Number(e.target.value))}
               className="w-20 sm:w-24 h-1.5 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-[#FF5C38]"
             />
           </div>
@@ -669,10 +703,7 @@ export function KdsView() {
             <Select
               size="sm"
               value={soundType}
-              onChange={(e) => {
-                setSoundType(e.target.value);
-                playKitchenChime(e.target.value, volume);
-              }}
+              onChange={(e) => handleSoundTypeChange(e.target.value)}
               className="text-xs font-semibold bg-white"
             >
               <option value="Bell">Bell</option>
