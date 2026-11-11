@@ -194,3 +194,71 @@
       0 12px 24px -8px oklch(0 0 0 / 10%);
   }
 }
+
+/*
+ * Thermal Printer Styles (@media print)
+ * Isolates and styles the POS receipt for 58mm / 80mm thermal printers.
+ */
+@media print {
+  @page {
+    size: auto;
+    margin: 0mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Sembunyikan seluruh UI web (sidebar, dashboard, backdrop, tombol modal, dll.) */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Hanya tampilkan elemen struk dan isinya */
+  #thermal-receipt,
+  #thermal-receipt * {
+    visibility: visible !important;
+  }
+
+  #thermal-receipt {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    margin: 0 !important;
+    padding: 3mm 2.5mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #thermal-receipt.paper-58mm {
+    width: 58mm !important;
+    max-width: 58mm !important;
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+  }
+
+  #thermal-receipt.paper-80mm {
+    width: 80mm !important;
+    max-width: 80mm !important;
+    font-size: 12px !important;
+    line-height: 1.35 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

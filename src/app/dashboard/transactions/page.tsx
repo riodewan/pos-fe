@@ -27,6 +27,7 @@ import {
   TransactionDetailsDrawer,
   DetailedTransaction,
 } from '@/components/transactions/TransactionDetailsDrawer';
+import { BillPrintModal } from '@/components/pos/BillPrintModal';
 import { formatRupiah, formatDateTime, formatTimeOnly } from '@/utils';
 import { posService } from '@/services/pos.service';
 import { useStore } from '@/context/StoreContext';
@@ -80,6 +81,7 @@ export default function TransactionsPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<DetailedTransaction | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   // Helper to map DB Payment & Order to DetailedTransaction
   const mapDbPaymentToTransaction = useCallback((p: any): DetailedTransaction => {
@@ -501,7 +503,7 @@ export default function TransactionsPage() {
         onClose={() => setIsDrawerOpen(false)}
         transaction={selectedTransaction}
         onPrintReceipt={(id) => {
-          window.print();
+          setIsPrintModalOpen(true);
         }}
         onSendReceipt={(id) => {
           toast.success('Struk pembayaran telah dikirimkan ke pelanggan.');
@@ -509,6 +511,38 @@ export default function TransactionsPage() {
         onPrev={handlePrevTransaction}
         onNext={handleNextTransaction}
       />
+
+      {/* Modal Cetak Struk Thermal */}
+      {selectedTransaction && (
+        <BillPrintModal
+          isOpen={isPrintModalOpen}
+          onClose={() => setIsPrintModalOpen(false)}
+          orderNumber={selectedTransaction.orderNumber || selectedTransaction.transactionNumber}
+          items={selectedTransaction.items.map((it) => ({
+            id: String(it.id),
+            name: it.name,
+            quantity: it.qty,
+            price: it.qty > 0 ? it.price / it.qty : it.price,
+            notes: it.variant,
+          }))}
+          customerName={selectedTransaction.tableOrCustomer}
+          selectedTable={
+            selectedTransaction.diningType === 'Dine-in'
+              ? selectedTransaction.tableOrCustomer
+              : selectedTransaction.diningType
+          }
+          subtotalAmount={selectedTransaction.subtotal}
+          discountAmount={selectedTransaction.discount}
+          taxAmount={selectedTransaction.tax}
+          serviceFeeAmount={selectedTransaction.serviceFee}
+          cashierName={selectedTransaction.cashierName}
+          storeName={activeStore?.name || 'NemuPOS Outlet'}
+          storeAddress={activeStore?.address || undefined}
+          storePhone={activeStore?.phone || undefined}
+          paymentMethod={selectedTransaction.paymentMethod}
+          paymentStatus={selectedTransaction.paymentStatus}
+        />
+      )}
     </div>
   );
 }
