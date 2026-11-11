@@ -37,6 +37,7 @@ export interface OrderItemPreview {
 export interface TableItem {
   id: string;
   tableNumber: number;
+  tableName?: string;
   area: 'Indoor' | 'Outdoor' | 'VIP';
   capacity: number; // e.g. 2
   status: TableStatus;
@@ -73,6 +74,7 @@ interface TableDetailDrawerProps {
   onCheckInReservation?: (table: TableItem) => void;
   onCancelReservation?: (table: TableItem) => void;
   onOpenTable?: (table: TableItem) => void;
+  onEditReservation?: (table: TableItem) => void;
 }
 
 export function TableDetailDrawer({
@@ -86,6 +88,7 @@ export function TableDetailDrawer({
   onCheckInReservation,
   onCancelReservation,
   onOpenTable,
+  onEditReservation,
 }: TableDetailDrawerProps) {
   const { toast } = useToast();
   if (!isOpen || !table) return null;
@@ -413,7 +416,7 @@ export function TableDetailDrawer({
                 <Button
                   variant="secondary"
                   size="md"
-                  onClick={() => toast.info(`Ubah reservasi Meja ${table.tableNumber}`)}
+                  onClick={() => onEditReservation?.(table)}
                 >
                   Ubah
                 </Button>

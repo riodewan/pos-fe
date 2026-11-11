@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Plus,
   Search,
@@ -29,6 +30,7 @@ import { DiningTable } from '@/types';
 type TablesTab = 'tables' | 'category' | 'area';
 
 export default function TablesPage() {
+  const router = useRouter();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<TablesTab>('tables');
   const [tables, setTables] = useState<TableItem[]>([]);
@@ -81,6 +83,7 @@ export default function TablesPage() {
         return {
           id: t.id,
           tableNumber,
+          tableName: t.name || `Meja ${tableNumber}`,
           area,
           capacity: t.capacity || 2,
           status,
@@ -213,7 +216,7 @@ export default function TablesPage() {
               status: 'Terisi',
               elapsedTime: '00:01:00',
               activeOrder: {
-                startTime: '15:30',
+                startTime: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
                 staffName: 'Kasir',
                 guestCount: table.capacity,
                 notes: '-',
@@ -226,7 +229,21 @@ export default function TablesPage() {
           : t
       )
     );
-    showToast(`Meja ${table.tableNumber} dibuka untuk dine-in!`);
+    setIsDetailDrawerOpen(false);
+    showToast(`Meja ${table.tableNumber} dibuka! Membuka kasir...`);
+    const tableName = table.tableName || `Meja ${table.tableNumber}`;
+    router.push(`/dashboard/pos?tableId=${table.id}&tableName=${encodeURIComponent(tableName)}`);
+  };
+
+  const handleAddOrder = (table: TableItem) => {
+    setIsDetailDrawerOpen(false);
+    const tableName = table.tableName || `Meja ${table.tableNumber}`;
+    router.push(`/dashboard/pos?tableId=${table.id}&tableName=${encodeURIComponent(tableName)}`);
+  };
+
+  const handleEditReservation = (table: TableItem) => {
+    setIsDetailDrawerOpen(false);
+    router.push('/dashboard/reservations');
   };
 
   const getAddButtonText = () => {
@@ -517,10 +534,11 @@ export default function TablesPage() {
         onPrevTable={handlePrevTable}
         onNextTable={handleNextTable}
         onPay={handlePay}
-        onAddOrder={() => toast.info(`Buka menu kasir untuk menambah pesanan Meja ${selectedTable?.tableNumber}`)}
+        onAddOrder={handleAddOrder}
         onCheckInReservation={handleCheckInReservation}
         onCancelReservation={handleCancelReservation}
         onOpenTable={handleOpenTable}
+        onEditReservation={handleEditReservation}
       />
 
       {/* Add Table Drawer/Modal */}

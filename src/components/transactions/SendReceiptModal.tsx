@@ -229,3 +229,4 @@ export function SendReceiptModal({ isOpen, onClose, data }: SendReceiptModalProp
     </Modal>
   );
 }
+

@@ -64,6 +64,8 @@ function PosContent() {
 
   // Active top-level view: 'register' (Kasir) | 'orders' (Daftar Pesanan / KDS)
   const queryTab = searchParams.get('tab');
+  const queryTableId = searchParams.get('tableId');
+  const queryTableName = searchParams.get('tableName');
   const [activeView, setActiveView] = useState<PosViewMode>(
     queryTab === 'orders' ? 'orders' : 'register'
   );
@@ -75,6 +77,27 @@ function PosContent() {
       setActiveView('register');
     }
   }, [queryTab]);
+
+  // Pre-select table if routed from Denah Meja (/dashboard/tables)
+  useEffect(() => {
+    if (queryTableId || queryTableName) {
+      setOrderType('DINE_IN');
+      setActiveView('register');
+      if (queryTableId) setSelectedTableId(queryTableId);
+      if (queryTableName) {
+        setSelectedTable(decodeURIComponent(queryTableName));
+      } else if (queryTableId) {
+        posService
+          .getTable(queryTableId)
+          .then((res) => {
+            if (res?.data?.name) {
+              setSelectedTable(res.data.name);
+            }
+          })
+          .catch(() => {});
+      }
+    }
+  }, [queryTableId, queryTableName]);
 
   // Mode and order type
   const [orderType, setOrderType] = useState<OrderType>('DINE_IN');
