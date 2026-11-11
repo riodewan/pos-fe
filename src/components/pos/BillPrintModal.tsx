@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Printer, Check, X, FileText } from 'lucide-react';
+import { Printer, Check, X, FileText, Send } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/common/Button';
 import { PosCartItem } from './PosCartPanel';
 import { formatRupiah } from '@/utils';
+import { SendReceiptModal } from '@/components/transactions/SendReceiptModal';
 
 export interface PrintableReceiptItem {
   id: string;
@@ -69,6 +70,7 @@ export function BillPrintModal({
   onClose,
 }: BillPrintModalProps) {
   const [paperSize, setPaperSize] = useState<'58mm' | '80mm'>('58mm');
+  const [isSendWaOpen, setIsSendWaOpen] = useState(false);
 
   if (!isOpen) return null;
 
@@ -148,6 +150,15 @@ export function BillPrintModal({
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={onClose}>
               Tutup
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsSendWaOpen(true)}
+              leftIcon={<Send className="size-3.5 text-emerald-600" />}
+              className="text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+            >
+              Kirim WA
             </Button>
             <Button
               variant="primary"
@@ -321,6 +332,33 @@ export function BillPrintModal({
           </div>
         </div>
       </div>
+
+      {/* Modal Kirim Struk Digital ke WhatsApp */}
+      <SendReceiptModal
+        isOpen={isSendWaOpen}
+        onClose={() => setIsSendWaOpen(false)}
+        data={{
+          orderNumber,
+          storeName,
+          storeAddress,
+          customerName,
+          customerPhone,
+          diningType: selectedTable,
+          paymentMethod,
+          paymentStatus,
+          items: normalizedItems.map((it) => ({
+            name: it.name,
+            quantity: it.quantity,
+            price: it.price,
+            notes: it.notes,
+          })),
+          subtotal: computedSubtotal,
+          tax,
+          serviceFee: nesosFee,
+          discount: discountAmount,
+          total,
+        }}
+      />
     </Modal>
   );
 }
