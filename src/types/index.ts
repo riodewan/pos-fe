@@ -376,6 +376,7 @@ export interface IpaymuQrisData {
   payment_no?: string;
   qr_string: string;
   qr_image: string;
+  qr_template?: string;
   expired?: string;
   fee?: number;
   total?: number;

@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Loader2,
   ShieldCheck,
+  ExternalLink,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Modal } from '@/components/common/Modal';
@@ -461,29 +462,48 @@ export function PaymentModal({
                   </div>
                 </div>
 
-                {/* QR Display */}
+                {/* QR Display - Direct from iPaymu */}
                 <div className="relative p-3 rounded-2xl bg-white border border-neutral-200/80 shadow-inner flex flex-col items-center justify-center">
-                  {qrisData.qr_string ? (
+                  {qrisData.qr_image ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={qrisData.qr_image}
+                      alt="QRIS Asli Langsung dari iPaymu"
+                      className="size-52 object-contain rounded-xl"
+                    />
+                  ) : qrisData.qr_template ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={qrisData.qr_template}
+                      alt="QRIS Template iPaymu"
+                      className="w-56 h-auto object-contain rounded-xl"
+                    />
+                  ) : qrisData.qr_string ? (
                     <QRCodeSVG
                       value={qrisData.qr_string}
                       size={180}
                       level="M"
                       includeMargin={false}
                     />
-                  ) : qrisData.qr_image ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={qrisData.qr_image}
-                      alt="iPaymu QRIS"
-                      className="size-48 object-contain"
-                    />
                   ) : (
                     <QrCode className="size-32 text-neutral-400" />
                   )}
                   <div className="mt-2 flex items-center justify-center gap-1 text-[10px] text-neutral-500 font-semibold uppercase tracking-wider">
-                    <ShieldCheck className="size-3 text-emerald-600" /> iPaymu Sandbox Verified
+                    <ShieldCheck className="size-3 text-emerald-600" /> QRIS Resmi Langsung dari iPaymu
                   </div>
                 </div>
+
+                {qrisData.qr_template && (
+                  <a
+                    href={qrisData.qr_template}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-[#FF5C38] hover:underline flex items-center justify-center gap-1 font-semibold"
+                  >
+                    <span>Buka Template Banner QRIS iPaymu</span>
+                    <ExternalLink className="size-3" />
+                  </a>
+                )}
 
                 {/* Polling Indicator */}
                 <div className="flex items-center gap-2 text-xs text-neutral-600 bg-neutral-50 px-3 py-1.5 rounded-full border border-neutral-200/60">
