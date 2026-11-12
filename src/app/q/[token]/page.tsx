@@ -121,6 +121,7 @@ function CustomerQrContent({ token }: { token: string }) {
   const [isQrisPaid, setIsQrisPaid] = useState(false);
   const [isCheckingQris, setIsCheckingQris] = useState(false);
   const [pendingQrOrder, setPendingQrOrder] = useState<Order | null>(null);
+  const [imgError, setImgError] = useState(false);
 
   const qrisPollingRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -323,6 +324,7 @@ function CustomerQrContent({ token }: { token: string }) {
     setIsGeneratingQris(true);
     setQrisError(null);
     setIsQrisPaid(false);
+    setImgError(false);
     try {
       let order = pendingQrOrder;
       if (!order) {
@@ -1225,19 +1227,13 @@ function CustomerQrContent({ token }: { token: string }) {
               <>
                 {/* QRIS Code - Direct from iPaymu */}
                 <div className="relative p-3.5 rounded-2xl bg-white border border-neutral-200 shadow-inner flex flex-col items-center justify-center mx-auto w-56">
-                  {ipaymuQris.qr_image ? (
+                  {!imgError && ipaymuQris.qr_image ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={ipaymuQris.qr_image}
                       alt="QRIS Asli Langsung dari iPaymu"
                       className="size-52 object-contain rounded-xl"
-                    />
-                  ) : ipaymuQris.qr_template ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={ipaymuQris.qr_template}
-                      alt="QRIS Template iPaymu"
-                      className="w-56 h-auto object-contain rounded-xl"
+                      onError={() => setImgError(true)}
                     />
                   ) : ipaymuQris.qr_string ? (
                     <QRCodeSVG

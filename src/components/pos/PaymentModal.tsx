@@ -65,6 +65,7 @@ export function PaymentModal({
   const [isQrisPaid, setIsQrisPaid] = useState(false);
   const [paidOrderData, setPaidOrderData] = useState<any | null>(null);
   const [countdownSeconds, setCountdownSeconds] = useState<number>(900); // 15 mins
+  const [imgError, setImgError] = useState(false);
 
   const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -85,6 +86,7 @@ export function PaymentModal({
       setIsQrisPaid(false);
       setPaidOrderData(null);
       setQrisError(null);
+      setImgError(false);
     } else {
       stopPolling();
       if (countdownTimerRef.current) {
@@ -92,6 +94,7 @@ export function PaymentModal({
         countdownTimerRef.current = null;
       }
       setQrisData(null);
+      setImgError(false);
       setIsGeneratingQris(false);
       setIsCheckingStatus(false);
       setIsQrisPaid(false);
@@ -463,20 +466,14 @@ export function PaymentModal({
                 </div>
 
                 {/* QR Display - Direct from iPaymu */}
-                <div className="relative p-3 rounded-2xl bg-white border border-neutral-200/80 shadow-inner flex flex-col items-center justify-center">
-                  {qrisData.qr_image ? (
+                <div className="relative p-3 rounded-2xl bg-white border border-neutral-200/80 shadow-inner flex flex-col items-center justify-center min-h-[220px]">
+                  {!imgError && qrisData.qr_image ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={qrisData.qr_image}
                       alt="QRIS Asli Langsung dari iPaymu"
                       className="size-52 object-contain rounded-xl"
-                    />
-                  ) : qrisData.qr_template ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={qrisData.qr_template}
-                      alt="QRIS Template iPaymu"
-                      className="w-56 h-auto object-contain rounded-xl"
+                      onError={() => setImgError(true)}
                     />
                   ) : qrisData.qr_string ? (
                     <QRCodeSVG
