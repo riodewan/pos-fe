@@ -160,6 +160,7 @@ function PosContent() {
 
   // Workflow Modals & Drawers state
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState<any | null>(null);
   const [isBillPrintOpen, setIsBillPrintOpen] = useState(false);
   const [isDiscountOpen, setIsDiscountOpen] = useState(false);
   const [isOrdersDrawerOpen, setIsOrdersDrawerOpen] = useState(false);
@@ -382,18 +383,9 @@ function PosContent() {
     subtotal + tax + nesosFee - discountAmount
   );
 
-  const handlePaymentSuccess = async (
-    method: string,
-    tendered: number,
-    change: number
-  ) => {
-    let createdOrderId: string | null = null;
+  const handleRequestCreateOrder = async () => {
+    if (pendingOrder) return pendingOrder;
     try {
-      const normalizedMethod =
-        method.toUpperCase() === 'DEBIT' || method.toUpperCase() === 'CARD'
-          ? 'EDC'
-          : method.toUpperCase();
-
       const res: any = await posService.createOrder({
         table_id: selectedTableId || null,
         channel: orderType,
@@ -410,19 +402,85 @@ function PosContent() {
         })),
       });
       const created = res?.data?.data ?? res?.data;
-      createdOrderId = created?.id || null;
+      setPendingOrder(created);
+      return created;
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Gagal membuat draf pesanan.');
+      throw err;
+    }
+  };
+
+  const handleClosePaymentModal = async () => {
+    if (pendingOrder) {
+      try {
+        await posService.cancelOrder(pendingOrder.id, 'Dibatalkan oleh kasir');
+      } catch {
+        // ignore cleanup error
+      }
+      setPendingOrder(null);
+    }
+    setIsPaymentOpen(false);
+  };
+
+  const handlePaymentSuccess = async (
+    method: string,
+    tendered: number,
+    change: number,
+    paidOrder?: any
+  ) => {
+    if (paidOrder) {
+      // Order was already completed by backend iPaymu check
+      setLastOrderNumber(paidOrder.order_number || '');
+      toast.success(`Transaksi #${paidOrder.order_number || ''} QRIS iPaymu berhasil lunas & stok bahan otomatis dikurangi!`);
+      await refreshCatalog();
+      setPendingOrder(null);
+      setIsPaymentOpen(false);
+      setIsBillPrintOpen(true);
+      return;
+    }
+
+    let createdOrderId: string | null = pendingOrder?.id || null;
+    try {
+      const normalizedMethod =
+        method.toUpperCase() === 'DEBIT' || method.toUpperCase() === 'CARD'
+          ? 'EDC'
+          : method.toUpperCase();
+
+      if (!createdOrderId) {
+        const res: any = await posService.createOrder({
+          table_id: selectedTableId || null,
+          channel: orderType,
+          customer_name: customerName || null,
+          customer_phone: customerPhone || null,
+          discount_amount: discountAmount,
+          tax_amount: tax,
+          service_charge: nesosFee,
+          notes: orderNotes,
+          items: cart.map((c) => ({
+            product_id: c.product.id,
+            quantity: c.quantity,
+            notes: c.notes || null,
+          })),
+        });
+        const created = res?.data?.data ?? res?.data;
+        createdOrderId = created?.id || null;
+        setLastOrderNumber(created?.order_number || '');
+      } else {
+        setLastOrderNumber(pendingOrder?.order_number || '');
+      }
+
       if (createdOrderId) {
         await posService.processPayment(createdOrderId, {
           method: normalizedMethod as any,
-          amount: Number(created?.total_amount ?? totalAmount),
+          amount: Number(pendingOrder?.total_amount ?? totalAmount),
           metadata: { tendered, change },
         });
-        setLastOrderNumber(created?.order_number || '');
-        toast.success(`Transaksi #${created?.order_number || ''} berhasil dibayar & stok bahan otomatis dikurangi!`);
+        toast.success(`Transaksi #${pendingOrder?.order_number || lastOrderNumber} berhasil dibayar & stok bahan otomatis dikurangi!`);
         await refreshCatalog();
       }
+      setPendingOrder(null);
     } catch (e: any) {
-      if (createdOrderId) {
+      if (createdOrderId && !pendingOrder) {
         try {
           await posService.cancelOrder(createdOrderId, 'Pembayaran gagal / stok tidak cukup');
         } catch {
@@ -707,9 +765,12 @@ function PosContent() {
         isOpen={isPaymentOpen}
         totalAmount={totalAmount}
         customerName={customerName}
+        customerPhone={customerPhone}
         selectedTable={selectedTable}
         paymentMethods={paymentMethods}
-        onClose={() => setIsPaymentOpen(false)}
+        existingOrderId={pendingOrder?.id || null}
+        onRequestCreateOrder={handleRequestCreateOrder}
+        onClose={handleClosePaymentModal}
         onSuccess={handlePaymentSuccess}
       />
 

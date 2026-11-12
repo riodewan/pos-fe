@@ -1,5 +1,5 @@
 import api from '@/lib/api';
-import { DiningTable, QrCode, Order, Payment, ApiResponse, PaymentMethod, DisposableQrCode } from '@/types';
+import { DiningTable, QrCode, Order, Payment, ApiResponse, PaymentMethod, DisposableQrCode, IpaymuQrisData, IpaymuStatusData } from '@/types';
 
 export const posService = {
   // Tables & QR
@@ -97,6 +97,16 @@ export const posService = {
       metadata?: Record<string, unknown>;
     }
   ) => api.post<ApiResponse<Payment>>(`/pos/orders/${orderId}/payments`, data),
+
+  createIpaymuQris: (
+    orderId: string,
+    data?: { customer_name?: string; customer_phone?: string; customer_email?: string }
+  ) => api.post<ApiResponse<IpaymuQrisData>>(`/pos/orders/${orderId}/ipaymu/qris`, data || {}),
+
+  checkIpaymuStatus: (orderId: string, transactionId?: number | string) =>
+    api.get<IpaymuStatusData>(`/pos/orders/${orderId}/ipaymu/status`, {
+      params: transactionId ? { transaction_id: transactionId } : undefined,
+    }),
 
   // Table Reservations
   getReservations: (params?: Record<string, string | number>) =>

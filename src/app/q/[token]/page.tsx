@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback, use, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, use, Suspense } from 'react';
 import {
   Coffee,
   Plus,
@@ -25,10 +25,11 @@ import {
   Store,
   ChevronDown,
   Info,
+  RefreshCw,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { publicService } from '@/services';
-import { PublicQrResolved, Order, OrderStatus } from '@/types';
+import { PublicQrResolved, Order, OrderStatus, IpaymuQrisData } from '@/types';
 import { ApiError } from '@/lib/api';
 import { formatRupiah, deduceProductCategory } from '@/utils';
 import { useToast } from '@/context/ToastContext';
@@ -111,6 +112,30 @@ function CustomerQrContent({ token }: { token: string }) {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
   const [countdownSeconds, setCountdownSeconds] = useState(900); // 15 mins
+
+  // iPaymu QRIS States
+  const [ipaymuQris, setIpaymuQris] = useState<IpaymuQrisData | null>(null);
+  const [isGeneratingQris, setIsGeneratingQris] = useState(false);
+  const [qrisError, setQrisError] = useState<string | null>(null);
+  const [isQrisPaid, setIsQrisPaid] = useState(false);
+  const [isCheckingQris, setIsCheckingQris] = useState(false);
+  const [pendingQrOrder, setPendingQrOrder] = useState<Order | null>(null);
+
+  const qrisPollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  const stopQrisPolling = useCallback(() => {
+    if (qrisPollingRef.current) {
+      clearInterval(qrisPollingRef.current);
+      qrisPollingRef.current = null;
+    }
+  }, []);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      stopQrisPolling();
+    };
+  }, [stopQrisPolling]);
 
   // Confirmed Order State & Live Tracker
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
@@ -262,8 +287,87 @@ function CustomerQrContent({ token }: { token: string }) {
 
   const formatCurrency = formatRupiah;
 
+  // Check transaction status with iPaymu for customer QR order
+  const checkCustomerIpaymuStatus = useCallback(
+    async (orderId: string, trxId?: number | string) => {
+      if (!orderId || isQrisPaid) return;
+      try {
+        setIsCheckingQris(true);
+        const res: any = await publicService.checkPublicIpaymuStatus(token, orderId, trxId);
+        const data = res?.data ?? res;
+        if (data?.is_paid) {
+          setIsQrisPaid(true);
+          stopQrisPolling();
+          const updatedOrder = data?.data?.order ?? data?.data;
+          setTimeout(() => {
+            setConfirmedOrder(updatedOrder || pendingQrOrder);
+            setLiveOrderStatus(updatedOrder?.status || 'PREPARING');
+            setPaymentModalOpen(false);
+            setMobileCartDrawerOpen(false);
+            setCart([]);
+            toast.success('Pembayaran QRIS Berhasil! Pesanan Anda sedang disiapkan di dapur.');
+          }, 1200);
+        }
+      } catch {
+        // Silently continue polling
+      } finally {
+        setIsCheckingQris(false);
+      }
+    },
+    [token, isQrisPaid, stopQrisPolling, pendingQrOrder, toast]
+  );
+
+  // Generate dynamic QRIS from iPaymu for customer
+  const generateCustomerQris = useCallback(async () => {
+    setIsGeneratingQris(true);
+    setQrisError(null);
+    setIsQrisPaid(false);
+    try {
+      let order = pendingQrOrder;
+      if (!order) {
+        const payload = {
+          customer_name: customerName.trim(),
+          customer_phone: customerPhone.trim() || null,
+          notes: orderNotes.trim() || null,
+          payment_method: 'QRIS',
+          items: cart.map((i) => ({
+            product_id: i.productId,
+            quantity: i.quantity,
+            notes: i.notes || null,
+          })),
+        };
+        const res = await publicService.submitCustomerOrder(token, payload);
+        order = res.data;
+        setPendingQrOrder(order);
+      }
+
+      const qrisRes: any = await publicService.createPublicIpaymuQris(token, order.id, {
+        customer_name: customerName.trim(),
+        customer_phone: customerPhone.trim() || undefined,
+      });
+
+      const qrisData = qrisRes?.data?.data ?? qrisRes?.data;
+      if (!qrisData?.qr_string && !qrisData?.qr_image) {
+        throw new Error(qrisRes?.data?.message || 'Gagal menghasilkan kode QRIS dari iPaymu.');
+      }
+
+      setIpaymuQris(qrisData);
+      setCountdownSeconds(900);
+
+      // Start Polling every 3.5s
+      stopQrisPolling();
+      qrisPollingRef.current = setInterval(() => {
+        checkCustomerIpaymuStatus(order.id, qrisData.transaction_id);
+      }, 3500);
+    } catch (err: any) {
+      setQrisError(err?.response?.data?.message || err?.message || 'Gagal membuat QRIS pembayaran.');
+    } finally {
+      setIsGeneratingQris(false);
+    }
+  }, [customerName, customerPhone, orderNotes, cart, token, pendingQrOrder, stopQrisPolling, checkCustomerIpaymuStatus]);
+
   // Step 1: Open Payment Gateway Step
-  const handleProceedToPayment = (e: React.FormEvent) => {
+  const handleProceedToPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName.trim()) {
       toast.warning('Mohon isi nama Anda terlebih dahulu.');
@@ -274,12 +378,17 @@ function CustomerQrContent({ token }: { token: string }) {
     if (selectedPayment === 'CASH_COUNTER') {
       handleConfirmExecutePayment();
     } else {
-      setCountdownSeconds(900);
       setPaymentModalOpen(true);
+      generateCustomerQris();
     }
   };
 
-  // Step 2: Execute Direct Self-Service Payment & Order Creation
+  const handleClosePaymentModal = () => {
+    stopQrisPolling();
+    setPaymentModalOpen(false);
+  };
+
+  // Step 2: Execute Direct Self-Service Payment & Order Creation (Cash at counter)
   const handleConfirmExecutePayment = async () => {
     setProcessingPayment(true);
     try {
@@ -303,7 +412,7 @@ function CustomerQrContent({ token }: { token: string }) {
       setPaymentModalOpen(false);
       setMobileCartDrawerOpen(false);
       setCart([]);
-      toast.success('Pesanan Anda berhasil dikirim ke dapur!');
+      toast.success('Pesanan Anda berhasil dikirim! Silakan selesaikan pembayaran di kasir.');
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         toast.error(err.message || 'Gagal memproses pesanan.');
@@ -1048,20 +1157,20 @@ function CustomerQrContent({ token }: { token: string }) {
       )}
 
       {/* ============================================================ */}
-      {/* STEP 2: DYNAMIC QRIS MODAL */}
+      {/* STEP 2: DYNAMIC QRIS MODAL (iPaymu Live Gateway) */}
       {/* ============================================================ */}
       {paymentModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-3xl border border-neutral-200/90 dark:border-zinc-800 p-6 space-y-4 shadow-2xl animate-in zoom-in-95 text-center">
             <div className="flex items-center justify-between pb-2 border-b border-neutral-100 dark:border-zinc-800">
               <div className="flex items-center gap-2">
-                <div className="px-2 py-0.5 rounded bg-red-600 text-white font-black text-[11px] tracking-wider">
-                  QRIS
+                <div className="px-2 py-0.5 rounded bg-gradient-to-r from-red-600 to-orange-500 text-white font-black text-[11px] tracking-wider">
+                  iPaymu QRIS
                 </div>
                 <span className="text-xs font-bold text-neutral-900 dark:text-zinc-100">Pembayaran Mandiri</span>
               </div>
               <button
-                onClick={() => setPaymentModalOpen(false)}
+                onClick={handleClosePaymentModal}
                 className="text-xs text-neutral-400 hover:text-neutral-700 dark:hover:text-zinc-200 p-1"
               >
                 <X className="size-4" />
@@ -1079,53 +1188,96 @@ function CustomerQrContent({ token }: { token: string }) {
               </p>
             </div>
 
-            {/* QRIS Code */}
-            <div className="relative p-4 rounded-2xl bg-white border border-neutral-200 shadow-inner flex flex-col items-center justify-center mx-auto w-56">
-              <QRCodeSVG
-                value={`https://qris.id/pay/${token}?amount=${totalPayable}&t=${Date.now()}`}
-                size={180}
-                level="H"
-                includeMargin={false}
-              />
-              <div className="mt-2 flex items-center justify-center gap-1.5 text-[10px] text-neutral-500 font-semibold uppercase tracking-wider">
-                <ShieldCheck className="size-3 text-emerald-600" /> Standar QRIS Nasional
+            {/* Dynamic Content */}
+            {isGeneratingQris ? (
+              <div className="py-12 flex flex-col items-center justify-center space-y-3">
+                <Loader2 className="size-8 text-orange-600 animate-spin" />
+                <p className="text-xs font-semibold text-neutral-800 dark:text-zinc-200">
+                  Menghubungkan ke iPaymu Gateway...
+                </p>
+                <p className="text-[11px] text-neutral-400">Membuat kode QRIS dinamis untuk meja Anda</p>
               </div>
-            </div>
+            ) : qrisError ? (
+              <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-center space-y-2.5">
+                <AlertCircle className="size-6 text-red-600 mx-auto" />
+                <p className="text-xs text-red-700 dark:text-red-400 font-semibold">{qrisError}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => generateCustomerQris()}
+                  className="text-xs mx-auto"
+                >
+                  <RefreshCw className="size-3 mr-1" /> Coba Lagi
+                </Button>
+              </div>
+            ) : isQrisPaid ? (
+              <div className="p-6 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-center space-y-2 animate-in zoom-in-95">
+                <CheckCircle2 className="size-12 text-emerald-600 mx-auto animate-bounce" />
+                <h4 className="text-sm font-black text-emerald-800 dark:text-emerald-300">
+                  Pembayaran Berhasil!
+                </h4>
+                <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                  Pesanan Anda telah lunas dan sedang disiapkan di dapur.
+                </p>
+              </div>
+            ) : ipaymuQris ? (
+              <>
+                {/* QRIS Code */}
+                <div className="relative p-3.5 rounded-2xl bg-white border border-neutral-200 shadow-inner flex flex-col items-center justify-center mx-auto w-56">
+                  {ipaymuQris.qr_string ? (
+                    <QRCodeSVG
+                      value={ipaymuQris.qr_string}
+                      size={180}
+                      level="M"
+                      includeMargin={false}
+                    />
+                  ) : ipaymuQris.qr_image ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={ipaymuQris.qr_image}
+                      alt="QRIS iPaymu"
+                      className="size-48 object-contain"
+                    />
+                  ) : null}
+                  <div className="mt-2 flex items-center justify-center gap-1.5 text-[10px] text-neutral-500 font-semibold uppercase tracking-wider">
+                    <ShieldCheck className="size-3 text-emerald-600" /> iPaymu Sandbox Verified
+                  </div>
+                </div>
 
-            {/* Countdown Timer */}
-            <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-500 dark:text-zinc-400">
-              <Clock className="size-3.5 text-neutral-700 dark:text-zinc-300" />
-              <span>Sisa Waktu Bayar: </span>
-              <span className="font-mono font-bold text-neutral-900 dark:text-zinc-100">
-                {String(Math.floor(countdownSeconds / 60)).padStart(2, '0')}:
-                {String(countdownSeconds % 60).padStart(2, '0')}
-              </span>
-            </div>
+                {/* Countdown Timer */}
+                <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-500 dark:text-zinc-400">
+                  <Clock className="size-3.5 text-neutral-700 dark:text-zinc-300" />
+                  <span>Sisa Waktu Bayar: </span>
+                  <span className="font-mono font-bold text-neutral-900 dark:text-zinc-100">
+                    {String(Math.floor(countdownSeconds / 60)).padStart(2, '0')}:
+                    {String(countdownSeconds % 60).padStart(2, '0')}
+                  </span>
+                </div>
 
-            <div className="text-[11px] text-neutral-500 dark:text-zinc-400 leading-relaxed bg-neutral-50 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-neutral-100 dark:border-zinc-800 text-left space-y-1">
-              <p className="font-semibold text-neutral-800 dark:text-zinc-200">Petunjuk Pembayaran:</p>
-              <p>1. Buka m-Banking (BCA, Mandiri, BRI) atau E-Wallet (GoPay, OVO, ShopeePay).</p>
-              <p>2. Scan kode QRIS di atas dan selesaikan pembayaran.</p>
-            </div>
+                {/* Polling Pulse */}
+                <div className="flex items-center justify-center gap-2 text-[11px] text-neutral-600 dark:text-zinc-400 bg-neutral-50 dark:bg-zinc-800/60 py-1.5 px-3 rounded-full border border-neutral-200/60 dark:border-zinc-700">
+                  <span className="size-2 rounded-full bg-emerald-500 animate-ping" />
+                  <span>Sistem memantau pembayaran otomatis...</span>
+                </div>
 
-            {/* Confirmation simulation button */}
-            <button
-              onClick={handleConfirmExecutePayment}
-              disabled={processingPayment}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-emerald-600/25 text-xs flex items-center justify-center gap-2 transition-all"
-            >
-              {processingPayment ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  <span>Memverifikasi Pembayaran...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="size-4" />
-                  <span>Saya Sudah Bayar (Konfirmasi)</span>
-                </>
-              )}
-            </button>
+                <div className="text-[11px] text-neutral-500 dark:text-zinc-400 leading-relaxed bg-neutral-50 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-neutral-100 dark:border-zinc-800 text-left space-y-1">
+                  <p className="font-semibold text-neutral-800 dark:text-zinc-200">Petunjuk Pembayaran:</p>
+                  <p>1. Buka m-Banking (BCA, Mandiri, BRI) atau E-Wallet (GoPay, OVO, ShopeePay).</p>
+                  <p>2. Scan kode QRIS di atas dan selesaikan transaksi.</p>
+                </div>
+
+                {/* Manual Check Status button */}
+                <button
+                  type="button"
+                  onClick={() => pendingQrOrder && checkCustomerIpaymuStatus(pendingQrOrder.id, ipaymuQris.transaction_id)}
+                  disabled={isCheckingQris}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-2xl shadow-lg shadow-emerald-600/25 text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <RefreshCw className={`size-3.5 ${isCheckingQris ? 'animate-spin' : ''}`} />
+                  <span>{isCheckingQris ? 'Memeriksa Status...' : 'Cek Status Pembayaran'}</span>
+                </button>
+              </>
+            ) : null}
           </div>
         </div>
       )}

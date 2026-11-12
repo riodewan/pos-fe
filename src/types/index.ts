@@ -367,6 +367,32 @@ export interface Payment {
   created_at: string;
 }
 
+export interface IpaymuQrisData {
+  transaction_id: number;
+  session_id: string;
+  reference_id: string;
+  via: string;
+  channel: string;
+  payment_no?: string;
+  qr_string: string;
+  qr_image: string;
+  expired?: string;
+  fee?: number;
+  total?: number;
+}
+
+export interface IpaymuStatusData {
+  message?: string;
+  is_paid: boolean;
+  data?: {
+    order?: Order;
+    payment?: Payment;
+    transaction_id?: number;
+    status_desc?: string;
+    [key: string]: any;
+  };
+}
+
 // ==========================================
 // Public Customer QR Self-Order
 // ==========================================
